@@ -197,14 +197,13 @@ find_theme_dir_each (const gchar  *dir,
       return FALSE;
     }
 
-  debug_theme ("Found theme directory '%s'.", parent_dir);
-
   version_dir = g_strdup_printf ("libadwaita-%d.%d", ADW_MAJOR_VERSION, ADW_MINOR_VERSION);
   base_path = g_build_filename (parent_dir, version_dir, base_file, NULL);
   colors_path = g_build_filename (parent_dir, version_dir, color_file, NULL);
 
   if (g_file_test (base_path, G_FILE_TEST_EXISTS))
     {
+      debug_theme ("Found theme directory '%s' in '%s'.", version_dir, parent_dir);
       *found_base_path = g_strdup (base_path);
     }
   else
