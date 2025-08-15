@@ -309,6 +309,16 @@ adw_settings_get_theme_name (AdwSettings *self)
   return self->theme_name;
 }
 
+gboolean
+adw_settings_get_theme_is_dark (AdwSettings *self)
+{
+  g_return_val_if_fail (ADW_IS_SETTINGS (self), FALSE);
+
+  g_autofree gchar *theme_utf8 = g_utf8_make_valid (self->theme_name, -1);
+  g_autofree gchar *lowered = g_utf8_strdown (theme_utf8, -1);
+  return g_str_has_suffix (lowered, "-dark") || !!g_strstr_len (lowered, -1, "-dark-");
+}
+
 AdwSystemColorScheme
 adw_settings_get_color_scheme (AdwSettings *self)
 {

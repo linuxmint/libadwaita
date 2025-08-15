@@ -32,6 +32,8 @@ AdwSettings *adw_settings_get_default (void);
 
 ADW_AVAILABLE_IN_ALL
 const gchar *adw_settings_get_theme_name (AdwSettings *self);
+ADW_AVAILABLE_IN_ALL
+gboolean adw_settings_get_theme_is_dark (AdwSettings *self);
 
 ADW_AVAILABLE_IN_ALL
 gboolean adw_settings_get_system_supports_color_schemes (AdwSettings *self);
