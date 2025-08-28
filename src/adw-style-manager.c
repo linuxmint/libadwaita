@@ -197,14 +197,13 @@ find_theme_dir_each (const gchar  *dir,
       return FALSE;
     }
 
-  debug_theme ("Found theme directory '%s'.", parent_dir);
-
   version_dir = g_strdup_printf ("libadwaita-%d.%d", ADW_MAJOR_VERSION, ADW_MINOR_VERSION);
   base_path = g_build_filename (parent_dir, version_dir, base_file, NULL);
   colors_path = g_build_filename (parent_dir, version_dir, color_file, NULL);
 
   if (g_file_test (base_path, G_FILE_TEST_EXISTS))
     {
+      debug_theme ("Found theme directory '%s' in '%s'.", version_dir, parent_dir);
       *found_base_path = g_strdup (base_path);
     }
   else
@@ -355,7 +354,16 @@ get_is_dark (AdwStyleManager *self)
   case ADW_COLOR_SCHEME_DEFAULT:
     if (self->display)
       return get_is_dark (default_instance);
-    return (system_scheme == ADW_SYSTEM_COLOR_SCHEME_PREFER_DARK);
+
+    if (adw_settings_get_theme_is_dark (self->settings))
+    {
+        debug_theme ("Theme '%s' is dark, so preferring dark color scheme.", 
+                     adw_settings_get_theme_name (self->settings));
+        return TRUE;
+    } else
+    {
+        return (system_scheme == ADW_SYSTEM_COLOR_SCHEME_PREFER_DARK);
+    }
   case ADW_COLOR_SCHEME_FORCE_LIGHT:
     return FALSE;
   case ADW_COLOR_SCHEME_PREFER_LIGHT:
@@ -401,6 +409,7 @@ notify_high_contrast_cb (AdwStyleManager *self)
 static void
 notify_theme_name_cb (AdwStyleManager *self)
 {
+  update_dark (self);
   update_stylesheet (self);
 }
 
