@@ -1,3 +1,10 @@
+libadwaita-1 (1.5.0-1mint2) zara; urgency=medium
+
+  [ Michael Webster ]
+  * Allow the theme name to determine the applied color-scheme if there's no overriding app/system preference. (#1)
+
+ -- Clement Lefebvre <root@linuxmint.com>  Thu, 28 Aug 2025 09:57:40 +0200
+
 libadwaita-1 (1.5.0-1mint1) zara; urgency=medium
 
   [ Michael Webster ]
