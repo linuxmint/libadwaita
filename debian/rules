@@ -1,0 +1,34 @@
+#!/usr/bin/make -f
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export DEB_LDFLAGS_MAINT_APPEND = -Wl,-O1 -Wl,-z,defs
+export DPKG_GENSYMBOLS_CHECK_LEVEL = 4
+
+built_binaries := $(shell dh_listpackages)
+
+ifneq ($(filter %-doc,$(built_binaries)),)
+BUILD_DOCS := -Ddocumentation=true
+else
+BUILD_DOCS := -Ddocumentation=false
+endif
+
+%:
+	dh $@
+
+# Build libadwaita twice to not include internal symbols
+# in our release build. Internal symbols are used for tests
+override_dh_auto_configure:
+	dh_auto_configure -- $(BUILD_DOCS) -Dtests=false
+	dh_auto_configure --builddirectory=debian/testtmp -- \
+		 -Dexamples=false \
+		 -Dgtk_doc=false \
+		 -Dtests=true
+
+execute_after_dh_auto_build:
+	dh_auto_build --builddirectory=debian/testtmp
+
+override_dh_auto_test:
+	xvfb-run -a -s "-screen 0 1024x768x24 -noreset" -e /proc/self/fd/2 \
+		dh_auto_test --builddirectory=debian/testtmp
+
+override_dh_gnome_clean:
