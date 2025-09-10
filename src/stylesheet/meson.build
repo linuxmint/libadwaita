@@ -81,6 +81,8 @@ if sassc.found()
         sassc, sassc_opts, '@INPUT@', '@OUTPUT@',
       ],
       depend_files: scss_deps,
+      install: true,
+      install_dir: theme_dir
     )
   endforeach
 endif
@@ -96,4 +98,9 @@ libadwaita_stylesheet_resources = gnome.compile_resources(
   ],
   dependencies: stylesheet_deps,
   c_name: 'adw_stylesheet',
+)
+
+install_subdir(
+  'assets',
+  install_dir: theme_dir
 )
