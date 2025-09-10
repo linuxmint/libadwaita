@@ -1,3 +1,11 @@
+libadwaita-1 (1.7.6+mint1) gigi; urgency=medium
+
+  [ Michael Webster ]
+  * adw-style-manager.c: Attempt to use the current system theme for style info.
+  * build: Install a copy of the default theme as 'LibAdwaita' as part of the libadwaita-1-examples package.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Wed, 10 Sep 2025 18:06:41 +0100
+
 libadwaita-1 (1.7.6-1~deb13u1) trixie; urgency=medium
 
   * New upstream bugfix release 1.7.5
