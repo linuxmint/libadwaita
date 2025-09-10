@@ -1,3 +1,9 @@
+libadwaita-1 (1.7.6+1) UNRELEASED; urgency=medium
+
+  * Non-maintainer upload.
+
+ -- Clement Lefebvre <clem@framework>  Wed, 10 Sep 2025 13:42:45 +0100
+
 libadwaita-1 (1.7.6-1~deb13u1) trixie; urgency=medium
 
   * New upstream bugfix release 1.7.5
