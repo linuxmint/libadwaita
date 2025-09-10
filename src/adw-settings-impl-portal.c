@@ -26,6 +26,7 @@ struct _AdwSettingsImplPortal
   GDBusProxy *settings_portal;
 
   gboolean found_color_scheme;
+  gboolean found_theme_name;
 
   enum {
     HIGH_CONTRAST_STATE_NONE = 0,
@@ -210,6 +211,15 @@ changed_cb (GDBusProxy            *proxy,
       g_variant_unref (value);
       return;
     }
+
+    if (!g_strcmp0 (name, "gtk-theme") && self->found_theme_name) {
+      adw_settings_impl_set_theme_name (ADW_SETTINGS_IMPL (self),
+                                        g_variant_get_string (value, NULL));
+
+      g_variant_unref (value);
+
+      return;
+    }
   }
 
   g_variant_unref (value);
@@ -253,7 +263,8 @@ adw_settings_impl_portal_new (gboolean enable_color_scheme,
                               gboolean enable_high_contrast,
                               gboolean enable_accent_colors,
                               gboolean enable_document_font_name,
-                              gboolean enable_monospace_font_name)
+                              gboolean enable_monospace_font_name,
+                              gboolean enable_theme_name)
 {
   AdwSettingsImplPortal *self = g_object_new (ADW_TYPE_SETTINGS_IMPL_PORTAL, NULL);
   GError *error = NULL;
@@ -341,6 +352,17 @@ adw_settings_impl_portal_new (gboolean enable_color_scheme,
 
       g_variant_unref (variant);
     }
+
+    if (enable_theme_name &&
+        read_setting (self, "org.gnome.desktop.interface",
+                      "gtk-theme", "s", &variant)) {
+      self->found_theme_name = TRUE;
+
+      adw_settings_impl_set_theme_name (ADW_SETTINGS_IMPL (self),
+                                        g_variant_get_string (variant, NULL));
+
+      g_variant_unref (variant);
+    }
   }
 
   adw_settings_impl_set_features (ADW_SETTINGS_IMPL (self),
@@ -348,13 +370,15 @@ adw_settings_impl_portal_new (gboolean enable_color_scheme,
                                   self->high_contrast_portal_state != HIGH_CONTRAST_STATE_NONE,
                                   self->found_accent_colors,
                                   self->found_document_font_name,
-                                  self->found_monospace_font_name);
+                                  self->found_monospace_font_name,
+                                  self->found_theme_name);
 
   if (self->found_color_scheme ||
       self->high_contrast_portal_state != HIGH_CONTRAST_STATE_NONE ||
       self->found_accent_colors ||
       self->found_document_font_name ||
-      self->found_monospace_font_name) {
+      self->found_monospace_font_name ||
+      self->found_theme_name) {
     g_signal_connect (self->settings_portal, "g-signal",
                       G_CALLBACK (changed_cb), self);
   }

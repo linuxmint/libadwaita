@@ -52,6 +52,12 @@ const char *adw_settings_get_document_font_name (AdwSettings *self);
 ADW_AVAILABLE_IN_1_7
 const char *adw_settings_get_monospace_font_name (AdwSettings *self);
 
+ADW_AVAILABLE_IN_1_7
+const gchar *adw_settings_get_theme_name (AdwSettings *self);
+
+ADW_AVAILABLE_IN_1_7
+gboolean adw_settings_get_theme_is_dark (AdwSettings *self);
+
 ADW_AVAILABLE_IN_ALL
 void adw_settings_start_override (AdwSettings *self);
 ADW_AVAILABLE_IN_ALL

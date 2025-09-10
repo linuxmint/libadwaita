@@ -33,6 +33,15 @@ is_running_in_flatpak (void)
 }
 
 static void
+theme_name_changed_cb (AdwSettingsImplGSettings *self)
+{
+  gchar *theme_name = g_settings_get_string (self->interface_settings, "gtk-theme");
+
+  adw_settings_impl_set_theme_name (ADW_SETTINGS_IMPL (self), theme_name);
+  g_free (theme_name);
+}
+
+static void
 color_scheme_changed_cb (AdwSettingsImplGSettings *self)
 {
   AdwSystemColorScheme color_scheme =
@@ -108,7 +117,8 @@ adw_settings_impl_gsettings_new (gboolean enable_color_scheme,
                                  gboolean enable_high_contrast,
                                  gboolean enable_accent_colors,
                                  gboolean enable_document_font_name,
-                                 gboolean enable_monospace_font_name)
+                                 gboolean enable_monospace_font_name,
+                                 gboolean enable_theme_name)
 {
   AdwSettingsImplGSettings *self = g_object_new (ADW_TYPE_SETTINGS_IMPL_GSETTINGS, NULL);
   GSettingsSchemaSource *source;
@@ -117,6 +127,7 @@ adw_settings_impl_gsettings_new (gboolean enable_color_scheme,
   gboolean found_accent_colors = FALSE;
   gboolean found_document_font_name = FALSE;
   gboolean found_monospace_font_name = FALSE;
+  gboolean found_theme_name = FALSE;
 
   /* While we can access gsettings in flatpak, we can't do anything useful with
    * them as they aren't propagated from the system. */
@@ -128,7 +139,8 @@ adw_settings_impl_gsettings_new (gboolean enable_color_scheme,
   if (enable_color_scheme ||
       enable_accent_colors ||
       enable_document_font_name ||
-      enable_monospace_font_name) {
+      enable_monospace_font_name ||
+      enable_theme_name) {
     GSettingsSchema *schema =
       g_settings_schema_source_lookup (source, "org.gnome.desktop.interface", TRUE);
 
@@ -158,6 +170,17 @@ adw_settings_impl_gsettings_new (gboolean enable_color_scheme,
         g_signal_connect_swapped (self->interface_settings,
                                   "changed::accent-color",
                                   G_CALLBACK (accent_color_changed_cb),
+                                  self);
+      }
+
+      if (enable_theme_name &&
+          g_settings_schema_has_key (schema, "gtk-theme")) {
+        found_theme_name = TRUE;
+
+        theme_name_changed_cb (self);
+        g_signal_connect_swapped (self->interface_settings,
+                                  "changed::gtk-theme",
+                                  G_CALLBACK (theme_name_changed_cb),
                                   self);
       }
 
@@ -213,7 +236,8 @@ adw_settings_impl_gsettings_new (gboolean enable_color_scheme,
                                   found_high_contrast,
                                   found_accent_colors,
                                   found_document_font_name,
-                                  found_monospace_font_name);
+                                  found_monospace_font_name,
+                                  found_theme_name);
 
   return ADW_SETTINGS_IMPL (self);
 }
