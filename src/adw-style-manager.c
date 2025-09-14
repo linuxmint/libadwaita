@@ -187,7 +187,7 @@ enable_animations_cb (AdwStyleManager *self)
 }
 
 static char*
-generate_accent_css (AdwStyleManager *self)
+generate_accent_css (AdwStyleManager *self, gboolean theme_found)
 {
   AdwAccentColor accent = adw_style_manager_get_accent_color (self);
   GString *str = g_string_new ("");
@@ -197,7 +197,11 @@ generate_accent_css (AdwStyleManager *self)
   adw_accent_color_to_rgba (accent, &rgba);
   rgba_str = gdk_rgba_to_string (&rgba);
 
-  g_string_append_printf (str, "@define-color accent_bg_color %s;\n", rgba_str);
+  if (theme_found)
+    g_string_append_printf (str, "@define-color accent_bg_color @theme_accent_color;\n");
+  else
+    g_string_append_printf (str, "@define-color accent_bg_color %s;\n", rgba_str);
+
   g_string_append (str, "@define-color accent_fg_color white;\n");
 
   g_free (rgba_str);
@@ -396,6 +400,7 @@ update_stylesheet (AdwStyleManager       *self,
   gchar *found_theme_path = NULL;
   gchar *found_base_path = NULL;
   gchar *found_colors_path = NULL;
+  gboolean theme_found = FALSE;
 
   if (find_theme_dir (adw_settings_get_theme_name (self->settings),
                       adw_settings_get_high_contrast (self->settings),
@@ -403,6 +408,7 @@ update_stylesheet (AdwStyleManager       *self,
                       &found_theme_path,
                       &found_base_path,
                       &found_colors_path)) {
+      theme_found = TRUE;
       debug_theme ("Using theme '%s' found in %s.", adw_settings_get_theme_name (self->settings), found_theme_path);
 
       if (flags & UPDATE_BASE && self->provider)
@@ -436,7 +442,7 @@ update_stylesheet (AdwStyleManager       *self,
   }
 
   if (flags & UPDATE_ACCENT_COLOR && self->accent_provider) {
-    char *accent_css = generate_accent_css (self);
+    char *accent_css = generate_accent_css (self, theme_found);
     gtk_css_provider_load_from_string (self->accent_provider, accent_css);
     g_free (accent_css);
   }
