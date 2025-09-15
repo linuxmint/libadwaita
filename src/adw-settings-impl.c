@@ -23,7 +23,7 @@ typedef struct
 
   AdwSystemColorScheme color_scheme;
   gboolean high_contrast;
-  AdwAccentColor accent_color;
+  GdkRGBA accent_color;
   char *document_font_name;
   char *monospace_font_name;
   char *theme_name;
@@ -43,6 +43,8 @@ enum {
 };
 
 static guint signals[SIGNAL_LAST_SIGNAL];
+
+static GdkRGBA fallback_accent_rgba;
 
 static void
 adw_settings_impl_dispose (GObject *object)
@@ -97,13 +99,13 @@ adw_settings_impl_class_init (AdwSettingsImplClass *klass)
                   G_SIGNAL_RUN_FIRST,
                   0,
                   NULL, NULL,
-                  adw_marshal_VOID__ENUM,
+                  adw_marshal_VOID__BOXED,
                   G_TYPE_NONE,
                   1,
-                  ADW_TYPE_ACCENT_COLOR);
+                  GDK_TYPE_RGBA);
   g_signal_set_va_marshaller (signals[SIGNAL_ACCENT_COLOR_CHANGED],
                               G_TYPE_FROM_CLASS (klass),
-                              adw_marshal_VOID__ENUMv);
+                              adw_marshal_VOID__BOXEDv);
 
   signals[SIGNAL_DOCUMENT_FONT_NAME_CHANGED] =
     g_signal_new ("document-font-name-changed",
@@ -145,6 +147,8 @@ adw_settings_impl_class_init (AdwSettingsImplClass *klass)
   g_signal_set_va_marshaller (signals[SIGNAL_THEME_NAME_CHANGED],
                               G_TYPE_FROM_CLASS (klass),
                               adw_marshal_VOID__STRINGv);
+
+  adw_accent_color_to_rgba (ADW_ACCENT_COLOR_BLUE, &fallback_accent_rgba);
 }
 
 static void
@@ -289,31 +293,32 @@ adw_settings_impl_set_high_contrast (AdwSettingsImpl *self,
     g_signal_emit (G_OBJECT (self), signals[SIGNAL_HIGH_CONTRAST_CHANGED], 0, high_contrast);
 }
 
-AdwAccentColor
+GdkRGBA
 adw_settings_impl_get_accent_color (AdwSettingsImpl *self)
 {
-  AdwSettingsImplPrivate *priv  = adw_settings_impl_get_instance_private (self);
+  g_return_val_if_fail (ADW_IS_SETTINGS_IMPL (self), fallback_accent_rgba);
 
-  g_return_val_if_fail (ADW_IS_SETTINGS_IMPL (self), ADW_ACCENT_COLOR_BLUE);
+  AdwSettingsImplPrivate *priv  = adw_settings_impl_get_instance_private (self);
 
   return priv->accent_color;
 }
 
 void
 adw_settings_impl_set_accent_color (AdwSettingsImpl *self,
-                                    AdwAccentColor   accent_color)
+                                    GdkRGBA          accent_rgba)
 {
   AdwSettingsImplPrivate *priv = adw_settings_impl_get_instance_private (self);
 
   g_return_if_fail (ADW_IS_SETTINGS_IMPL (self));
 
-  if (priv->accent_color == accent_color)
+  if (gdk_rgba_equal (&priv->accent_color, &accent_rgba))
     return;
 
-  priv->accent_color = accent_color;
+  priv->accent_color = accent_rgba;
+  priv->accent_color.alpha = 1.0;
 
   if (priv->has_accent_colors)
-    g_signal_emit (G_OBJECT (self), signals[SIGNAL_ACCENT_COLOR_CHANGED], 0, accent_color);
+    g_signal_emit (G_OBJECT (self), signals[SIGNAL_ACCENT_COLOR_CHANGED], 0, &priv->accent_color);
 }
 
 const char *

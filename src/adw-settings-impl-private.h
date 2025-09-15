@@ -48,9 +48,9 @@ gboolean adw_settings_impl_get_high_contrast (AdwSettingsImpl *self);
 void     adw_settings_impl_set_high_contrast (AdwSettingsImpl *self,
                                               gboolean         high_contrast);
 
-AdwAccentColor adw_settings_impl_get_accent_color (AdwSettingsImpl *self);
+GdkRGBA        adw_settings_impl_get_accent_color (AdwSettingsImpl *self);
 void           adw_settings_impl_set_accent_color (AdwSettingsImpl *self,
-                                                   AdwAccentColor   accent_color);
+                                                   GdkRGBA          accent_color);
 
 const char *adw_settings_impl_get_document_font_name (AdwSettingsImpl *self);
 void        adw_settings_impl_set_document_font_name (AdwSettingsImpl *self,

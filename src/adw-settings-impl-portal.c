@@ -122,7 +122,7 @@ get_fdo_color_scheme (GVariant *variant)
   return color_scheme;
 }
 
-static AdwAccentColor
+static GdkRGBA
 get_fdo_accent_color (GVariant *variant)
 {
   double r = -1, g = -1, b = -1;
@@ -130,15 +130,17 @@ get_fdo_accent_color (GVariant *variant)
 
   g_variant_get (variant, "(ddd)", &r, &g, &b);
 
-  if (r < 0 || g < 0 || b < 0 || r > 1 || g > 1 || b > 1)
-    return ADW_ACCENT_COLOR_BLUE;
+  if (r < 0 || g < 0 || b < 0 || r > 1 || g > 1 || b > 1) {
+    adw_accent_color_to_rgba (ADW_ACCENT_COLOR_BLUE, &rgba);
+    return rgba;
+  }
 
   rgba.red = r;
   rgba.green = g;
   rgba.blue = b;
   rgba.alpha = 1.0;
 
-  return adw_accent_color_nearest_from_rgba (&rgba);
+  return rgba;
 }
 
 static void
