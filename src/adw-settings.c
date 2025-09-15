@@ -28,7 +28,7 @@ struct _AdwSettings
   AdwSystemColorScheme color_scheme;
   gboolean high_contrast;
   gboolean system_supports_color_schemes;
-  AdwAccentColor accent_color;
+  GdkRGBA accent_color;
   gboolean system_supports_accent_colors;
   char *document_font_name;
   char *monospace_font_name;
@@ -39,7 +39,7 @@ struct _AdwSettings
   AdwSystemColorScheme color_scheme_override;
   gboolean high_contrast_override;
   gboolean system_supports_accent_colors_override;
-  AdwAccentColor accent_color_override;
+  GdkRGBA accent_color_override;
 };
 
 G_DEFINE_FINAL_TYPE (AdwSettings, adw_settings, G_TYPE_OBJECT);
@@ -60,6 +60,7 @@ enum {
 static GParamSpec *props[LAST_PROP];
 
 static AdwSettings *default_instance;
+static GdkRGBA fallback_accent_rgba;
 
 static void
 set_theme_name (AdwSettings          *self,
@@ -102,12 +103,13 @@ set_high_contrast (AdwSettings *self,
 
 static void
 set_accent_color (AdwSettings    *self,
-                  AdwAccentColor  accent_color)
+                  GdkRGBA        *accent_rgba)
 {
-  if (accent_color == self->accent_color)
+  if (gdk_rgba_equal (accent_rgba, &self->accent_color))
     return;
 
-  self->accent_color = accent_color;
+  self->accent_color = *accent_rgba;
+  self->accent_color.alpha = 1.0;
 
   if (!self->override)
     g_object_notify_by_pspec (G_OBJECT (self), props[PROP_ACCENT_COLOR]);
@@ -173,23 +175,23 @@ init_debug (AdwSettings *self,
   if (env) {
     *found_accent_colors = TRUE;
     if (!g_strcmp0 (env, "blue")) {
-      self->accent_color = ADW_ACCENT_COLOR_BLUE;
+      adw_accent_color_to_rgba (ADW_ACCENT_COLOR_BLUE, &self->accent_color);
     } else if (!g_strcmp0 (env, "teal")) {
-      self->accent_color = ADW_ACCENT_COLOR_TEAL;
+      adw_accent_color_to_rgba (ADW_ACCENT_COLOR_TEAL, &self->accent_color);
     } else if (!g_strcmp0 (env, "green")) {
-      self->accent_color = ADW_ACCENT_COLOR_GREEN;
+      adw_accent_color_to_rgba (ADW_ACCENT_COLOR_GREEN, &self->accent_color);
     } else if (!g_strcmp0 (env, "yellow")) {
-      self->accent_color = ADW_ACCENT_COLOR_YELLOW;
+      adw_accent_color_to_rgba (ADW_ACCENT_COLOR_YELLOW, &self->accent_color);
     } else if (!g_strcmp0 (env, "orange")) {
-      self->accent_color = ADW_ACCENT_COLOR_ORANGE;
+      adw_accent_color_to_rgba (ADW_ACCENT_COLOR_ORANGE, &self->accent_color);
     } else if (!g_strcmp0 (env, "red")) {
-      self->accent_color = ADW_ACCENT_COLOR_RED;
+      adw_accent_color_to_rgba (ADW_ACCENT_COLOR_RED, &self->accent_color);
     } else if (!g_strcmp0 (env, "pink")) {
-      self->accent_color = ADW_ACCENT_COLOR_PINK;
+      adw_accent_color_to_rgba (ADW_ACCENT_COLOR_PINK, &self->accent_color);
     } else if (!g_strcmp0 (env, "purple")) {
-      self->accent_color = ADW_ACCENT_COLOR_PURPLE;
+      adw_accent_color_to_rgba (ADW_ACCENT_COLOR_PURPLE, &self->accent_color);
     } else if (!g_strcmp0 (env, "slate")) {
-      self->accent_color = ADW_ACCENT_COLOR_SLATE;
+      adw_accent_color_to_rgba (ADW_ACCENT_COLOR_SLATE, &self->accent_color);
     } else {
       g_warning ("Invalid accent color %s (Expected one of: blue, teal, green,"
                  "yellow, orange, red, pink, purple, slate)", env);
@@ -234,7 +236,8 @@ register_impl (AdwSettings     *self,
   if (adw_settings_impl_get_has_accent_colors (impl)) {
     *found_accent_colors = TRUE;
 
-    set_accent_color (self, adw_settings_impl_get_accent_color (impl));
+    GdkRGBA accent_rgba = adw_settings_impl_get_accent_color (impl);
+    set_accent_color (self, &accent_rgba);
 
     g_signal_connect_swapped (impl, "accent-color-changed",
                               G_CALLBACK (set_accent_color), self);
@@ -384,7 +387,8 @@ adw_settings_get_property (GObject    *object,
     break;
 
   case PROP_ACCENT_COLOR:
-    g_value_set_enum (value, adw_settings_get_accent_color (self));
+    GdkRGBA rgba = adw_settings_get_accent_color (self);
+    g_value_set_boxed (value, &rgba);
     break;
 
   case PROP_DOCUMENT_FONT_NAME:
@@ -435,9 +439,8 @@ adw_settings_class_init (AdwSettingsClass *klass)
                           G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
   props[PROP_ACCENT_COLOR] =
-    g_param_spec_enum ("accent-color", NULL, NULL,
-                       ADW_TYPE_ACCENT_COLOR,
-                       ADW_ACCENT_COLOR_BLUE,
+    g_param_spec_boxed ("accent-color", NULL, NULL,
+                       GDK_TYPE_RGBA,
                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
   props[PROP_DOCUMENT_FONT_NAME] =
@@ -456,6 +459,8 @@ adw_settings_class_init (AdwSettingsClass *klass)
                          G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
   g_object_class_install_properties (object_class, LAST_PROP, props);
+
+  adw_accent_color_to_rgba (ADW_ACCENT_COLOR_BLUE, &fallback_accent_rgba);
 }
 
 static void
@@ -516,10 +521,10 @@ adw_settings_get_system_supports_accent_colors (AdwSettings *self)
   return self->system_supports_accent_colors;
 }
 
-AdwAccentColor
+GdkRGBA
 adw_settings_get_accent_color (AdwSettings *self)
 {
-  g_return_val_if_fail (ADW_IS_SETTINGS (self), ADW_ACCENT_COLOR_BLUE);
+  g_return_val_if_fail (ADW_IS_SETTINGS (self), fallback_accent_rgba);
 
   if (self->override)
     return self->accent_color_override;
@@ -593,14 +598,14 @@ adw_settings_end_override (AdwSettings *self)
   notify_color_scheme = self->color_scheme_override != self->color_scheme;
   notify_hc = self->high_contrast_override != self->high_contrast;
   notify_system_supports_accent_colors = self->system_supports_accent_colors_override != self->system_supports_accent_colors;
-  notify_accent_color= self->accent_color_override != self->accent_color;
+  notify_accent_color = !gdk_rgba_equal (&self->accent_color_override, &self->accent_color);
 
   self->override = FALSE;
   self->system_supports_color_schemes_override = FALSE;
   self->color_scheme_override = ADW_SYSTEM_COLOR_SCHEME_DEFAULT;
   self->high_contrast_override = FALSE;
   self->system_supports_accent_colors_override = FALSE;
-  self->accent_color_override = ADW_ACCENT_COLOR_BLUE;
+  adw_accent_color_to_rgba (ADW_ACCENT_COLOR_BLUE, &self->accent_color_override);
 
   if (notify_system_supports_color_scheme)
     g_object_notify_by_pspec (G_OBJECT (self), props[PROP_SYSTEM_SUPPORTS_COLOR_SCHEMES]);
@@ -679,8 +684,11 @@ adw_settings_override_system_supports_accent_colors (AdwSettings *self,
   if (system_supports_accent_colors == self->system_supports_accent_colors_override)
     return;
 
-  if (!system_supports_accent_colors)
-    adw_settings_override_accent_color (self, ADW_ACCENT_COLOR_BLUE);
+  if (!system_supports_accent_colors) {
+    GdkRGBA accent_rgba;
+    adw_accent_color_to_rgba (ADW_ACCENT_COLOR_BLUE, &accent_rgba);
+    adw_settings_override_accent_color (self, accent_rgba);
+  }
 
   self->system_supports_accent_colors_override = system_supports_accent_colors;
 
@@ -689,16 +697,17 @@ adw_settings_override_system_supports_accent_colors (AdwSettings *self,
 
 void
 adw_settings_override_accent_color (AdwSettings    *self,
-                                    AdwAccentColor  accent_color)
+                                    GdkRGBA         accent_rgba)
 {
   g_return_if_fail (ADW_IS_SETTINGS (self));
   g_return_if_fail (self->override);
 
-  if (accent_color == self->accent_color_override ||
+  if (gdk_rgba_equal (&accent_rgba, &self->accent_color_override) ||
       !self->system_supports_accent_colors_override)
     return;
 
-  self->accent_color_override = accent_color;
+  self->accent_color_override = accent_rgba;
+  self->accent_color_override.alpha = 1.0;
 
   g_object_notify_by_pspec (G_OBJECT (self), props[PROP_ACCENT_COLOR]);
 }

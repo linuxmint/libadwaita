@@ -104,10 +104,13 @@ high_contrast_changed_cb (AdwInspectorPage *self)
 static void
 accent_color_changed_cb (AdwInspectorPage *self)
 {
+  GdkRGBA accent_rgba;
+
   AdwEnumListItem *item = adw_combo_row_get_selected_item (self->accent_color_row);
   AdwAccentColor accent_color = adw_enum_list_item_get_value (item);
 
-  adw_settings_override_accent_color (self->settings, accent_color);
+  adw_accent_color_to_rgba (accent_color, &accent_rgba);
+  adw_settings_override_accent_color (self->settings, accent_rgba);
 }
 
 static void
@@ -405,7 +408,7 @@ static void
 adw_inspector_page_init (AdwInspectorPage *self)
 {
   AdwSystemColorScheme color_scheme;
-  AdwAccentColor accent_color;
+  GdkRGBA accent_rgba;
   gboolean supports, hc;
   GtkFilter *filter;
   GtkFilterListModel *windows;
@@ -425,8 +428,8 @@ adw_inspector_page_init (AdwInspectorPage *self)
   hc = adw_settings_get_high_contrast (self->settings);
   adw_switch_row_set_active (self->high_contrast_row, hc);
 
-  accent_color = adw_settings_get_accent_color (self->settings);
-  adw_combo_row_set_selected (self->accent_color_row, accent_color);
+  accent_rgba = adw_settings_get_accent_color (self->settings);
+  adw_combo_row_set_selected (self->accent_color_row, adw_accent_color_nearest_from_rgba (&accent_rgba));
 
   supports = adw_settings_get_system_supports_accent_colors (self->settings);
   adw_switch_row_set_active (self->support_accent_colors_row, supports);

@@ -187,21 +187,16 @@ enable_animations_cb (AdwStyleManager *self)
 }
 
 static char*
-generate_accent_css (AdwStyleManager *self, gboolean theme_found)
+generate_accent_css (AdwStyleManager *self)
 {
-  AdwAccentColor accent = adw_style_manager_get_accent_color (self);
+  GdkRGBA accent_color = adw_settings_get_accent_color (self->settings);
+
   GString *str = g_string_new ("");
-  GdkRGBA rgba;
   char *rgba_str;
 
-  adw_accent_color_to_rgba (accent, &rgba);
-  rgba_str = gdk_rgba_to_string (&rgba);
+  rgba_str = gdk_rgba_to_string (&accent_color);
 
-  if (theme_found)
-    g_string_append_printf (str, "@define-color accent_bg_color @theme_accent_color;\n");
-  else
-    g_string_append_printf (str, "@define-color accent_bg_color %s;\n", rgba_str);
-
+  g_string_append_printf (str, "@define-color accent_bg_color %s;\n", rgba_str);
   g_string_append (str, "@define-color accent_fg_color white;\n");
 
   g_free (rgba_str);
@@ -400,7 +395,6 @@ update_stylesheet (AdwStyleManager       *self,
   gchar *found_theme_path = NULL;
   gchar *found_base_path = NULL;
   gchar *found_colors_path = NULL;
-  gboolean theme_found = FALSE;
 
   if (find_theme_dir (adw_settings_get_theme_name (self->settings),
                       adw_settings_get_high_contrast (self->settings),
@@ -408,7 +402,6 @@ update_stylesheet (AdwStyleManager       *self,
                       &found_theme_path,
                       &found_base_path,
                       &found_colors_path)) {
-      theme_found = TRUE;
       debug_theme ("Using theme '%s' found in %s.", adw_settings_get_theme_name (self->settings), found_theme_path);
 
       if (flags & UPDATE_BASE && self->provider)
@@ -442,7 +435,7 @@ update_stylesheet (AdwStyleManager       *self,
   }
 
   if (flags & UPDATE_ACCENT_COLOR && self->accent_provider) {
-    char *accent_css = generate_accent_css (self, theme_found);
+    char *accent_css = generate_accent_css (self);
     gtk_css_provider_load_from_string (self->accent_provider, accent_css);
     g_free (accent_css);
   }
@@ -1287,7 +1280,9 @@ adw_style_manager_get_accent_color (AdwStyleManager *self)
 {
   g_return_val_if_fail (ADW_IS_STYLE_MANAGER (self), ADW_ACCENT_COLOR_BLUE);
 
-  return adw_settings_get_accent_color (self->settings);
+  GdkRGBA rgba;
+  rgba = adw_settings_get_accent_color (self->settings);
+  return adw_accent_color_nearest_from_rgba (&rgba);
 }
 
 /**
@@ -1308,16 +1303,10 @@ adw_style_manager_get_accent_color (AdwStyleManager *self)
 GdkRGBA *
 adw_style_manager_get_accent_color_rgba (AdwStyleManager *self)
 {
-  AdwAccentColor color;
-  GdkRGBA rgba;
-
   g_return_val_if_fail (ADW_IS_STYLE_MANAGER (self), NULL);
 
-  color = adw_style_manager_get_accent_color (self);
-
-  adw_accent_color_to_rgba (color, &rgba);
-
-  return gdk_rgba_copy (&rgba);
+  GdkRGBA accent_color = adw_settings_get_accent_color (self->settings);
+  return gdk_rgba_copy (&accent_color);
 }
 
 /**

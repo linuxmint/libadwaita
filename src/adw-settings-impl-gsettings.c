@@ -65,7 +65,10 @@ accent_color_changed_cb (AdwSettingsImplGSettings *self)
   AdwAccentColor accent_color =
     g_settings_get_enum (self->interface_settings, "accent-color");
 
-  adw_settings_impl_set_accent_color (ADW_SETTINGS_IMPL (self), accent_color);
+  GdkRGBA accent_rgb;
+  adw_accent_color_to_rgba (accent_color, &accent_rgb);
+
+  adw_settings_impl_set_accent_color (ADW_SETTINGS_IMPL (self), accent_rgb);
 }
 
 static void
