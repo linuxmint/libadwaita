@@ -401,7 +401,7 @@ adw_spring_animation_class_init (AdwSpringAnimationClass *klass)
   animation_class->calculate_value = adw_spring_animation_real_calculate_value;
 
   /**
-   * AdwSpringAnimation:value-from: (attributes org.gtk.Property.get=adw_spring_animation_get_value_from org.gtk.Property.set=adw_spring_animation_set_value_from)
+   * AdwSpringAnimation:value-from:
    *
    * The value to animate from.
    *
@@ -416,7 +416,7 @@ adw_spring_animation_class_init (AdwSpringAnimationClass *klass)
                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwSpringAnimation:value-to: (attributes org.gtk.Property.get=adw_spring_animation_get_value_to org.gtk.Property.set=adw_spring_animation_set_value_to)
+   * AdwSpringAnimation:value-to:
    *
    * The value to animate to.
    *
@@ -431,7 +431,7 @@ adw_spring_animation_class_init (AdwSpringAnimationClass *klass)
                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwSpringAnimation:spring-params: (attributes org.gtk.Property.get=adw_spring_animation_get_spring_params org.gtk.Property.set=adw_spring_animation_set_spring_params)
+   * AdwSpringAnimation:spring-params:
    *
    * Physical parameters describing the spring.
    */
@@ -441,7 +441,7 @@ adw_spring_animation_class_init (AdwSpringAnimationClass *klass)
                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwSpringAnimation:initial-velocity: (attributes org.gtk.Property.get=adw_spring_animation_get_initial_velocity org.gtk.Property.set=adw_spring_animation_set_initial_velocity)
+   * AdwSpringAnimation:initial-velocity:
    *
    * The initial velocity to start the animation with.
    *
@@ -455,7 +455,7 @@ adw_spring_animation_class_init (AdwSpringAnimationClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwSpringAnimation:epsilon: (attributes org.gtk.Property.get=adw_spring_animation_get_epsilon org.gtk.Property.set=adw_spring_animation_set_epsilon)
+   * AdwSpringAnimation:epsilon:
    *
    * Precision of the spring.
    *
@@ -478,7 +478,7 @@ adw_spring_animation_class_init (AdwSpringAnimationClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwSpringAnimation:clamp: (attributes org.gtk.Property.get=adw_spring_animation_get_clamp org.gtk.Property.set=adw_spring_animation_set_clamp)
+   * AdwSpringAnimation:clamp:
    *
    * Whether the animation should be clamped.
    *
@@ -494,7 +494,7 @@ adw_spring_animation_class_init (AdwSpringAnimationClass *klass)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwSpringAnimation:estimated-duration: (attributes org.gtk.Property.get=adw_spring_animation_get_estimated_duration)
+   * AdwSpringAnimation:estimated-duration:
    *
    * Estimated duration of the animation, in milliseconds.
    *
@@ -508,7 +508,7 @@ adw_spring_animation_class_init (AdwSpringAnimationClass *klass)
                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
   /**
-   * AdwSpringAnimation:velocity: (attributes org.gtk.Property.get=adw_spring_animation_get_velocity)
+   * AdwSpringAnimation:velocity:
    *
    * Current velocity of the animation.
    */
@@ -571,7 +571,7 @@ adw_spring_animation_new (GtkWidget         *widget,
 }
 
 /**
- * adw_spring_animation_get_value_from: (attributes org.gtk.Method.get_property=value-from)
+ * adw_spring_animation_get_value_from:
  * @self: a spring animation
  *
  * Gets the value @self will animate from.
@@ -587,7 +587,7 @@ adw_spring_animation_get_value_from (AdwSpringAnimation *self)
 }
 
 /**
- * adw_spring_animation_set_value_from: (attributes org.gtk.Method.set_property=value-from)
+ * adw_spring_animation_set_value_from:
  * @self: a spring animation
  * @value: the value to animate from
  *
@@ -613,7 +613,7 @@ adw_spring_animation_set_value_from (AdwSpringAnimation *self,
 }
 
 /**
- * adw_spring_animation_get_value_to: (attributes org.gtk.Method.get_property=value-to)
+ * adw_spring_animation_get_value_to:
  * @self: a spring animation
  *
  * Gets the value @self will animate to.
@@ -629,7 +629,7 @@ adw_spring_animation_get_value_to (AdwSpringAnimation *self)
 }
 
 /**
- * adw_spring_animation_set_value_to: (attributes org.gtk.Method.set_property=value-to)
+ * adw_spring_animation_set_value_to:
  * @self: a spring animation
  * @value: the value to animate to
  *
@@ -655,7 +655,7 @@ adw_spring_animation_set_value_to (AdwSpringAnimation *self,
 }
 
 /**
- * adw_spring_animation_get_spring_params: (attributes org.gtk.Method.get_property=spring-params)
+ * adw_spring_animation_get_spring_params:
  * @self: a spring animation
  *
  * Gets the physical parameters of the spring of @self.
@@ -671,7 +671,7 @@ adw_spring_animation_get_spring_params (AdwSpringAnimation *self)
 }
 
 /**
- * adw_spring_animation_set_spring_params: (attributes org.gtk.Method.set_property=spring-params)
+ * adw_spring_animation_set_spring_params:
  * @self: a spring animation
  * @spring_params: the new spring parameters
  *
@@ -696,7 +696,7 @@ adw_spring_animation_set_spring_params (AdwSpringAnimation *self,
 }
 
 /**
- * adw_spring_animation_get_initial_velocity: (attributes org.gtk.Method.get_property=initial-velocity)
+ * adw_spring_animation_get_initial_velocity:
  * @self: a spring animation
  *
  * Gets the initial velocity of @self.
@@ -712,7 +712,7 @@ adw_spring_animation_get_initial_velocity (AdwSpringAnimation *self)
 }
 
 /**
- * adw_spring_animation_set_initial_velocity: (attributes org.gtk.Method.set_property=initial-velocity)
+ * adw_spring_animation_set_initial_velocity:
  * @self: a spring animation
  * @velocity: the initial velocity
  *
@@ -737,7 +737,7 @@ adw_spring_animation_set_initial_velocity (AdwSpringAnimation *self,
 }
 
 /**
- * adw_spring_animation_get_epsilon: (attributes org.gtk.Method.get_property=epsilon)
+ * adw_spring_animation_get_epsilon:
  * @self: a spring animation
  *
  * Gets the precision of the spring.
@@ -753,7 +753,7 @@ adw_spring_animation_get_epsilon (AdwSpringAnimation *self)
 }
 
 /**
- * adw_spring_animation_set_epsilon: (attributes org.gtk.Method.set_property=epsilon)
+ * adw_spring_animation_set_epsilon:
  * @self: a spring animation
  * @epsilon: the new value
  *
@@ -788,7 +788,7 @@ adw_spring_animation_set_epsilon (AdwSpringAnimation *self,
 }
 
 /**
- * adw_spring_animation_get_clamp: (attributes org.gtk.Method.get_property=clamp)
+ * adw_spring_animation_get_clamp:
  * @self: a spring animation
  *
  * Gets whether @self should be clamped.
@@ -804,7 +804,7 @@ adw_spring_animation_get_clamp (AdwSpringAnimation *self)
 }
 
 /**
- * adw_spring_animation_set_clamp: (attributes org.gtk.Method.set_property=clamp)
+ * adw_spring_animation_set_clamp:
  * @self: a spring animation
  * @clamp: the new value
  *
@@ -887,7 +887,7 @@ adw_spring_animation_calculate_velocity (AdwSpringAnimation *self,
 }
 
 /**
- * adw_spring_animation_get_estimated_duration: (attributes org.gtk.Method.get_property=estimated-duration)
+ * adw_spring_animation_get_estimated_duration:
  * @self: a spring animation
  *
  * Gets the estimated duration of @self, in milliseconds.
@@ -905,7 +905,7 @@ adw_spring_animation_get_estimated_duration (AdwSpringAnimation *self)
 }
 
 /**
- * adw_spring_animation_get_velocity: (attributes org.gtk.Method.get_property=velocity)
+ * adw_spring_animation_get_velocity:
  * @self: a spring animation
  *
  * Gets the current velocity of @self.

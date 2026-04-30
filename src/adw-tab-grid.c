@@ -199,6 +199,8 @@ struct _AdwTabGrid
   gboolean searching;
 
   gboolean empty;
+
+  TabInfo *middle_clicked_tab;
 };
 
 G_DEFINE_FINAL_TYPE (AdwTabGrid, adw_tab_grid, GTK_TYPE_WIDGET)
@@ -1187,6 +1189,8 @@ animate_reordering (AdwTabGrid *self,
     adw_timed_animation_new (GTK_WIDGET (self), 0, 1,
                              REORDER_ANIMATION_DURATION, target);
 
+  adw_timed_animation_set_easing (ADW_TIMED_ANIMATION (self->reorder_animation), ADW_EASE);
+
   g_signal_connect_swapped (self->reorder_animation, "done",
                             G_CALLBACK (reorder_animation_done_cb), self);
 
@@ -1240,6 +1244,8 @@ animate_reorder_offset (AdwTabGrid *self,
   info->reorder_animation =
     adw_timed_animation_new (GTK_WIDGET (self), start_offset, offset,
                              REORDER_ANIMATION_DURATION, target);
+
+  adw_timed_animation_set_easing (ADW_TIMED_ANIMATION (info->reorder_animation), ADW_EASE);
 
   g_signal_connect_swapped (info->reorder_animation, "done",
                             G_CALLBACK (reorder_offset_animation_done_cb), info);
@@ -1648,7 +1654,7 @@ reorder_update_cb (AdwTabGrid *self,
   double start_x, start_y, x, y;
   GdkDevice *device;
 
-  if (!self->pressed_tab) {
+  if (!self->pressed_tab || !self->pressed_tab->page) {
     gtk_gesture_set_state (gesture, GTK_EVENT_SEQUENCE_DENIED);
     return;
   }
@@ -1680,9 +1686,7 @@ reorder_update_cb (AdwTabGrid *self,
   device = gtk_event_controller_get_current_event_device (GTK_EVENT_CONTROLLER (gesture));
 
   if (!self->pinned &&
-      self->pressed_tab &&
       self->pressed_tab != self->reorder_placeholder &&
-      self->pressed_tab->page &&
       !is_touchscreen (gesture) &&
       check_dnd_threshold (self, x, y)) {
     begin_drag (self, device);
@@ -1903,6 +1907,8 @@ page_attached_cb (AdwTabGrid *self,
     adw_timed_animation_new (GTK_WIDGET (self), 0, 1,
                              OPEN_ANIMATION_DURATION, target);
 
+  adw_timed_animation_set_easing (ADW_TIMED_ANIMATION (info->appear_animation), ADW_EASE);
+
   g_signal_connect_swapped (info->appear_animation, "done",
                             G_CALLBACK (open_animation_done_cb), info);
 
@@ -1918,10 +1924,19 @@ page_attached_cb (AdwTabGrid *self,
 
   calculate_tab_layout (self);
 
-  if (page == adw_tab_view_get_selected_page (self->view))
+  if (page == adw_tab_view_get_selected_page (self->view)) {
     adw_tab_grid_select_page (self, page);
-  else
-    scroll_to_tab_full (self, info, -1, OPEN_ANIMATION_DURATION, TRUE);
+  } else {
+    int pos = -1;
+
+    if (l && l->next && l->next->data) {
+      TabInfo *next_info = l->next->data;
+
+      pos = next_info->final_y;
+
+      scroll_to_tab_full (self, info, pos, OPEN_ANIMATION_DURATION, TRUE);
+    }
+  }
 }
 
 /* Closing */
@@ -1946,6 +1961,9 @@ close_animation_done_cb (TabInfo *info)
 
   if (self->reordered_tab == info)
     self->reordered_tab = NULL;
+
+  if (self->middle_clicked_tab == info)
+    self->middle_clicked_tab = NULL;
 
   remove_and_free_tab_info (info);
 
@@ -2016,6 +2034,8 @@ page_detached_cb (AdwTabGrid *self,
   info->appear_animation =
     adw_timed_animation_new (GTK_WIDGET (self), info->appear_progress, 0,
                              CLOSE_ANIMATION_DURATION, target);
+
+  adw_timed_animation_set_easing (ADW_TIMED_ANIMATION (info->appear_animation), ADW_EASE);
 
   g_signal_connect_swapped (info->appear_animation, "done",
                             G_CALLBACK (close_animation_done_cb), info);
@@ -2197,6 +2217,8 @@ insert_placeholder (AdwTabGrid *self,
     adw_timed_animation_new (GTK_WIDGET (self), initial_progress, 1,
                              OPEN_ANIMATION_DURATION, target);
 
+  adw_timed_animation_set_easing (ADW_TIMED_ANIMATION (info->appear_animation), ADW_EASE);
+
   g_signal_connect_swapped (info->appear_animation, "done",
                             G_CALLBACK (open_animation_done_cb), info);
 
@@ -2245,6 +2267,8 @@ replace_placeholder (AdwTabGrid *self,
   info->appear_animation =
     adw_timed_animation_new (GTK_WIDGET (self), initial_progress, 1,
                              OPEN_ANIMATION_DURATION, target);
+
+  adw_timed_animation_set_easing (ADW_TIMED_ANIMATION (info->appear_animation), ADW_EASE);
 
   g_signal_connect_swapped (info->appear_animation, "done",
                             G_CALLBACK (replace_animation_done_cb), info);
@@ -2311,6 +2335,8 @@ remove_placeholder (AdwTabGrid *self)
   info->appear_animation =
     adw_timed_animation_new (GTK_WIDGET (self), info->appear_progress, 0,
                              CLOSE_ANIMATION_DURATION, target);
+
+  adw_timed_animation_set_easing (ADW_TIMED_ANIMATION (info->appear_animation), ADW_EASE);
 
   g_signal_connect_swapped (info->appear_animation, "done",
                             G_CALLBACK (remove_animation_done_cb), info);
@@ -2404,7 +2430,7 @@ drag_end (AdwTabGrid *self,
 
   if (self->drag_icon) {
     g_clear_object (&self->drag_icon->resize_animation);
-    g_clear_pointer (&self->drag_icon, g_free);
+    g_clear_pointer (&self->drag_icon, g_atomic_rc_box_release);
   }
 
   g_object_unref (drag);
@@ -2474,7 +2500,7 @@ create_drag_icon (AdwTabGrid *self,
   DragIcon *icon;
   AdwAnimationTarget *target;
 
-  icon = g_new0 (DragIcon, 1);
+  icon = g_atomic_rc_box_new0 (DragIcon);
 
   icon->drag = drag;
 
@@ -2503,10 +2529,12 @@ create_drag_icon (AdwTabGrid *self,
 
   target = adw_callback_animation_target_new ((AdwAnimationTargetFunc)
                                               icon_resize_animation_value_cb,
-                                              icon, NULL);
+                                              g_atomic_rc_box_acquire (icon), NULL);
   icon->resize_animation =
     adw_timed_animation_new (GTK_WIDGET (icon->tab), 0, 1,
                              ICON_RESIZE_ANIMATION_DURATION, target);
+
+  adw_timed_animation_set_easing (ADW_TIMED_ANIMATION (icon->resize_animation), ADW_EASE);
 
   self->drag_icon = icon;
 }
@@ -2824,11 +2852,7 @@ do_popup (AdwTabGrid *self,
     gtk_widget_set_parent (self->context_menu, GTK_WIDGET (self));
     gtk_popover_set_position (GTK_POPOVER (self->context_menu), GTK_POS_BOTTOM);
     gtk_popover_set_has_arrow (GTK_POPOVER (self->context_menu), FALSE);
-
-    if (gtk_widget_get_direction (GTK_WIDGET (self)) == GTK_TEXT_DIR_RTL)
-      gtk_widget_set_halign (self->context_menu, GTK_ALIGN_END);
-    else
-      gtk_widget_set_halign (self->context_menu, GTK_ALIGN_START);
+    gtk_widget_set_halign (self->context_menu, GTK_ALIGN_START);
 
     g_signal_connect_object (self->context_menu, "notify::visible",
                              G_CALLBACK (touch_menu_notify_visible_cb), self,
@@ -2927,6 +2951,7 @@ pressed_cb (AdwTabGrid *self,
   button = gtk_gesture_single_get_current_button (GTK_GESTURE_SINGLE (gesture));
 
   if (button == GDK_BUTTON_MIDDLE) {
+    self->middle_clicked_tab = info;
     gtk_gesture_set_state (gesture, GTK_EVENT_SEQUENCE_CLAIMED);
 
     return;
@@ -2966,7 +2991,14 @@ released_cb (AdwTabGrid *self,
   button = gtk_gesture_single_get_current_button (GTK_GESTURE_SINGLE (gesture));
 
   if (button == GDK_BUTTON_MIDDLE) {
+    if (info != self->middle_clicked_tab) {
+      self->middle_clicked_tab = NULL;
+      gtk_gesture_set_state (gesture, GTK_EVENT_SEQUENCE_DENIED);
+      return;
+    }
+
     adw_tab_view_close_page (self->view, info->page);
+    self->middle_clicked_tab = NULL;
 
     return;
   }
@@ -3016,7 +3048,7 @@ adw_tab_grid_size_allocate (GtkWidget *widget,
 
   calculate_tab_layout (self);
 
-  for (l = self->tabs; l; l = l->next) {
+  for (l = self->tabs; l && l->data; l = l->next) {
     TabInfo *info = l->data;
     GskTransform *transform = NULL;
     int x, y, w, h;
@@ -3191,23 +3223,6 @@ adw_tab_grid_unmap (GtkWidget *widget)
 }
 
 static void
-adw_tab_grid_direction_changed (GtkWidget        *widget,
-                                GtkTextDirection  previous_direction)
-{
-  AdwTabGrid *self = ADW_TAB_GRID (widget);
-
-  if (gtk_widget_get_direction (widget) == previous_direction)
-    return;
-
-  if (self->context_menu) {
-    if (gtk_widget_get_direction (GTK_WIDGET (self)) == GTK_TEXT_DIR_RTL)
-      gtk_widget_set_halign (self->context_menu, GTK_ALIGN_END);
-    else
-      gtk_widget_set_halign (self->context_menu, GTK_ALIGN_START);
-  }
-}
-
-static void
 adw_tab_grid_snapshot (GtkWidget   *widget,
                        GtkSnapshot *snapshot)
 {
@@ -3348,7 +3363,6 @@ adw_tab_grid_class_init (AdwTabGridClass *klass)
   widget_class->grab_focus = adw_tab_grid_grab_focus;
   widget_class->unrealize = adw_tab_grid_unrealize;
   widget_class->unmap = adw_tab_grid_unmap;
-  widget_class->direction_changed = adw_tab_grid_direction_changed;
   widget_class->snapshot = adw_tab_grid_snapshot;
 
   props[PROP_PINNED] =
@@ -3509,6 +3523,8 @@ adw_tab_grid_init (AdwTabGrid *self)
   self->resize_animation =
     adw_timed_animation_new (GTK_WIDGET (self), 0, 1,
                              RESIZE_ANIMATION_DURATION, target);
+
+  adw_timed_animation_set_easing (ADW_TIMED_ANIMATION (self->resize_animation), ADW_EASE);
 
   g_signal_connect_swapped (self->resize_animation, "done",
                             G_CALLBACK (resize_animation_done_cb), self);

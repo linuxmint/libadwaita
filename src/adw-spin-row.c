@@ -50,6 +50,11 @@
  * `AdwSpinRow` has the same structure as [class@ActionRow], as well as the
  * `.spin` style class on the main node.
  *
+ * ## Accessibility
+ *
+ * `AdwSpinRow` uses an internal `GtkSpinButton` with the
+ * [enum@Gtk.AccessibleRole.spin-button] role.
+ *
  * Since: 1.4
  */
 
@@ -132,7 +137,7 @@ spin_button_input_cb (AdwSpinRow *self,
 {
   int return_value;
 
-  g_signal_emit (self, signals[SIGNAL_INPUT], 0, &new_value, &return_value);
+  g_signal_emit (self, signals[SIGNAL_INPUT], 0, new_value, &return_value);
 
   return return_value;
 }
@@ -262,7 +267,7 @@ adw_spin_row_class_init (AdwSpinRowClass *klass)
   widget_class->grab_focus = adw_spin_row_grab_focus;
 
   /**
-   * AdwSpinRow:adjustment: (attributes org.gtk.Property.get=adw_spin_row_get_adjustment org.gtk.Property.set=adw_spin_row_set_adjustment)
+   * AdwSpinRow:adjustment:
    *
    * The adjustment that holds the value of the spin row.
    *
@@ -274,7 +279,7 @@ adw_spin_row_class_init (AdwSpinRowClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwSpinRow:climb-rate: (attributes org.gtk.Property.get=adw_spin_row_get_climb_rate org.gtk.Property.set=adw_spin_row_set_climb_rate)
+   * AdwSpinRow:climb-rate:
    *
    * The acceleration rate when you hold down a button or key.
    *
@@ -286,7 +291,7 @@ adw_spin_row_class_init (AdwSpinRowClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwSpinRow:digits: (attributes org.gtk.Property.get=adw_spin_row_get_digits org.gtk.Property.set=adw_spin_row_set_digits)
+   * AdwSpinRow:digits:
    *
    * The number of decimal places to display.
    *
@@ -298,7 +303,7 @@ adw_spin_row_class_init (AdwSpinRowClass *klass)
                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwSpinRow:numeric: (attributes org.gtk.Property.get=adw_spin_row_get_numeric org.gtk.Property.set=adw_spin_row_set_numeric)
+   * AdwSpinRow:numeric:
    *
    * Whether non-numeric characters should be ignored.
    *
@@ -310,7 +315,7 @@ adw_spin_row_class_init (AdwSpinRowClass *klass)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwSpinRow:snap-to-ticks: (attributes org.gtk.Property.get=adw_spin_row_get_snap_to_ticks org.gtk.Property.set=adw_spin_row_set_snap_to_ticks)
+   * AdwSpinRow:snap-to-ticks:
    *
    * Whether invalid values are snapped to the nearest step increment.
    *
@@ -322,7 +327,7 @@ adw_spin_row_class_init (AdwSpinRowClass *klass)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwSpinRow:update-policy: (attributes org.gtk.Property.get=adw_spin_row_get_update_policy org.gtk.Property.set=adw_spin_row_set_update_policy)
+   * AdwSpinRow:update-policy:
    *
    * The policy for updating the spin row.
    *
@@ -337,7 +342,7 @@ adw_spin_row_class_init (AdwSpinRowClass *klass)
                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwSpinRow:value: (attributes org.gtk.Property.get=adw_spin_row_get_value org.gtk.Property.set=adw_spin_row_set_value)
+   * AdwSpinRow:value:
    *
    * The current value.
    *
@@ -349,7 +354,7 @@ adw_spin_row_class_init (AdwSpinRowClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwSpinRow:wrap: (attributes org.gtk.Property.get=adw_spin_row_get_wrap org.gtk.Property.set=adw_spin_row_set_wrap)
+   * AdwSpinRow:wrap:
    *
    * Whether the spin row should wrap upon reaching its limits.
    *
@@ -379,7 +384,7 @@ adw_spin_row_class_init (AdwSpinRowClass *klass)
    * See [signal@Gtk.SpinButton::input].
    *
    * Returns: `TRUE` for a successful conversion, `FALSE` if the input was not
-   *   handled, and `GTK_INPUT_ERROR` if the conversion failed.
+   *   handled, and [const@Gtk.INPUT_ERROR] if the conversion failed.
    *
    * Since: 1.4
    */
@@ -452,7 +457,7 @@ adw_spin_row_class_init (AdwSpinRowClass *klass)
   gtk_widget_class_bind_template_callback (widget_class, spin_button_wrapped_cb);
   gtk_widget_class_bind_template_callback (widget_class, spin_button_notify_value_cb);
 
-  gtk_widget_class_set_accessible_role (widget_class, GTK_ACCESSIBLE_ROLE_TEXT_BOX);
+  gtk_widget_class_set_accessible_role (widget_class, GTK_ACCESSIBLE_ROLE_PRESENTATION);
 }
 
 static void
@@ -623,7 +628,7 @@ adw_spin_row_configure (AdwSpinRow    *self,
 }
 
 /**
- * adw_spin_row_get_adjustment: (attributes org.gtk.Method.get_property=adjustment)
+ * adw_spin_row_get_adjustment:
  * @self: a spin row
  *
  * Gets the adjustment that holds the value for the spin row.
@@ -643,7 +648,7 @@ adw_spin_row_get_adjustment (AdwSpinRow *self)
 }
 
 /**
- * adw_spin_row_set_adjustment: (attributes org.gtk.Method.set_property=adjustment)
+ * adw_spin_row_set_adjustment:
  * @self: a spin row
  * @adjustment: (nullable): an adjustment
  *
@@ -667,7 +672,7 @@ adw_spin_row_set_adjustment (AdwSpinRow    *self,
 }
 
 /**
- * adw_spin_row_get_climb_rate: (attributes org.gtk.Method.get_property=climb-rate)
+ * adw_spin_row_get_climb_rate:
  * @self: a spin row
  *
  * Gets the acceleration rate when you hold down a button or key.
@@ -685,7 +690,7 @@ adw_spin_row_get_climb_rate (AdwSpinRow *self)
 }
 
 /**
- * adw_spin_row_set_climb_rate: (attributes org.gtk.Method.set_property=climb-rate)
+ * adw_spin_row_set_climb_rate:
  * @self: a spin row
  * @climb_rate: the acceleration rate when you hold down a button or key
  *
@@ -709,7 +714,7 @@ adw_spin_row_set_climb_rate (AdwSpinRow *self,
 }
 
 /**
- * adw_spin_row_get_digits: (attributes org.gtk.Method.get_property=digits)
+ * adw_spin_row_get_digits:
  * @self: a spin row
  *
  * Gets the number of decimal places to display.
@@ -727,7 +732,7 @@ adw_spin_row_get_digits (AdwSpinRow *self)
 }
 
 /**
- * adw_spin_row_set_digits: (attributes org.gtk.Method.set_property=digits)
+ * adw_spin_row_set_digits:
  * @self: a spin row
  * @digits: the number of decimal places to display
  *
@@ -750,7 +755,7 @@ adw_spin_row_set_digits (AdwSpinRow *self,
 }
 
 /**
- * adw_spin_row_get_numeric: (attributes org.gtk.Method.get_property=numeric)
+ * adw_spin_row_get_numeric:
  * @self: a spin row
  *
  * Gets whether non-numeric characters should be ignored.
@@ -768,7 +773,7 @@ adw_spin_row_get_numeric (AdwSpinRow *self)
 }
 
 /**
- * adw_spin_row_set_numeric: (attributes org.gtk.Method.set_property=numeric)
+ * adw_spin_row_set_numeric:
  * @self: a spin row
  * @numeric: whether non-numeric characters should be ignored
  *
@@ -793,7 +798,7 @@ adw_spin_row_set_numeric (AdwSpinRow *self,
 }
 
 /**
- * adw_spin_row_get_snap_to_ticks: (attributes org.gtk.Method.get_property=snap-to-ticks)
+ * adw_spin_row_get_snap_to_ticks:
  * @self: a spin row
  *
  * Gets whether invalid values are snapped to nearest step increment.
@@ -811,7 +816,7 @@ adw_spin_row_get_snap_to_ticks (AdwSpinRow *self)
 }
 
 /**
- * adw_spin_row_set_snap_to_ticks: (attributes org.gtk.Method.set_property=snap-to-ticks)
+ * adw_spin_row_set_snap_to_ticks:
  * @self: a spin row
  * @snap_to_ticks: whether invalid values are snapped to the nearest step increment
  *
@@ -836,7 +841,7 @@ adw_spin_row_set_snap_to_ticks (AdwSpinRow *self,
 }
 
 /**
- * adw_spin_row_get_update_policy: (attributes org.gtk.Method.get_property=update-policy)
+ * adw_spin_row_get_update_policy:
  * @self: a spin row
  *
  * Gets the policy for updating the spin row.
@@ -854,7 +859,7 @@ adw_spin_row_get_update_policy (AdwSpinRow *self)
 }
 
 /**
- * adw_spin_row_set_update_policy: (attributes org.gtk.Method.set_property=update-policy)
+ * adw_spin_row_set_update_policy:
  * @self: a spin row
  * @policy: the policy for updating the spin row
  *
@@ -879,7 +884,7 @@ adw_spin_row_set_update_policy (AdwSpinRow                *self,
 }
 
 /**
- * adw_spin_row_get_value: (attributes org.gtk.Method.get_property=value)
+ * adw_spin_row_get_value:
  * @self: a spin row
  *
  * Gets the current value.
@@ -897,7 +902,7 @@ adw_spin_row_get_value (AdwSpinRow *self)
 }
 
 /**
- * adw_spin_row_set_value: (attributes org.gtk.Method.set_property=value)
+ * adw_spin_row_set_value:
  * @self: a spin row
  * @value: a new value
  *
@@ -918,7 +923,7 @@ adw_spin_row_set_value (AdwSpinRow *self,
 }
 
 /**
- * adw_spin_row_get_wrap: (attributes org.gtk.Method.get_property=wrap)
+ * adw_spin_row_get_wrap:
  * @self: a spin row
  *
  * Gets whether the spin row should wrap upon reaching its limits.
@@ -936,7 +941,7 @@ adw_spin_row_get_wrap (AdwSpinRow *self)
 }
 
 /**
- * adw_spin_row_set_wrap: (attributes org.gtk.Method.set_property=wrap)
+ * adw_spin_row_set_wrap:
  * @self: a spin row
  * @wrap: whether the spin row should wrap upon reaching its limits
  *

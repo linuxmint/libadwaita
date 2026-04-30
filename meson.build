@@ -1,14 +1,13 @@
 project('libadwaita', 'c',
-          version: '1.5.0',
+          version: '1.9.0',
           license: 'LGPL-2.1-or-later',
-    meson_version: '>= 0.59.0',
+    meson_version: '>= 0.63.0',
   default_options: [ 'warning_level=1', 'buildtype=debugoptimized', 'c_std=gnu11' ],
 )
 
 version_arr = meson.project_version().split('-')[0].split('.')
 adwaita_version_major = version_arr[0].to_int()
 adwaita_version_minor = version_arr[1].to_int()
-adwaita_version_short = '@0@.@1@'.format(adwaita_version_major, adwaita_version_minor)
 
 if version_arr[2].startswith('alpha') or version_arr[2].startswith('beta') or version_arr[2].startswith('rc')
   adwaita_version_micro = 0
@@ -30,9 +29,38 @@ package_api_name = '@0@-@1@'.format(meson.project_name(), apiversion)
 # to 0. When bumping the second version, set the third one to zero.
 #
 # A lot easier than libtool, right?
-libversion = '0.5.0'
+libversion = '0.9.0'
 # The so major version of the library
 soversion = 0
+
+glib_min_version = '>= 2.84.0'
+gtk_min_version = '>= 4.21.1'
+
+glib_dep = dependency('glib-2.0', version: glib_min_version)
+gio_dep = dependency('gio-2.0', version: glib_min_version)
+gtk_dep = dependency('gtk4', version: gtk_min_version)
+fribidi_dep = dependency('fribidi')
+appstream_dep = dependency('appstream',
+  fallback : ['appstream', 'appstream_dep'],
+  default_options : [
+    'systemd=false', 'apidocs=false', 'install-docs=false',
+    'stemming=false', 'svg-support=false', 'gir=false',
+  ],
+)
+
+target_system = host_machine.system()
+if target_system == 'darwin'
+  appleframework_modules = [
+    'AppKit',
+    'Foundation',
+  ]
+  appleframeworks_dep = dependency('appleframeworks', modules: appleframework_modules)
+elif target_system == 'windows'
+  gtk_win32_dep = dependency('gtk4-win32', version: gtk_min_version)
+endif
+
+gi_scanner = find_program('g-ir-scanner', required: get_option('introspection'))
+introspection = gi_scanner.found()
 
 add_project_arguments([
   '-DHAVE_CONFIG_H',
@@ -46,8 +74,6 @@ cc = meson.get_compiler('c')
 
 global_c_args = []
 test_c_args = []
-
-target_system = target_machine.system()
 
 has_winrt = target_system == 'windows' \
   and cc.check_header('roapi.h') \
@@ -126,21 +152,15 @@ if package_subdir != ''
   datadir    = get_option('datadir') / package_subdir
   libdir     = get_option('libdir')  / package_subdir
   girdir     = get_option('datadir') / package_subdir / 'gir-1.0'
-  theme_dir  = get_option('datadir') / package_subdir / 'themes' / 'LibAdwaita-Example' / 'libadwaita-@0@'.format(adwaita_version_short)
   typelibdir = get_option('libdir')  / package_subdir / 'girepository-1.0'
   vapidir    = get_option('datadir') / package_subdir / 'vapi'
-
 else
   datadir    = get_option('datadir')
   libdir     = get_option('libdir')
   girdir     = get_option('datadir') / 'gir-1.0'
-  theme_dir  = get_option('datadir') / 'themes' / 'LibAdwaita-Example' / 'libadwaita-@0@'.format(adwaita_version_short)
   typelibdir = get_option('libdir')  / 'girepository-1.0'
   vapidir    = get_option('datadir') / 'vala' / 'vapi'
 endif
-
-introspection_feature = get_option('introspection')
-introspection = introspection_feature.enabled() or introspection_feature.auto()
 
 gnome = import('gnome')
 
@@ -159,15 +179,11 @@ configure_file(
          output: 'run',
   configuration: run_data)
 
-if not meson.is_subproject()
-    meson.add_dist_script('build-aux'/ 'meson'/ 'dist-data.py')
-endif
-
 summary(
   {
     'Tests': get_option('tests'),
     'Examples': get_option('examples'),
-    'Documentation': get_option('gtk_doc'),
+    'Documentation': get_option('documentation'),
     'Introspection': introspection,
     'Vapi': get_option('vapi'),
   }, section: 'Options')

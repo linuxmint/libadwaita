@@ -11,6 +11,7 @@
 #include "adw-tab-bar-private.h"
 
 #include "adw-bin.h"
+#include "adw-gtkbuilder-utils-private.h"
 #include "adw-tab-box-private.h"
 #include "adw-widget-utils-private.h"
 
@@ -34,9 +35,40 @@
  * them. Pinned tabs always stay visible and aren't a part of the scrollable
  * area.
  *
+ * ## Drag-and-Drop
+ *
+ * `AdwTabBar` tabs can have an additional drop target for arbitrary content.
+ *
+ * Use [method@TabBar.setup_extra_drop_target] to set it up, specifying the
+ * supported content types and drag actions, then connect to
+ * [signal@TabBar::extra-drag-drop] to handle a drop.
+ *
+ * In some cases, it may be necessary to determine the used action based on the
+ * content. In that case, set [property@TabBar:extra-drag-preload] to `TRUE`
+ * and connect to [signal@TabBar::extra-drag-value] signal, then return the
+ * action from its handler. To access this action from the
+ * [signal@TabBar::extra-drag-drop] handler, use the
+ * [property@TabBar:extra-drag-preferred-action] property.
+ *
+ * [signal@TabBar::extra-drag-value] is also always emitted when starting to
+ * hover an item, with a `NULL` value. This happens even when
+ * [property@TabBar:extra-drag-preload] is `FALSE`.
+ *
  * ## CSS nodes
  *
  * `AdwTabBar` has a single CSS node with name `tabbar`.
+ *
+ * ## Style classes
+ *
+ * By default `AdwTabBar` look like a part of an `AdwHeaderBar` and is intended
+ * to be used directly attached to one or used as a [class@ToolbarView] toolbar.
+ * The [`.inline`](style-classes.html#inline) style class removes its background,
+ * so that it can be used in different contexts instead.
+ *
+ * <picture>
+ *   <source srcset="tab-bar-inline-dark.png" media="(prefers-color-scheme: dark)">
+ *   <img src="tab-bar-inline.png" alt="tab-bar-inline">
+ * </picture>
  */
 
 struct _AdwTabBar
@@ -66,6 +98,8 @@ static void adw_tab_bar_buildable_init (GtkBuildableIface *iface);
 
 G_DEFINE_FINAL_TYPE_WITH_CODE (AdwTabBar, adw_tab_bar, GTK_TYPE_WIDGET,
                                G_IMPLEMENT_INTERFACE (GTK_TYPE_BUILDABLE, adw_tab_bar_buildable_init))
+
+static GtkBuildableIface *parent_buildable_iface;
 
 enum {
   PROP_0,
@@ -292,6 +326,44 @@ view_destroy_cb (AdwTabBar *self)
 }
 
 static gboolean
+handle_action_bin_focus (AdwTabBar        *self,
+                         AdwBin           *focused_bin,
+                         GtkDirectionType  dir,
+                         gboolean          dir_towards_tabs)
+{
+  if (gtk_widget_child_focus (GTK_WIDGET (focused_bin), dir))
+    return GDK_EVENT_STOP;
+
+  if (dir == GTK_DIR_UP || dir == GTK_DIR_DOWN)
+    return GDK_EVENT_PROPAGATE;
+
+  if (dir_towards_tabs) {
+    AdwTabPage *selected_page = adw_tab_view_get_selected_page (self->view);
+
+    if (!selected_page) {
+      GtkWidget *other_bin;
+
+      if (focused_bin == self->start_action_bin)
+        other_bin = GTK_WIDGET (self->end_action_bin);
+      else
+        other_bin = GTK_WIDGET (self->start_action_bin);
+
+      if (gtk_widget_child_focus (other_bin, dir))
+        return GDK_EVENT_STOP;
+
+      return gtk_widget_keynav_failed (GTK_WIDGET (self), dir);
+    }
+
+    if (adw_tab_page_get_pinned (selected_page))
+      return gtk_widget_child_focus (GTK_WIDGET (self->pinned_box), dir);
+
+    return gtk_widget_child_focus (GTK_WIDGET (self->box), dir);
+  }
+
+  return gtk_widget_keynav_failed (GTK_WIDGET (self), dir);
+}
+
+static gboolean
 adw_tab_bar_focus (GtkWidget        *widget,
                    GtkDirectionType  direction)
 {
@@ -302,23 +374,65 @@ adw_tab_bar_focus (GtkWidget        *widget,
   if (!adw_tab_bar_get_tabs_revealed (self))
     return GDK_EVENT_PROPAGATE;
 
-  if (!gtk_widget_get_focus_child (widget))
-    return gtk_widget_child_focus (GTK_WIDGET (self->pinned_box), direction) ||
-           gtk_widget_child_focus (GTK_WIDGET (self->box), direction);
-
   is_rtl = gtk_widget_get_direction (widget) == GTK_TEXT_DIR_RTL;
   start = is_rtl ? GTK_DIR_RIGHT : GTK_DIR_LEFT;
   end = is_rtl ? GTK_DIR_LEFT : GTK_DIR_RIGHT;
 
+  if (!gtk_widget_get_focus_child (widget)) {
+    if (direction == start || direction == GTK_DIR_TAB_BACKWARD || direction == GTK_DIR_UP) {
+      return gtk_widget_child_focus (GTK_WIDGET (self->end_action_bin), direction) ||
+             gtk_widget_child_focus (GTK_WIDGET (self->box), direction) ||
+             gtk_widget_child_focus (GTK_WIDGET (self->pinned_box), direction) ||
+             gtk_widget_child_focus (GTK_WIDGET (self->start_action_bin), direction);
+    } else {
+      return gtk_widget_child_focus (GTK_WIDGET (self->start_action_bin), direction) ||
+             gtk_widget_child_focus (GTK_WIDGET (self->pinned_box), direction) ||
+             gtk_widget_child_focus (GTK_WIDGET (self->box), direction) ||
+             gtk_widget_child_focus (GTK_WIDGET (self->end_action_bin), direction);
+    }
+  }
+
+  if (gtk_widget_get_focus_child (GTK_WIDGET (self->start_action_bin))) {
+    return handle_action_bin_focus (self,
+                                    self->start_action_bin,
+                                    direction,
+                                    direction == end || direction == GTK_DIR_TAB_FORWARD);
+  }
+
+  if (gtk_widget_get_focus_child (GTK_WIDGET (self->end_action_bin))) {
+    return handle_action_bin_focus (self,
+                                    self->end_action_bin,
+                                    direction,
+                                    direction == start || direction == GTK_DIR_TAB_BACKWARD);
+  }
+
+  /* If the focus is not in either action_bin, then it must be in the tabs */
+
   if (direction == start) {
-    if (adw_tab_view_select_previous_page (self->view))
+    if (adw_tab_view_select_previous_page (self->view) ||
+        gtk_widget_child_focus (GTK_WIDGET (self->start_action_bin), direction))
       return GDK_EVENT_STOP;
 
     return gtk_widget_keynav_failed (widget, direction);
   }
 
   if (direction == end) {
-    if (adw_tab_view_select_next_page (self->view))
+    if (adw_tab_view_select_next_page (self->view) ||
+        gtk_widget_child_focus (GTK_WIDGET (self->end_action_bin), direction))
+      return GDK_EVENT_STOP;
+
+    return gtk_widget_keynav_failed (widget, direction);
+  }
+
+  if (direction == GTK_DIR_TAB_BACKWARD) {
+    if (gtk_widget_child_focus (GTK_WIDGET (self->start_action_bin), direction))
+      return GDK_EVENT_STOP;
+
+    return gtk_widget_keynav_failed (widget, direction);
+  }
+
+  if (direction == GTK_DIR_TAB_FORWARD) {
+    if (gtk_widget_child_focus (GTK_WIDGET (self->end_action_bin), direction))
       return GDK_EVENT_STOP;
 
     return gtk_widget_keynav_failed (widget, direction);
@@ -449,7 +563,7 @@ adw_tab_bar_class_init (AdwTabBarClass *klass)
   widget_class->compute_expand = adw_widget_compute_expand;
 
   /**
-   * AdwTabBar:view: (attributes org.gtk.Property.get=adw_tab_bar_get_view org.gtk.Property.set=adw_tab_bar_set_view)
+   * AdwTabBar:view:
    *
    * The tab view the tab bar controls.
    */
@@ -459,7 +573,7 @@ adw_tab_bar_class_init (AdwTabBarClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwTabBar:start-action-widget: (attributes org.gtk.Property.get=adw_tab_bar_get_start_action_widget org.gtk.Property.set=adw_tab_bar_set_start_action_widget)
+   * AdwTabBar:start-action-widget:
    *
    * The widget shown before the tabs.
    */
@@ -469,7 +583,7 @@ adw_tab_bar_class_init (AdwTabBarClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwTabBar:end-action-widget: (attributes org.gtk.Property.get=adw_tab_bar_get_end_action_widget org.gtk.Property.set=adw_tab_bar_set_end_action_widget)
+   * AdwTabBar:end-action-widget:
    *
    * The widget shown after the tabs.
    */
@@ -479,7 +593,7 @@ adw_tab_bar_class_init (AdwTabBarClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwTabBar:autohide: (attributes org.gtk.Property.get=adw_tab_bar_get_autohide org.gtk.Property.set=adw_tab_bar_set_autohide)
+   * AdwTabBar:autohide:
    *
    * Whether the tabs automatically hide.
    *
@@ -494,7 +608,7 @@ adw_tab_bar_class_init (AdwTabBarClass *klass)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwTabBar:tabs-revealed: (attributes org.gtk.Property.get=adw_tab_bar_get_tabs_revealed)
+   * AdwTabBar:tabs-revealed:
    *
    * Whether the tabs are currently revealed.
    *
@@ -506,7 +620,7 @@ adw_tab_bar_class_init (AdwTabBarClass *klass)
                           G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
   /**
-   * AdwTabBar:expand-tabs: (attributes org.gtk.Property.get=adw_tab_bar_get_expand_tabs org.gtk.Property.set=adw_tab_bar_set_expand_tabs)
+   * AdwTabBar:expand-tabs:
    *
    * Whether tabs expand to full width.
    *
@@ -519,7 +633,7 @@ adw_tab_bar_class_init (AdwTabBarClass *klass)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwTabBar:inverted: (attributes org.gtk.Property.get=adw_tab_bar_get_inverted org.gtk.Property.set=adw_tab_bar_set_inverted)
+   * AdwTabBar:inverted:
    *
    * Whether tabs use inverted layout.
    *
@@ -532,7 +646,7 @@ adw_tab_bar_class_init (AdwTabBarClass *klass)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwTabBar:is-overflowing: (attributes org.gtk.Property.get=adw_tab_bar_get_is_overflowing)
+   * AdwTabBar:is-overflowing:
    *
    * Whether the tab bar is overflowing.
    *
@@ -544,13 +658,14 @@ adw_tab_bar_class_init (AdwTabBarClass *klass)
                           G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
   /**
-   * AdwTabBar:extra-drag-preferred-action: (attributes org.gtk.Property.get=adw_tab_bar_get_extra_drag_preferred_action)
+   * AdwTabBar:extra-drag-preferred-action:
    *
-   * The unique action on the `current-drop` of the
-   * [signal@TabBar::extra-drag-drop].
+   * The current drag action during a drop.
    *
-   * This property should only be used during a [signal@TabBar::extra-drag-drop]
-   * and is always a subset of what was originally passed to
+   * This property should only be used from inside a
+   * [signal@TabBar::extra-drag-drop] handler.
+   *
+   * The action will be a subset of what was originally passed to
    * [method@TabBar.setup_extra_drop_target].
    *
    * Since: 1.4
@@ -561,7 +676,7 @@ adw_tab_bar_class_init (AdwTabBarClass *klass)
                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwTabBar:extra-drag-preload: (attributes org.gtk.Property.get=adw_tab_bar_get_extra_drag_preload org.gtk.Property.set=adw_tab_bar_set_extra_drag_preload)
+   * AdwTabBar:extra-drag-preload:
    *
    * Whether the drop data should be preloaded on hover.
    *
@@ -582,14 +697,14 @@ adw_tab_bar_class_init (AdwTabBarClass *klass)
    * @page: the page matching the tab the content was dropped onto
    * @value: the `GValue` being dropped
    *
-   * This signal is emitted when content is dropped onto a tab.
+   * Emitted when content is dropped onto a tab.
    *
    * The content must be of one of the types set up via
    * [method@TabBar.setup_extra_drop_target].
    *
    * See [signal@Gtk.DropTarget::drop].
    *
-   * Returns: whether the drop was accepted for @page
+   * Returns: whether the drop was accepted
    */
   signals[SIGNAL_EXTRA_DRAG_DROP] =
     g_signal_new ("extra-drag-drop",
@@ -607,9 +722,9 @@ adw_tab_bar_class_init (AdwTabBarClass *klass)
    * AdwTabBar::extra-drag-value:
    * @self: a tab bar
    * @page: the page matching the tab the content was dropped onto
-   * @value: the `GValue` being dropped
+   * @value: (nullable): the `GValue` being dropped
    *
-   * This signal is emitted when the dropped content is preloaded.
+   * Emitted when the dropped content is preloaded.
    *
    * In order for data to be preloaded, [property@TabBar:extra-drag-preload]
    * must be set to `TRUE`.
@@ -619,7 +734,7 @@ adw_tab_bar_class_init (AdwTabBarClass *klass)
    *
    * See [property@Gtk.DropTarget:value].
    *
-   * Returns: the preferred action for the drop on @page
+   * Returns: the preferred action for the drop
    *
    * Since: 1.3
    */
@@ -685,22 +800,25 @@ adw_tab_bar_buildable_add_child (GtkBuildable *buildable,
   AdwTabBar *self = ADW_TAB_BAR (buildable);
 
   if (!self->revealer) {
-    gtk_widget_set_parent (GTK_WIDGET (child), GTK_WIDGET (self));
-
+    parent_buildable_iface->add_child (buildable, builder, child, type);
     return;
   }
 
-  if (!type || !g_strcmp0 (type, "start"))
+  if (!type || !g_strcmp0 (type, "start")) {
+    gtk_buildable_child_deprecation_warning (buildable, builder, "start", "start-action-widget");
     adw_tab_bar_set_start_action_widget (self, GTK_WIDGET (child));
-  else if (!g_strcmp0 (type, "end"))
+  } else if (!g_strcmp0 (type, "end")) {
+    gtk_buildable_child_deprecation_warning (buildable, builder, "end", "end-action-widget");
     adw_tab_bar_set_end_action_widget (self, GTK_WIDGET (child));
-  else
+  } else {
     GTK_BUILDER_WARN_INVALID_CHILD_TYPE (ADW_TAB_BAR (self), type);
+  }
 }
 
 static void
 adw_tab_bar_buildable_init (GtkBuildableIface *iface)
 {
+  parent_buildable_iface = g_type_interface_peek_parent (iface);
   iface->add_child = adw_tab_bar_buildable_add_child;
 }
 
@@ -746,7 +864,7 @@ adw_tab_bar_new (void)
 }
 
 /**
- * adw_tab_bar_get_view: (attributes org.gtk.Method.get_property=view)
+ * adw_tab_bar_get_view:
  * @self: a tab bar
  *
  * Gets the tab view @self controls.
@@ -762,7 +880,7 @@ adw_tab_bar_get_view (AdwTabBar *self)
 }
 
 /**
- * adw_tab_bar_set_view: (attributes org.gtk.Method.set_property=view)
+ * adw_tab_bar_set_view:
  * @self: a tab bar
  * @view: (nullable): a tab view
  *
@@ -838,7 +956,7 @@ adw_tab_bar_set_view (AdwTabBar  *self,
 }
 
 /**
- * adw_tab_bar_get_start_action_widget: (attributes org.gtk.Method.get_property=start-action-widget)
+ * adw_tab_bar_get_start_action_widget:
  * @self: a tab bar
  *
  * Gets the widget shown before the tabs.
@@ -854,7 +972,7 @@ adw_tab_bar_get_start_action_widget (AdwTabBar *self)
 }
 
 /**
- * adw_tab_bar_set_start_action_widget: (attributes org.gtk.Method.set_property=start-action-widget)
+ * adw_tab_bar_set_start_action_widget:
  * @self: a tab bar
  * @widget: (transfer none) (nullable): the widget to show before the tabs
  *
@@ -881,7 +999,7 @@ adw_tab_bar_set_start_action_widget (AdwTabBar *self,
 }
 
 /**
- * adw_tab_bar_get_end_action_widget: (attributes org.gtk.Method.get_property=end-action-widget)
+ * adw_tab_bar_get_end_action_widget:
  * @self: a tab bar
  *
  * Gets the widget shown after the tabs.
@@ -897,7 +1015,7 @@ adw_tab_bar_get_end_action_widget (AdwTabBar *self)
 }
 
 /**
- * adw_tab_bar_set_end_action_widget: (attributes org.gtk.Method.set_property=end-action-widget)
+ * adw_tab_bar_set_end_action_widget:
  * @self: a tab bar
  * @widget: (transfer none) (nullable): the widget to show after the tabs
  *
@@ -924,7 +1042,7 @@ adw_tab_bar_set_end_action_widget (AdwTabBar *self,
 }
 
 /**
- * adw_tab_bar_get_autohide: (attributes org.gtk.Method.get_property=autohide)
+ * adw_tab_bar_get_autohide:
  * @self: a tab bar
  *
  * Gets whether the tabs automatically hide.
@@ -940,7 +1058,7 @@ adw_tab_bar_get_autohide (AdwTabBar *self)
 }
 
 /**
- * adw_tab_bar_set_autohide: (attributes org.gtk.Method.set_property=autohide)
+ * adw_tab_bar_set_autohide:
  * @self: a tab bar
  * @autohide: whether the tabs automatically hide
  *
@@ -970,7 +1088,7 @@ adw_tab_bar_set_autohide (AdwTabBar *self,
 }
 
 /**
- * adw_tab_bar_get_tabs_revealed: (attributes org.gtk.Method.get_property=tabs-revealed)
+ * adw_tab_bar_get_tabs_revealed:
  * @self: a tab bar
  *
  * Gets whether the tabs are currently revealed.
@@ -988,7 +1106,7 @@ adw_tab_bar_get_tabs_revealed (AdwTabBar *self)
 }
 
 /**
- * adw_tab_bar_get_expand_tabs: (attributes org.gtk.Method.get_property=expand-tabs)
+ * adw_tab_bar_get_expand_tabs:
  * @self: a tab bar
  *
  * Gets whether tabs expand to full width.
@@ -1004,7 +1122,7 @@ adw_tab_bar_get_expand_tabs (AdwTabBar *self)
 }
 
 /**
- * adw_tab_bar_set_expand_tabs: (attributes org.gtk.Method.set_property=expand-tabs)
+ * adw_tab_bar_set_expand_tabs:
  * @self: a tab bar
  * @expand_tabs: whether to expand tabs
  *
@@ -1030,7 +1148,7 @@ adw_tab_bar_set_expand_tabs (AdwTabBar *self,
 }
 
 /**
- * adw_tab_bar_get_inverted: (attributes org.gtk.Method.get_property=inverted)
+ * adw_tab_bar_get_inverted:
  * @self: a tab bar
  *
  * Gets whether tabs use inverted layout.
@@ -1046,7 +1164,7 @@ adw_tab_bar_get_inverted (AdwTabBar *self)
 }
 
 /**
- * adw_tab_bar_set_inverted: (attributes org.gtk.Method.set_property=inverted)
+ * adw_tab_bar_set_inverted:
  * @self: a tab bar
  * @inverted: whether tabs use inverted layout
  *
@@ -1079,8 +1197,6 @@ adw_tab_bar_set_inverted (AdwTabBar *self,
  *   all supported `GType`s that can be dropped
  * @n_types: number of @types
  *
- * Sets the supported types for this drop target.
- *
  * Sets up an extra drop target on tabs.
  *
  * This allows to drag arbitrary content onto tabs, for example URLs in a web
@@ -1108,9 +1224,15 @@ adw_tab_bar_setup_extra_drop_target (AdwTabBar     *self,
  * adw_tab_bar_get_extra_drag_preferred_action:
  * @self: a tab bar
  *
- * Gets the current action during a drop on the extra_drop_target.
+ * Gets the current drag action during a drop.
  *
- * Returns: the drag action of the current drop.
+ * This method should only be used from inside a
+ * [signal@TabBar::extra-drag-drop] handler.
+ *
+ * The action will be a subset of what was originally passed to
+ * [method@TabBar.setup_extra_drop_target].
+ *
+ * Returns: the drag action of the current drop
  *
  * Since: 1.4
  */
@@ -1167,7 +1289,7 @@ adw_tab_bar_set_extra_drag_preload (AdwTabBar *self,
 }
 
 /**
- * adw_tab_bar_get_is_overflowing: (attributes org.gtk.Method.get_property=is-overflowing)
+ * adw_tab_bar_get_is_overflowing:
  * @self: a tab bar
  *
  * Gets whether @self is overflowing.
@@ -1199,3 +1321,4 @@ adw_tab_bar_get_pinned_tab_box (AdwTabBar *self)
 
   return self->pinned_box;
 }
+

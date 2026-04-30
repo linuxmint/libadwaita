@@ -5,7 +5,7 @@
 #include <adwaita.h>
 
 #include "adw-demo-debug-info.h"
-#include "adw-demo-preferences-window.h"
+#include "adw-demo-preferences-dialog.h"
 #include "adw-demo-window.h"
 
 static void
@@ -23,9 +23,8 @@ show_preferences (GSimpleAction *action,
 {
   GtkApplication *app = GTK_APPLICATION (user_data);
   GtkWindow *window = gtk_application_get_active_window (app);
-  AdwDemoPreferencesWindow *preferences = adw_demo_preferences_window_new ();
 
-  adw_dialog_present (ADW_DIALOG (preferences), GTK_WIDGET (window));
+  adw_dialog_present (adw_demo_preferences_dialog_new (), GTK_WIDGET (window));
 }
 
 static void
@@ -61,7 +60,7 @@ show_about (GSimpleAction *action,
   adw_about_dialog_set_version (ADW_ABOUT_DIALOG (about), ADW_VERSION_S);
   adw_about_dialog_set_debug_info (ADW_ABOUT_DIALOG (about), debug_info);
   adw_about_dialog_set_debug_info_filename (ADW_ABOUT_DIALOG (about), "adwaita-1-demo-debug-info.txt");
-  adw_about_dialog_set_copyright (ADW_ABOUT_DIALOG (about), "© 2017–2022 Purism SPC");
+  adw_about_dialog_set_copyright (ADW_ABOUT_DIALOG (about), "© 2017–2022 Purism SPC\n© 2023-2024 GNOME Foundation Inc.");
   adw_about_dialog_set_developers (ADW_ABOUT_DIALOG (about), developers);
   adw_about_dialog_set_designers (ADW_ABOUT_DIALOG (about), designers);
   adw_about_dialog_set_artists (ADW_ABOUT_DIALOG (about), designers);
@@ -80,13 +79,19 @@ show_about (GSimpleAction *action,
 }
 
 static void
+quit_app (GSimpleAction *action,
+          GVariant      *state,
+          gpointer       user_data)
+{
+  GApplication *app = G_APPLICATION (user_data);
+
+  g_application_quit (app);
+}
+
+static void
 show_window (GtkApplication *app)
 {
-  AdwDemoWindow *window;
-
-  window = adw_demo_window_new (app);
-
-  gtk_window_present (GTK_WINDOW (window));
+  gtk_window_present (adw_demo_window_new (app));
 }
 
 int
@@ -99,12 +104,19 @@ main (int    argc,
     { "inspector", show_inspector, NULL, NULL, NULL },
     { "preferences", show_preferences, NULL, NULL, NULL },
     { "about", show_about, NULL, NULL, NULL },
+    { "quit", quit_app, NULL, NULL, NULL },
   };
+  const char *preferences_accels[2] = { "<Ctrl>comma", NULL };
+  const char *quit_accels[2] = { "<Ctrl>Q", NULL };
 
   app = adw_application_new ("org.gnome.Adwaita1.Demo", G_APPLICATION_NON_UNIQUE);
   g_action_map_add_action_entries (G_ACTION_MAP (app),
                                    app_entries, G_N_ELEMENTS (app_entries),
                                    app);
+
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "app.preferences", preferences_accels);
+  gtk_application_set_accels_for_action (GTK_APPLICATION (app), "app.quit", quit_accels);
+
   g_signal_connect (app, "activate", G_CALLBACK (show_window), NULL);
   status = g_application_run (G_APPLICATION (app), argc, argv);
   g_object_unref (app);

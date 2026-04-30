@@ -10,21 +10,17 @@ desktop_file = i18n.merge_file(
 desktop_utils = find_program('desktop-file-validate', required: false)
 if desktop_utils.found()
   test('Validate desktop file', desktop_utils,
-    args: [desktop_file]
+    args: [desktop_file],
+    suite: ['demo'],
   )
 endif
 
 today = 'unknown'
-date = find_program('date',
-         required: false)
-sh = find_program('sh')
-if date.found()
-  time_epoch = run_command(sh, '-c', 'echo "$SOURCE_DATE_EPOCH"', check: true).stdout().strip()
-  if time_epoch != ''
-    r = run_command(date, '-I', '-u', '-d', '@' + time_epoch, check: false)
-  else
-    r = run_command(date, '-I', check: false)
-  endif
+python3 = find_program('python3', 'python', required: false)
+if python3.found()
+  r = run_command(python3, '-c',
+    'import datetime, os; e = os.environ.get("SOURCE_DATE_EPOCH"); print((datetime.datetime.fromtimestamp(int(e), tz=datetime.timezone.utc) if e else datetime.datetime.now(tz=datetime.timezone.utc)).strftime("%Y-%m-%d"))',
+    check: false)
   if r.returncode() == 0
     today = r.stdout().strip()
   endif
@@ -49,7 +45,8 @@ appstream_file = i18n.merge_file(
 appstreamcli = find_program('appstreamcli', required: false)
 if appstreamcli.found()
   test('Validate appstream file', appstreamcli,
-    args: ['validate', '--no-net', '--explain', appstream_file]
+    args: ['validate', '--no-net', '--explain', appstream_file],
+    suite: ['demo'],
   )
 endif
 

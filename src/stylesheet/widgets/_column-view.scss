@@ -1,12 +1,16 @@
 columnview {
   @include focus-ring();
 
+  &.view:disabled {
+    color: var(--view-fg-color);
+  }
+
   &:drop(active) {
     box-shadow: none;
   }
 
   > header > button {
-    @extend %undecorated_button;
+    background-color: transparent;
     padding-top: 3px;
     padding-bottom: 3px;
     padding-left: 6px;
@@ -21,15 +25,22 @@ columnview {
     }
 
     > box {
-      color: gtkalpha(currentColor, if($contrast == 'high', .6, .4));
-      font-weight: 700;
-      font-size: 9pt;
+      color: color-mix(in srgb, currentColor 40%, transparent);
+      @extend .caption-heading;
       border-spacing: 6px;
+
+      @media (prefers-contrast: more) {
+        color: color-mix(in srgb, currentColor 60%, transparent);
+      }
     }
 
     &:hover > box {
-      color: gtkalpha(currentColor, if($contrast == 'high', .9, .7));
+      color: color-mix(in srgb, currentColor 70%, transparent);
       box-shadow: none;
+
+      @media (prefers-contrast: more) {
+        color: color-mix(in srgb, currentColor 90%, transparent);
+      }
     }
 
     &:active > box {
@@ -52,8 +63,8 @@ columnview {
   button.dnd,
   header.button.dnd { // for treeview-like derive widgets
     &:active, &:selected, &:hover, & {
-      color: $accent_fg_color;
-      background-color: $accent_bg_color;
+      color: var(--accent-fg-color);
+      background-color: var(--accent-bg-color);
       transition: none;
     }
   }
@@ -99,15 +110,19 @@ columnview {
     padding-bottom: 2px;
   }
 
-  @include undershoot(top, $shade_color, true);
+  @include undershoot(top, true);
 }
 
 columnview row:not(:selected) cell editablelabel:not(.editing):focus-within {
   outline: 2px solid $focus_border_color;
+
+  @media (prefers-contrast: more) {
+    outline-color: $focus_border_color_hc;
+  }
 }
 
 columnview row:not(:selected) cell editablelabel.editing:focus-within {
-  outline: 2px solid $accent_color;
+  outline: 2px solid var(--accent-color);
 }
 
 treeexpander {

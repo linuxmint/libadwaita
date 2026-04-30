@@ -6,8 +6,9 @@
     <property name="title">Window</property>
     <property name="default-width">400</property>
     <property name="default-height">100</property>
+    <property name="height-request">-1</property>
     <property name="titlebar">
-      <object class="GtkHeaderBar"/>
+      <object class="AdwHeaderBar"/>
     </property>
     <style>
       <class name="devel"/>

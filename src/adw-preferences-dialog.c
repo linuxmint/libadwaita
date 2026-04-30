@@ -36,6 +36,12 @@
  * The `AdwPreferencesDialog` widget presents an application's preferences
  * gathered into pages and groups. The preferences are searchable by the user.
  *
+ * ## Actions
+ *
+ * `AdwPrefencesDialog` defines the `navigation.pop` action, it doesn't take any
+ * parameters and pops the current subpage from the navigation stack, equivalent
+ * to calling [method@PreferencesDialog.pop_subpage].
+ *
  * ## CSS nodes
  *
  * `AdwPreferencesDialog` has a main CSS node with the name `dialog` and the
@@ -63,10 +69,9 @@ typedef struct
 
   gboolean search_enabled;
 
-  GtkFilter *filter;
+  GtkFilter *row_filter;
+  GtkFilter *page_filter;
   GtkFilterListModel *filter_model;
-
-  int n_pages;
 } AdwPreferencesDialogPrivate;
 
 static void adw_preferences_dialog_buildable_init (GtkBuildableIface *iface);
@@ -87,50 +92,6 @@ enum {
 };
 
 static GParamSpec *props[LAST_PROP];
-
-/* Copied and modified from gtklabel.c, separate_uline_pattern() */
-static char *
-strip_mnemonic (const char *src)
-{
-  char *new_str = g_new (char, strlen (src) + 1);
-  char *dest = new_str;
-  gboolean underscore = FALSE;
-
-  while (*src) {
-    gunichar c;
-    const char *next_src;
-
-    c = g_utf8_get_char (src);
-    if (c == (gunichar) -1) {
-      g_warning ("Invalid input string");
-
-      g_free (new_str);
-
-      return NULL;
-    }
-
-    next_src = g_utf8_next_char (src);
-
-    if (underscore) {
-      while (src < next_src)
-        *dest++ = *src++;
-
-      underscore = FALSE;
-    } else {
-      if (c == '_'){
-        underscore = TRUE;
-        src = next_src;
-      } else {
-        while (src < next_src)
-          *dest++ = *src++;
-      }
-    }
-  }
-
-  *dest = 0;
-
-  return new_str;
-}
 
 static char *
 make_comparable (const char        *src,
@@ -153,7 +114,7 @@ make_comparable (const char        *src,
   }
 
   if (allow_underline && adw_preferences_row_get_use_underline (row)) {
-    char *comparable = strip_mnemonic (plaintext);
+    char *comparable = adw_strip_mnemonic (plaintext);
     g_free (plaintext);
     return comparable;
   }
@@ -233,7 +194,7 @@ create_search_row_subtitle (AdwPreferencesDialog *self,
     const char *title = adw_preferences_page_get_title (ADW_PREFERENCES_PAGE (page));
 
     if (adw_preferences_page_get_use_underline (ADW_PREFERENCES_PAGE (page)))
-      page_title = strip_mnemonic (title);
+      page_title = adw_strip_mnemonic (title);
     else
       page_title = g_strdup (title);
 
@@ -348,10 +309,11 @@ update_view_switcher (AdwPreferencesDialog *self)
   AdwPreferencesDialogPrivate *priv = adw_preferences_dialog_get_instance_private (self);
   AdwBreakpoint *breakpoint;
   AdwBreakpointCondition *main_condition, *fallback_condition, *condition;
+  int n_pages = get_n_pages (self);
 
   main_condition =
     adw_breakpoint_condition_new_length (ADW_BREAKPOINT_CONDITION_MAX_WIDTH,
-                                         VIEW_SWITCHER_PAGE_THRESHOLD * MAX (1, priv->n_pages),
+                                         VIEW_SWITCHER_PAGE_THRESHOLD * MAX (1, n_pages),
                                          ADW_LENGTH_UNIT_PT);
   fallback_condition =
     adw_breakpoint_condition_new_length (ADW_BREAKPOINT_CONDITION_MAX_WIDTH,
@@ -364,12 +326,14 @@ update_view_switcher (AdwPreferencesDialog *self)
 
   breakpoint = adw_breakpoint_bin_get_current_breakpoint (ADW_BREAKPOINT_BIN (priv->breakpoint_bin));
 
-  if (!breakpoint && priv->n_pages > 1)
+  if (!breakpoint && n_pages > 1)
     gtk_stack_set_visible_child (GTK_STACK (priv->view_switcher_stack), priv->view_switcher);
   else
     gtk_stack_set_visible_child (GTK_STACK (priv->view_switcher_stack), priv->title);
 
   adw_breakpoint_condition_free (condition);
+
+  gtk_filter_changed (priv->page_filter, GTK_FILTER_CHANGE_DIFFERENT);
 }
 
 static void
@@ -441,7 +405,7 @@ search_changed_cb (AdwPreferencesDialog *self)
   AdwPreferencesDialogPrivate *priv = adw_preferences_dialog_get_instance_private (self);
   guint n;
 
-  gtk_filter_changed (priv->filter, GTK_FILTER_CHANGE_DIFFERENT);
+  gtk_filter_changed (priv->row_filter, GTK_FILTER_CHANGE_DIFFERENT);
 
   n = g_list_model_get_n_items (G_LIST_MODEL (priv->filter_model));
 
@@ -454,6 +418,22 @@ stop_search_cb (AdwPreferencesDialog *self)
   AdwPreferencesDialogPrivate *priv = adw_preferences_dialog_get_instance_private (self);
 
   gtk_toggle_button_set_active (priv->search_button, FALSE);
+}
+
+static void
+search_activated_cb (AdwPreferencesDialog *self)
+{
+  AdwPreferencesDialogPrivate *priv = adw_preferences_dialog_get_instance_private (self);
+  GtkListBoxRow *row;
+
+  if (!gtk_widget_get_mapped (GTK_WIDGET (priv->search_results)))
+    return;
+
+  row = gtk_list_box_get_row_at_index (priv->search_results, 0);
+  if (!row)
+    return;
+
+  gtk_widget_grab_focus (GTK_WIDGET (row));
 }
 
 static void
@@ -540,7 +520,7 @@ adw_preferences_dialog_class_init (AdwPreferencesDialogClass *klass)
   object_class->dispose = adw_preferences_dialog_dispose;
 
   /**
-   * AdwPreferencesDialog:visible-page: (attributes org.gtk.Property.get=adw_preferences_dialog_get_visible_page org.gtk.Property.set=adw_preferences_dialog_set_visible_page)
+   * AdwPreferencesDialog:visible-page:
    *
    * The currently visible page.
    *
@@ -552,7 +532,7 @@ adw_preferences_dialog_class_init (AdwPreferencesDialogClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwPreferencesDialog:visible-page-name: (attributes org.gtk.Property.get=adw_preferences_dialog_get_visible_page_name org.gtk.Property.set=adw_preferences_dialog_set_visible_page_name)
+   * AdwPreferencesDialog:visible-page-name:
    *
    * The name of the currently visible page.
    *
@@ -566,7 +546,7 @@ adw_preferences_dialog_class_init (AdwPreferencesDialogClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwPreferencesDialog:search-enabled: (attributes org.gtk.Property.get=adw_preferences_dialog_get_search_enabled org.gtk.Property.set=adw_preferences_dialog_set_search_enabled)
+   * AdwPreferencesDialog:search-enabled:
    *
    * Whether search is enabled.
    *
@@ -579,7 +559,11 @@ adw_preferences_dialog_class_init (AdwPreferencesDialogClass *klass)
 
   g_object_class_install_properties (object_class, LAST_PROP, props);
 
+#ifdef __APPLE__
+  gtk_widget_class_add_binding (widget_class, GDK_KEY_f, GDK_META_MASK, search_open_cb, NULL);
+#else
   gtk_widget_class_add_binding (widget_class, GDK_KEY_f, GDK_CONTROL_MASK, search_open_cb, NULL);
+#endif
 
   gtk_widget_class_set_template_from_resource (widget_class,
                                                "/org/gnome/Adwaita/ui/adw-preferences-dialog.ui");
@@ -609,6 +593,8 @@ adw_preferences_dialog_class_init (AdwPreferencesDialogClass *klass)
   gtk_widget_class_bind_template_callback (widget_class, search_results_map);
   gtk_widget_class_bind_template_callback (widget_class, search_results_unmap);
   gtk_widget_class_bind_template_callback (widget_class, stop_search_cb);
+  gtk_widget_class_bind_template_callback (widget_class, search_activated_cb);
+  gtk_widget_class_bind_template_callback (widget_class, adw_widget_on_vertical_keynav_failed);
 }
 
 static GListModel *
@@ -632,17 +618,19 @@ adw_preferences_dialog_init (AdwPreferencesDialog *self)
 
   gtk_widget_init_template (GTK_WIDGET (self));
 
-  priv->filter = GTK_FILTER (gtk_custom_filter_new ((GtkCustomFilterFunc) filter_search_results, self, NULL));
-  expr = gtk_property_expression_new (GTK_TYPE_STACK_PAGE, NULL, "visible");
+  priv->row_filter = GTK_FILTER (gtk_custom_filter_new ((GtkCustomFilterFunc) filter_search_results, self, NULL));
+
+  expr = gtk_property_expression_new (ADW_TYPE_VIEW_STACK_PAGE, NULL, "visible");
+  priv->page_filter = GTK_FILTER (gtk_bool_filter_new (expr));
 
   model = G_LIST_MODEL (adw_view_stack_get_pages (priv->pages_stack));
-  model = G_LIST_MODEL (gtk_filter_list_model_new (model, GTK_FILTER (gtk_bool_filter_new (expr))));
+  model = G_LIST_MODEL (gtk_filter_list_model_new (model, priv->page_filter));
   model = G_LIST_MODEL (gtk_map_list_model_new (model,
                                                 (GtkMapListModelMapFunc) preferences_page_to_rows,
                                                 NULL,
                                                 NULL));
   model = G_LIST_MODEL (gtk_flatten_list_model_new (model));
-  priv->filter_model = gtk_filter_list_model_new (model, priv->filter);
+  priv->filter_model = gtk_filter_list_model_new (model, priv->row_filter);
 
   gtk_widget_set_visible (GTK_WIDGET (priv->search_button), FALSE);
 }
@@ -713,8 +701,10 @@ adw_preferences_dialog_add (AdwPreferencesDialog *self,
   g_object_bind_property (page, "title", stack_page, "title", G_BINDING_SYNC_CREATE);
   g_object_bind_property (page, "use-underline", stack_page, "use-underline", G_BINDING_SYNC_CREATE);
   g_object_bind_property (page, "name", stack_page, "name", G_BINDING_SYNC_CREATE);
+  g_object_bind_property (page, "visible", stack_page, "visible", G_BINDING_SYNC_CREATE);
 
-  priv->n_pages++;
+  g_signal_connect_swapped (stack_page, "notify::visible", G_CALLBACK (update_view_switcher), self);
+
   update_view_switcher (self);
 }
 
@@ -743,7 +733,6 @@ adw_preferences_dialog_remove (AdwPreferencesDialog *self,
   else
     ADW_CRITICAL_CANNOT_REMOVE_CHILD (self, page);
 
-  priv->n_pages--;
   update_view_switcher (self);
 }
 
@@ -839,7 +828,7 @@ adw_preferences_dialog_set_visible_page_name (AdwPreferencesDialog *self,
 }
 
 /**
- * adw_preferences_dialog_get_search_enabled: (attributes org.gtk.Method.get_property=search-enabled)
+ * adw_preferences_dialog_get_search_enabled:
  * @self: a preferences dialog
  *
  * Gets whether search is enabled for @self.
@@ -861,7 +850,7 @@ adw_preferences_dialog_get_search_enabled (AdwPreferencesDialog *self)
 }
 
 /**
- * adw_preferences_dialog_set_search_enabled: (attributes org.gtk.Method.set_property=search-enabled)
+ * adw_preferences_dialog_set_search_enabled:
  * @self: a preferences dialog
  * @search_enabled: whether search is enabled
  *

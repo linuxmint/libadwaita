@@ -26,12 +26,35 @@ Slug: widget-gallery
   <img src="banner.png" alt="banner">
 </picture>](class.Banner.html)
 
+## Spinner
+
+[<picture>
+  <source srcset="spinner-dark.png" media="(prefers-color-scheme: dark)">
+  <img src="spinner.png" alt="spinner">
+</picture>](class.Spinner.html)
+
 ## Avatar
 
 [<picture>
   <source srcset="avatar-dark.png" media="(prefers-color-scheme: dark)">
   <img src="avatar.png" alt="avatar">
 </picture>](class.Avatar.html)
+
+## Shortcut Label
+
+[<picture>
+  <source srcset="shortcut-label-dark.png" media="(prefers-color-scheme: dark)">
+  <img src="shortcut-label.png" alt="shortcut-label">
+</picture>](class.ShortcutLabel.html)
+
+# Controls
+
+## Toggle Group
+
+[<picture>
+  <source srcset="toggle-group-dark.png" media="(prefers-color-scheme: dark)">
+  <img src="toggle-group.png" alt="toggle-group">
+</picture>](class.ToggleGroup.html)
 
 # Dialogs
 
@@ -59,6 +82,13 @@ Slug: widget-gallery
   <source srcset="about-dialog-dark.png" media="(prefers-color-scheme: dark)">
   <img src="about-dialog.png" alt="about-dialog">
 </picture>](class.AboutDialog.html)
+
+## Shortcuts Dialog
+
+[<picture>
+  <source srcset="shortcuts-dialog-dark.png" media="(prefers-color-scheme: dark)">
+  <img src="shortcuts-dialog.png" alt="shortcuts-dialog">
+</picture>](class.ShortcutsDialog.html)
 
 # Boxed Lists
 
@@ -108,8 +138,15 @@ Slug: widget-gallery
 
 [<picture>
   <source srcset="spin-row-dark.png" media="(prefers-color-scheme: dark)">
-  <img src="spin-row.png" alt="switch-row">
+  <img src="spin-row.png" alt="spin-row">
 </picture>](class.SpinRow.html)
+
+## Button Row
+
+[<picture>
+  <source srcset="button-rows-dark.png" media="(prefers-color-scheme: dark)">
+  <img src="button-rows.png" alt="button-rows">
+</picture>](class.ButtonRow.html)
 
 # Preferences
 
@@ -165,6 +202,13 @@ Slug: widget-gallery
   <img src="overlay-split-view-collapsed.png" alt="overlay-split-view-collapsed">
 </picture>](class.OverlaySplitView.html)
 
+## Sidebar
+
+[<picture>
+  <source srcset="sidebar-dark.png" media="(prefers-color-scheme: dark)">
+  <img src="sidebar.png" alt="sidebar">
+</picture>](class.Sidebar.html)
+
 ## Carousel
 
 [<picture>
@@ -194,6 +238,20 @@ Slug: widget-gallery
   <img src="view-switcher-bar.png" alt="view-switcher-bar">
 </picture>](class.ViewSwitcherBar.html)
 
+### Inline View Switcher
+
+[<picture>
+  <source srcset="inline-view-switcher-dark.png" media="(prefers-color-scheme: dark)">
+  <img src="inline-view-switcher.png" alt="inline-view-switcher">
+</picture>](class.InlineViewSwitcher.html)
+
+### View Switcher Sidebar
+
+[<picture>
+  <source srcset="view-switcher-sidebar-dark.png" media="(prefers-color-scheme: dark)">
+  <img src="view-switcher-sidebar.png" alt="view-switcher-sidebar">
+</picture>](class.ViewSwitcherSidebar.html)
+
 ## Tabs
 
 [<picture>
@@ -211,7 +269,14 @@ Slug: widget-gallery
   <img src="tab-button.png" alt="tab-button">
 </picture>](class.TabButton.html)
 
-# Helpers
+## Bottom Sheet
+
+[<picture>
+  <source srcset="bottom-sheet-dark.png" media="(prefers-color-scheme: dark)">
+  <img src="bottom-sheet.png" alt="bottom-sheet">
+</picture>](class.BottomSheet.html)
+
+# Layout
 
 ## Breakpoint Bin
 
@@ -232,6 +297,24 @@ Slug: widget-gallery
 </picture>](class.Clamp.html)
 
 See also: [class@ClampLayout], [class@ClampScrollable]
+
+## Wrap Box
+
+[<picture>
+  <source srcset="wrap-box-dark.png" media="(prefers-color-scheme: dark)">
+  <img src="wrap-box.png" alt="wrap-box">
+</picture>](class.WrapBox.html)
+
+See also: [class@WrapLayout]
+
+## Bin
+
+[<picture>
+  <source srcset="bin-dark.png" media="(prefers-color-scheme: dark)">
+  <img src="bin.png" alt="bin">
+</picture>](class.Bin.html)
+
+# Helpers
 
 ## Toolbar View
 
@@ -277,9 +360,3 @@ See also: [class@ApplicationWindow]
   <img src="button-content.png" alt="button-content">
 </picture>](class.ButtonContent.html)
 
-## Bin
-
-[<picture>
-  <source srcset="bin-dark.png" media="(prefers-color-scheme: dark)">
-  <img src="bin.png" alt="bin">
-</picture>](class.Bin.html)

@@ -4,21 +4,28 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 export DEB_LDFLAGS_MAINT_APPEND = -Wl,-O1 -Wl,-z,defs
 export DPKG_GENSYMBOLS_CHECK_LEVEL = 4
 
-built_binaries := $(shell dh_listpackages)
-
-ifneq ($(filter %-doc,$(built_binaries)),)
-BUILD_DOCS := -Dgtk_doc=true
-else
-BUILD_DOCS := -Dgtk_doc=false
-endif
-
 %:
 	dh $@
 
+# Build libadwaita twice to not include internal symbols
+# in our release build. Internal symbols are used for tests
 override_dh_auto_configure:
-	dh_auto_configure -- $(BUILD_DOCS)
+	dh_auto_configure -- \
+		-Ddocumentation=$(if $(filter %-doc,$(shell dh_listpackages)),true,false) \
+		-Dtests=false
+ifneq (,$(filter nocheck,$(DEB_BUILD_PROFILES)))
+	dh_auto_configure --builddirectory=debian/testtmp -- \
+		-Ddocumentation=false \
+		-Dexamples=false \
+		-Dtests=true
+endif
+
+execute_after_dh_auto_build:
+	dh_auto_build --builddirectory=debian/testtmp
 
 override_dh_auto_test:
-	xvfb-run -s -noreset dh_auto_test
+	xvfb-run -a -s "-screen 0 1024x768x24 -noreset" -e /proc/self/fd/2 \
+		dh_auto_test --builddirectory=debian/testtmp
 
-override_dh_gnome_clean:
+# We only use dh_gnome to automatically run dh_translations in Ubuntu
+override_dh_gnome:

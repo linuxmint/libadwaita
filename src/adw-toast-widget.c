@@ -102,6 +102,8 @@ action_clicked_cb (AdwToastWidget *self)
 {
   end_timeout (self);
 
+  gtk_widget_set_sensitive (self->action_button, FALSE);
+
   g_signal_emit_by_name (self->toast, "button-clicked");
 
   /* Keep the widget alive through the idle. Otherwise it may be immediately
@@ -251,6 +253,8 @@ adw_toast_widget_class_init (AdwToastWidgetClass *klass)
 
   gtk_widget_class_set_layout_manager_type (widget_class, GTK_TYPE_BOX_LAYOUT);
   gtk_widget_class_set_css_name (widget_class, "toast");
+
+  gtk_widget_class_set_accessible_role (widget_class, GTK_ACCESSIBLE_ROLE_ALERT);
 }
 
 static void

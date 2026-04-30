@@ -33,8 +33,6 @@
  *
  * ```xml
  * <object class="AdwWindow">
- *   <property name="width-request">360</property>
- *   <property name="height-request">200</property>
  *   <child>
  *     <object class="AdwBreakpoint">
  *       <condition>max-width: 550sp</condition>
@@ -68,13 +66,16 @@
  * ```
  *
  * It's recommended to set [property@ViewSwitcher:policy] to
- * `ADW_VIEW_SWITCHER_POLICY_WIDE` in this case.
+ * [enum@Adw.ViewSwitcherPolicy.wide] in this case.
  *
  * You may have to adjust the breakpoint condition for your specific pages.
  *
  * ## CSS nodes
  *
  * `AdwViewSwitcherBar` has a single CSS node with name` viewswitcherbar`.
+ *
+ * See also: [class@ViewSwitcher], [class@InlineViewSwitcher],
+ * [class@ViewSwitcherSidebar].
  */
 
 enum {
@@ -238,7 +239,7 @@ adw_view_switcher_bar_class_init (AdwViewSwitcherBarClass *klass)
   widget_class->unrealize = adw_view_switcher_bar_unrealize;
 
   /**
-   * AdwViewSwitcherBar:stack: (attributes org.gtk.Property.get=adw_view_switcher_bar_get_stack org.gtk.Property.set=adw_view_switcher_bar_set_stack)
+   * AdwViewSwitcherBar:stack:
    *
    * The stack the view switcher controls.
    */
@@ -248,7 +249,7 @@ adw_view_switcher_bar_class_init (AdwViewSwitcherBarClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwViewSwitcherBar:reveal: (attributes org.gtk.Property.get=adw_view_switcher_bar_get_reveal org.gtk.Property.set=adw_view_switcher_bar_set_reveal)
+   * AdwViewSwitcherBar:reveal:
    *
    * Whether the bar should be revealed or hidden.
    */
@@ -290,7 +291,7 @@ adw_view_switcher_bar_new (void)
 }
 
 /**
- * adw_view_switcher_bar_get_stack: (attributes org.gtk.Method.get_property=stack)
+ * adw_view_switcher_bar_get_stack:
  * @self: a view switcher bar
  *
  * Gets the stack controlled by @self.
@@ -306,7 +307,7 @@ adw_view_switcher_bar_get_stack (AdwViewSwitcherBar *self)
 }
 
 /**
- * adw_view_switcher_bar_set_stack: (attributes org.gtk.Method.set_property=stack)
+ * adw_view_switcher_bar_set_stack:
  * @self: a view switcher bar
  * @stack: (nullable): a stack
  *
@@ -345,7 +346,7 @@ adw_view_switcher_bar_set_stack (AdwViewSwitcherBar *self,
 }
 
 /**
- * adw_view_switcher_bar_get_reveal: (attributes org.gtk.Method.get_property=reveal)
+ * adw_view_switcher_bar_get_reveal:
  * @self: a view switcher bar
  *
  * Gets whether @self should be revealed or hidden.
@@ -361,7 +362,7 @@ adw_view_switcher_bar_get_reveal (AdwViewSwitcherBar *self)
 }
 
 /**
- * adw_view_switcher_bar_set_reveal: (attributes org.gtk.Method.set_property=reveal)
+ * adw_view_switcher_bar_set_reveal:
  * @self: a view switcher bar
  * @reveal: whether to reveal @self
  *

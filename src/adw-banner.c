@@ -13,12 +13,26 @@
 #include "adw-widget-utils-private.h"
 
 #define HORZ_SPACING 6
+#define HORZ_SPACING_CENTERED 36
 #define VERT_SPACING 9
 #define HORZ_PADDING 6
 #define VERT_PADDING 6
-#define LABEL_MAX_WIDTH 500
 #define BUTTON_HORZ_MIN_WIDTH 84
 #define BUTTON_VERT_MIN_WIDTH 160
+
+/**
+ * AdwBannerButtonStyle:
+ * @ADW_BANNER_BUTTON_DEFAULT: The default button style.
+ * @ADW_BANNER_BUTTON_SUGGESTED: A button in the suggested action style.
+ *
+ * Describes the available button styles for [class@Banner].
+ *
+ * New values may be added to this enumeration over time.
+ *
+ * See [property@Banner:button-style].
+ *
+ * Since: 1.7
+ */
 
 /**
  * AdwBanner:
@@ -40,7 +54,13 @@
  *
  * Banners can optionally have a button with text on it, set through
  * [property@Banner:button-label]. The button can be used with a `GAction`,
- * or with the [signal@Banner::button-clicked] signal.
+ * or with the [signal@Banner::button-clicked] signal. The button can have
+ * different styles, a gray style and a suggested style.
+ *
+ * <picture>
+ *   <source srcset="banner-suggested-dark.png" media="(prefers-color-scheme: dark)">
+ *   <img src="banner-suggested.png" alt="banner with suggested button style">
+ * </picture>
  *
  * ## CSS nodes
  *
@@ -57,6 +77,8 @@ struct _AdwBanner
   GtkLabel *title;
   GtkRevealer *revealer;
   GtkButton *button;
+
+  AdwBannerButtonStyle button_style;
 };
 
 static void adw_banner_actionable_init (GtkActionableInterface *iface);
@@ -70,6 +92,7 @@ enum {
   PROP_BUTTON_LABEL,
   PROP_REVEALED,
   PROP_USE_MARKUP,
+  PROP_BUTTON_STYLE,
 
   /* Actionable properties */
   PROP_ACTION_NAME,
@@ -115,6 +138,9 @@ adw_banner_get_property (GObject    *object,
   case PROP_USE_MARKUP:
     g_value_set_boolean (value, adw_banner_get_use_markup (self));
     break;
+  case PROP_BUTTON_STYLE:
+    g_value_set_enum (value, adw_banner_get_button_style (self));
+    break;
   case PROP_ACTION_NAME:
     g_value_set_string (value, gtk_actionable_get_action_name (GTK_ACTIONABLE (self)));
     break;
@@ -147,6 +173,9 @@ adw_banner_set_property (GObject      *object,
     break;
   case PROP_USE_MARKUP:
     adw_banner_set_use_markup (self, g_value_get_boolean (value));
+    break;
+  case PROP_BUTTON_STYLE:
+    adw_banner_set_button_style (self, g_value_get_enum (value));
     break;
   case PROP_ACTION_NAME:
     gtk_actionable_set_action_name (GTK_ACTIONABLE (self), g_value_get_string (value));
@@ -317,7 +346,7 @@ allocate_content (GtkWidget *widget,
       button_width = MAX (button_width, BUTTON_HORZ_MIN_WIDTH);
 
       /* Does centered title fit? */
-      if (label_width + (button_width + HORZ_SPACING) * 2 > width)
+      if (label_width + (button_width + HORZ_SPACING_CENTERED) * 2 > width)
         label_x = is_rtl ? (width - label_width - HORZ_PADDING) : HORZ_PADDING;
 
       button_x = is_rtl ? 0 : width - button_width;
@@ -351,7 +380,7 @@ adw_banner_class_init (AdwBannerClass *klass)
   object_class->dispose = adw_banner_dispose;
 
   /**
-   * AdwBanner:title: (attributes org.gtk.Property.get=adw_banner_get_title org.gtk.Property.set=adw_banner_set_title)
+   * AdwBanner:title:
    *
    * The title for this banner.
    *
@@ -365,7 +394,7 @@ adw_banner_class_init (AdwBannerClass *klass)
                            G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwBanner:button-label: (attributes org.gtk.Property.get=adw_banner_get_button_label org.gtk.Property.set=adw_banner_set_button_label)
+   * AdwBanner:button-label:
    *
    * The label to show on the button.
    *
@@ -382,7 +411,7 @@ adw_banner_class_init (AdwBannerClass *klass)
                            G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwBanner:use-markup: (attributes org.gtk.Property.get=adw_banner_get_use_markup org.gtk.Property.set=adw_banner_set_use_markup)
+   * AdwBanner:use-markup:
    *
    * Whether to use Pango markup for the banner title.
    *
@@ -396,7 +425,29 @@ adw_banner_class_init (AdwBannerClass *klass)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwBanner:revealed: (attributes org.gtk.Property.get=adw_banner_get_revealed org.gtk.Property.set=adw_banner_set_revealed)
+   * AdwBanner:button-style:
+   *
+   * The style class to use for the banner button.
+   *
+   * When set to [enum@Adw.BannerButtonStyle.default], the button is grey.
+   * When set to [enum@Adw.BannerButtonStyle.suggested], the button uses the
+   * [`.suggested-action`](style-classes.html#suggested-action) appearance.
+   *
+   * <picture>
+   *   <source srcset="banner-suggested-dark.png" media="(prefers-color-scheme: dark)">
+   *   <img src="banner-suggested.png" alt="banner with suggested button style">
+   * </picture>
+   *
+   * Since: 1.7
+   */
+  props[PROP_BUTTON_STYLE] =
+    g_param_spec_enum ("button-style", NULL, NULL,
+                       ADW_TYPE_BANNER_BUTTON_STYLE,
+                       ADW_BANNER_BUTTON_DEFAULT,
+                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
+
+  /**
+   * AdwBanner:revealed:
    *
    * Whether the banner is currently revealed.
    *
@@ -409,14 +460,14 @@ adw_banner_class_init (AdwBannerClass *klass)
 
   /**
    * AdwBanner::button-clicked:
-   * 
+   *
    * This signal is emitted after the action button has been clicked.
    *
    * It can be used as an alternative to setting an action.
-   * 
+   *
    * Since: 1.3
    */
-  signals[SIGNAL_BUTTON_CLICKED] = 
+  signals[SIGNAL_BUTTON_CLICKED] =
     g_signal_new ("button-clicked",
                   G_TYPE_FROM_CLASS (klass),
                   G_SIGNAL_RUN_LAST,
@@ -525,7 +576,7 @@ adw_banner_new (const char *title)
 }
 
 /**
- * adw_banner_get_title: (attributes org.gtk.Method.get_property=title)
+ * adw_banner_get_title:
  * @self: a banner
  *
  * Gets the title for @self.
@@ -543,7 +594,7 @@ adw_banner_get_title (AdwBanner *self)
 }
 
 /**
- * adw_banner_set_title: (attributes org.gtk.Method.set_property=title)
+ * adw_banner_set_title:
  * @self: a banner
  * @title: the title
  *
@@ -569,7 +620,7 @@ adw_banner_set_title (AdwBanner  *self,
 }
 
 /**
- * adw_banner_get_button_label: (attributes org.gtk.Method.get_property=button-label)
+ * adw_banner_get_button_label:
  * @self: a banner
  *
  * Gets the button label for @self.
@@ -587,7 +638,7 @@ adw_banner_get_button_label (AdwBanner *self)
 }
 
 /**
- * adw_banner_set_button_label: (attributes org.gtk.Method.set_property=button-label)
+ * adw_banner_set_button_label:
  * @self: a banner
  * @label: (nullable): the label
  *
@@ -617,7 +668,7 @@ adw_banner_set_button_label (AdwBanner  *self,
 }
 
 /**
- * adw_banner_get_use_markup: (attributes org.gtk.Method.get_property=use-markup)
+ * adw_banner_get_use_markup:
  * @self: a banner
  *
  * Gets whether to use Pango markup for the banner title.
@@ -635,7 +686,7 @@ adw_banner_get_use_markup (AdwBanner *self)
 }
 
 /**
- * adw_banner_set_use_markup: (attributes org.gtk.Method.set_property=use-markup)
+ * adw_banner_set_use_markup:
  * @self: a banner
  * @use_markup: whether to use markup
  *
@@ -662,7 +713,71 @@ adw_banner_set_use_markup (AdwBanner *self,
 }
 
 /**
- * adw_banner_get_revealed: (attributes org.gtk.Method.get_property=revealed)
+ * adw_banner_get_button_style:
+ * @self: a banner
+ *
+ * Gets the style class in use for the banner button.
+ *
+ * Returns: the current button style
+ *
+ * Since: 1.7
+ */
+AdwBannerButtonStyle
+adw_banner_get_button_style (AdwBanner *self)
+{
+  g_return_val_if_fail (ADW_IS_BANNER (self), ADW_BANNER_BUTTON_DEFAULT);
+
+  return self->button_style;
+}
+
+/**
+ * adw_banner_set_button_style:
+ * @self: a banner
+ * @style: a button style
+ *
+ * Sets the style class to use for the banner button.
+ *
+ * When set to [enum@Adw.BannerButtonStyle.default], the button is grey.
+ * When set to [enum@Adw.BannerButtonStyle.suggested], the button uses the
+ * [`.suggested-action`](style-classes.html#suggested-action) appearance.
+ *
+ * <picture>
+ *   <source srcset="banner-suggested-dark.png" media="(prefers-color-scheme: dark)">
+ *   <img src="banner-suggested.png" alt="banner with suggested button style">
+ * </picture>
+ *
+ * Since: 1.7
+ */
+void
+adw_banner_set_button_style (AdwBanner            *self,
+                             AdwBannerButtonStyle  style)
+{
+  g_return_if_fail (ADW_IS_BANNER (self));
+  g_return_if_fail (style >= ADW_BANNER_BUTTON_DEFAULT);
+  g_return_if_fail (style <= ADW_BANNER_BUTTON_SUGGESTED);
+
+  if (self->button_style == style)
+    return;
+
+  self->button_style = style;
+
+  switch (style) {
+  case ADW_BANNER_BUTTON_DEFAULT:
+    gtk_widget_remove_css_class (GTK_WIDGET (self->button), "suggested-action");
+    break;
+  case ADW_BANNER_BUTTON_SUGGESTED:
+    gtk_widget_add_css_class (GTK_WIDGET (self->button), "suggested-action");
+    break;
+  default:
+    g_assert_not_reached ();
+    break;
+  }
+
+  g_object_notify_by_pspec (G_OBJECT (self), props[PROP_BUTTON_STYLE]);
+}
+
+/**
+ * adw_banner_get_revealed:
  * @self: a banner
  *
  * Gets if a banner is revealed
@@ -680,7 +795,7 @@ adw_banner_get_revealed (AdwBanner *self)
 }
 
 /**
- * adw_banner_set_revealed: (attributes org.gtk.Method.get_property=revealed)
+ * adw_banner_set_revealed:
  * @self: a banner
  * @revealed: whether a banner should be revealed
  *

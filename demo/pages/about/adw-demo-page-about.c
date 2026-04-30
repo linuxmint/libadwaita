@@ -50,7 +50,7 @@ demo_run_cb (AdwDemoPageAbout *self)
                   "version", "1.2.3",
                   "release-notes-version", "1.2.0",
                   "release-notes", release_notes,
-                  "comments", _("Typeset is an app that doesn’t exist and is used as an example content for this about window."),
+                  "comments", _("Typeset is an app that doesn’t exist and is used as an example content for this about dialog."),
                   "website", "https://example.org",
                   "issue-url", "https://example.org",
                   "support-url", "https://example.org",
@@ -74,6 +74,11 @@ demo_run_cb (AdwDemoPageAbout *self)
   adw_about_dialog_add_acknowledgement_section (ADW_ABOUT_DIALOG (about),
                                                 _("Special thanks to"),
                                                 special_thanks);
+
+  adw_about_dialog_add_other_app (ADW_ABOUT_DIALOG (about),
+                                  "org.gnome.Adwaita1.Demo",
+                                  _("Adwaita Demo"),
+                                  _("Tour of the features in Libadwaita"));
 
   adw_dialog_present (about, GTK_WIDGET (self));
 }

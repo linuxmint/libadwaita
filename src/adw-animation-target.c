@@ -15,6 +15,14 @@
  */
 
 /**
+ * AdwNoneAnimationTarget:
+ *
+ * An [class@AnimationTarget] that doesn't do anything.
+ *
+ * Since: 1.9
+ */
+
+/**
  * AdwCallbackAnimationTarget:
  *
  * An [class@AnimationTarget] that calls a given callback during the
@@ -62,6 +70,52 @@ adw_animation_target_set_value (AdwAnimationTarget *self,
   g_return_if_fail (ADW_IS_ANIMATION_TARGET (self));
 
   ADW_ANIMATION_TARGET_GET_CLASS (self)->set_value (self, value);
+}
+
+struct _AdwNoneAnimationTarget
+{
+  AdwAnimationTarget parent_instance;
+};
+
+struct _AdwNoneAnimationTargetClass
+{
+  AdwAnimationTargetClass parent_class;
+};
+
+G_DEFINE_FINAL_TYPE (AdwNoneAnimationTarget, adw_none_animation_target, ADW_TYPE_ANIMATION_TARGET)
+
+static void
+adw_none_animation_target_set_value (AdwAnimationTarget *target,
+                                     double              value)
+{
+}
+
+static void
+adw_none_animation_target_class_init (AdwNoneAnimationTargetClass *klass)
+{
+  AdwAnimationTargetClass *target_class = ADW_ANIMATION_TARGET_CLASS (klass);
+
+  target_class->set_value = adw_none_animation_target_set_value;
+}
+
+static void
+adw_none_animation_target_init (AdwNoneAnimationTarget *self)
+{
+}
+
+/**
+ * adw_none_animation_target_new:
+ *
+ * Creates a new `AdwAnimationTarget` that doesn't do anything.
+ *
+ * Returns: the newly created target
+ *
+ * Since: 1.9
+ */
+AdwAnimationTarget *
+adw_none_animation_target_new (void)
+{
+  return g_object_new (ADW_TYPE_NONE_ANIMATION_TARGET, NULL);
 }
 
 struct _AdwCallbackAnimationTarget
@@ -119,7 +173,7 @@ adw_callback_animation_target_init (AdwCallbackAnimationTarget *self)
 /**
  * adw_callback_animation_target_new:
  * @callback: (scope notified) (not nullable): the callback to call
- * @user_data: (closure callback): the data to be passed to @callback
+ * @user_data: the data to be passed to @callback
  * @destroy: (destroy user_data): the function to be called when the
  *   callback action is finalized
  *
@@ -308,7 +362,7 @@ adw_property_animation_target_class_init (AdwPropertyAnimationTargetClass *klass
   target_class->set_value = adw_property_animation_target_set_value;
 
   /**
-   * AdwPropertyAnimationTarget:object: (attributes org.gtk.Property.get=adw_property_animation_target_get_object)
+   * AdwPropertyAnimationTarget:object:
    *
    * The object whose property will be animated.
    *
@@ -324,7 +378,7 @@ adw_property_animation_target_class_init (AdwPropertyAnimationTargetClass *klass
                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 
   /**
-   * AdwPropertyAnimationTarget:pspec: (attributes org.gtk.Property.get=adw_property_animation_target_get_pspec)
+   * AdwPropertyAnimationTarget:pspec:
    *
    * The `GParamSpec` of the property to be animated.
    *
@@ -401,7 +455,7 @@ adw_property_animation_target_new_for_pspec (GObject    *object,
 }
 
 /**
- * adw_property_animation_target_get_object: (attributes org.gtk.Method.get_property=object)
+ * adw_property_animation_target_get_object:
  * @self: a property animation target
  *
  * Gets the object animated by @self.
@@ -423,7 +477,7 @@ adw_property_animation_target_get_object (AdwPropertyAnimationTarget *self)
 }
 
 /**
- * adw_property_animation_target_get_pspec: (attributes org.gtk.Method.get_property=pspec)
+ * adw_property_animation_target_get_pspec:
  * @self: a property animation target
  *
  * Gets the `GParamSpec` of the property animated by @self.

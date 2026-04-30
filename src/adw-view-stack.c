@@ -16,6 +16,7 @@
 
 #include "adw-animation-util.h"
 #include "adw-gizmo-private.h"
+#include "adw-timed-animation.h"
 #include "adw-widget-utils-private.h"
 
 /**
@@ -27,7 +28,8 @@
  * It is typically used to hold an application's main views.
  *
  * It doesn't provide a way to transition between pages.
- * Instead, a separate widget such as [class@ViewSwitcher] can be used with
+ * Instead, a separate widget such as [class@ViewSwitcher],
+ * [class@InlineViewSwitcher] or [class@ViewSwitcherSidebar] can be used with
  * `AdwViewStack` to provide this functionality.
  *
  * `AdwViewStack` pages can have a title, an icon, an attention request, and a
@@ -37,7 +39,14 @@
  * [property@ViewStackPage:needs-attention], and
  * [property@ViewStackPage:badge-number] properties.
  *
- * Unlike [class@Gtk.Stack], transitions between views are not animated.
+ * `AdwViewStack` pages can also be grouped into sections, using the
+ * [property@ViewStackPage:starts-section] and
+ * [property@ViewStackPage:section-title] properties. Currently, only
+ * [class@ViewSwitcherSidebar] displays groups.
+ *
+ * Unlike [class@Gtk.Stack], transitions between views can only be animated via
+ * a crossfade and size changes are always interpolated. Animations are disabled
+ * by default. Use [property@ViewStack:enable-transitions] to enable them.
  *
  * `AdwViewStack` maintains a [class@ViewStackPage] object for each added child,
  * which holds additional per-child properties. You obtain the
@@ -73,8 +82,8 @@
  *
  * ## Accessibility
  *
- * `AdwViewStack` uses the `GTK_ACCESSIBLE_ROLE_TAB_PANEL` for the stack pages
- * which are the accessible parent objects of the child widgets.
+ * `AdwViewStack` uses the [enum@Gtk.AccessibleRole.tab-panel] for the stack
+ * pages which are the accessible parent objects of the child widgets.
  */
 
 /**
@@ -101,6 +110,9 @@ enum {
   PROP_VHOMOGENEOUS,
   PROP_VISIBLE_CHILD,
   PROP_VISIBLE_CHILD_NAME,
+  PROP_ENABLE_TRANSITIONS,
+  PROP_TRANSITION_DURATION,
+  PROP_TRANSITION_RUNNING,
   PROP_PAGES,
   LAST_PROP
 };
@@ -122,6 +134,9 @@ struct _AdwViewStackPage {
   gboolean visible;
   gboolean use_underline;
   gboolean in_destruction;
+
+  gboolean starts_section;
+  char *section_title;
 };
 
 static void adw_view_stack_page_accessible_init (GtkAccessibleInterface *iface);
@@ -139,6 +154,8 @@ enum {
   PAGE_PROP_NEEDS_ATTENTION,
   PAGE_PROP_BADGE_NUMBER,
   PAGE_PROP_VISIBLE,
+  PAGE_PROP_STARTS_SECTION,
+  PAGE_PROP_SECTION_TITLE,
   LAST_PAGE_PROP,
   PAGE_PROP_ACCESSIBLE_ROLE
 };
@@ -153,6 +170,8 @@ struct _AdwViewStackPages
 
 enum {
   PAGES_PROP_0,
+  PAGES_PROP_ITEM_TYPE,
+  PAGES_PROP_N_ITEMS,
   PAGES_PROP_SELECTED_PAGE,
   N_PAGES_PROPS,
 };
@@ -162,11 +181,20 @@ static GParamSpec *pages_props[N_PAGES_PROPS];
 struct _AdwViewStack {
   GtkWidget parent_instance;
 
-  GList *children;
+  GPtrArray *children;
 
   AdwViewStackPage *visible_child;
 
   gboolean homogeneous[2];
+
+  gboolean enable_transitions;
+  guint transition_duration;
+  AdwViewStackPage *last_visible_child;
+  gboolean transition_running;
+  AdwAnimation *animation;
+
+  int last_visible_widget_width;
+  int last_visible_widget_height;
 
   GtkSelectionModel *pages;
 };
@@ -215,6 +243,12 @@ adw_view_stack_page_get_property (GObject      *object,
   case PAGE_PROP_VISIBLE:
     g_value_set_boolean (value, adw_view_stack_page_get_visible (self));
     break;
+  case PAGE_PROP_STARTS_SECTION:
+    g_value_set_boolean (value, adw_view_stack_page_get_starts_section (self));
+    break;
+  case PAGE_PROP_SECTION_TITLE:
+    g_value_set_string (value, adw_view_stack_page_get_section_title (self));
+    break;
   case PAGE_PROP_ACCESSIBLE_ROLE:
     g_value_set_enum (value, GTK_ACCESSIBLE_ROLE_TAB_PANEL);
     break;
@@ -235,6 +269,9 @@ adw_view_stack_page_set_property (GObject      *object,
   switch (property_id) {
   case PAGE_PROP_CHILD:
     g_set_object (&self->widget, g_value_get_object (value));
+    if (self->widget)
+      gtk_accessible_set_accessible_parent (GTK_ACCESSIBLE (self->widget),
+                                            GTK_ACCESSIBLE (self), NULL);
     break;
   case PAGE_PROP_NAME:
     adw_view_stack_page_set_name (self, g_value_get_string (value));
@@ -256,6 +293,12 @@ adw_view_stack_page_set_property (GObject      *object,
     break;
   case PAGE_PROP_VISIBLE:
     adw_view_stack_page_set_visible (self, g_value_get_boolean (value));
+    break;
+  case PAGE_PROP_STARTS_SECTION:
+    adw_view_stack_page_set_starts_section (self, g_value_get_boolean (value));
+    break;
+  case PAGE_PROP_SECTION_TITLE:
+    adw_view_stack_page_set_section_title (self, g_value_get_string (value));
     break;
   case PAGE_PROP_ACCESSIBLE_ROLE:
     break;
@@ -286,10 +329,8 @@ adw_view_stack_page_finalize (GObject *object)
   g_clear_pointer (&self->name, g_free);
   g_clear_pointer (&self->title, g_free);
   g_clear_pointer (&self->icon_name, g_free);
-
-  if (self->last_focus)
-    g_object_remove_weak_pointer (G_OBJECT (self->last_focus),
-                                  (gpointer *) &self->last_focus);
+  g_clear_pointer (&self->section_title, g_free);
+  g_clear_weak_pointer (&self->last_focus);
 
   G_OBJECT_CLASS (adw_view_stack_page_parent_class)->finalize (object);
 }
@@ -305,7 +346,7 @@ adw_view_stack_page_class_init (AdwViewStackPageClass *class)
   object_class->set_property = adw_view_stack_page_set_property;
 
   /**
-   * AdwViewStackPage:child: (attributes org.gtk.Property.get=adw_view_stack_page_get_child)
+   * AdwViewStackPage:child:
    *
    * The stack child to which the page belongs.
    */
@@ -315,7 +356,7 @@ adw_view_stack_page_class_init (AdwViewStackPageClass *class)
                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
 
   /**
-   * AdwViewStackPage:name: (attributes org.gtk.Property.get=adw_view_stack_page_get_name org.gtk.Property.set=adw_view_stack_page_set_name)
+   * AdwViewStackPage:name:
    *
    * The name of the child page.
    */
@@ -325,7 +366,7 @@ adw_view_stack_page_class_init (AdwViewStackPageClass *class)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwViewStackPage:title: (attributes org.gtk.Property.get=adw_view_stack_page_get_title org.gtk.Property.set=adw_view_stack_page_set_title)
+   * AdwViewStackPage:title:
    *
    * The title of the child page.
    */
@@ -335,7 +376,7 @@ adw_view_stack_page_class_init (AdwViewStackPageClass *class)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwViewStackPage:use-underline: (attributes org.gtk.Property.get=adw_view_stack_page_get_use_underline org.gtk.Property.set=adw_view_stack_page_set_use_underline)
+   * AdwViewStackPage:use-underline:
    *
    * Whether an embedded underline in the title indicates a mnemonic.
    */
@@ -345,7 +386,7 @@ adw_view_stack_page_class_init (AdwViewStackPageClass *class)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwViewStackPage:icon-name: (attributes org.gtk.Property.get=adw_view_stack_page_get_icon_name org.gtk.Property.set=adw_view_stack_page_set_icon_name)
+   * AdwViewStackPage:icon-name:
    *
    * The icon name of the child page.
    */
@@ -355,7 +396,7 @@ adw_view_stack_page_class_init (AdwViewStackPageClass *class)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwViewStackPage:needs-attention: (attributes org.gtk.Property.get=adw_view_stack_page_get_needs_attention org.gtk.Property.set=adw_view_stack_page_set_needs_attention)
+   * AdwViewStackPage:needs-attention:
    *
    * Whether the page requires the user attention.
    *
@@ -367,7 +408,7 @@ adw_view_stack_page_class_init (AdwViewStackPageClass *class)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwViewStackPage:badge-number: (attributes org.gtk.Property.get=adw_view_stack_page_get_badge_number org.gtk.Property.set=adw_view_stack_page_set_badge_number)
+   * AdwViewStackPage:badge-number:
    *
    * The badge number for this page.
    *
@@ -382,7 +423,7 @@ adw_view_stack_page_class_init (AdwViewStackPageClass *class)
                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwViewStackPage:visible: (attributes org.gtk.Property.get=adw_view_stack_page_get_visible org.gtk.Property.set=adw_view_stack_page_set_visible)
+   * AdwViewStackPage:visible:
    *
    * Whether this page is visible.
    *
@@ -393,6 +434,38 @@ adw_view_stack_page_class_init (AdwViewStackPageClass *class)
     g_param_spec_boolean ("visible", NULL, NULL,
                           TRUE,
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
+
+  /**
+   * AdwViewStackPage:starts-section:
+   *
+   * Whether this page starts a section.
+   *
+   * If set to `TRUE`, [property@ViewStack:pages] will have a section starting
+   * from this page.
+   *
+   * If [property@ViewStackPage:section-title] is set, it should be used as a
+   * title for the section.
+   *
+   * Since: 1.9
+   */
+  page_props[PAGE_PROP_STARTS_SECTION] =
+    g_param_spec_boolean ("starts-section", NULL, NULL,
+                          FALSE,
+                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
+
+  /**
+   * AdwViewStackPage:section-title:
+   *
+   * Section title for this page.
+   *
+   * Does nothing unless [property@ViewStackPage:starts-section] is set.
+   *
+   * Since: 1.9
+   */
+  page_props[PAGE_PROP_SECTION_TITLE] =
+    g_param_spec_string ("section-title", NULL, NULL,
+                         NULL,
+                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   g_object_class_install_properties (object_class, LAST_PAGE_PROP, page_props);
 
@@ -511,7 +584,7 @@ adw_view_stack_pages_get_n_items (GListModel *model)
 {
   AdwViewStackPages *self = ADW_VIEW_STACK_PAGES (model);
 
-  return g_list_length (self->stack->children);
+  return self->stack->children->len;
 }
 
 static gpointer
@@ -521,10 +594,10 @@ adw_view_stack_pages_get_item (GListModel *model,
   AdwViewStackPages *self = ADW_VIEW_STACK_PAGES (model);
   AdwViewStackPage *page;
 
-  page = g_list_nth_data (self->stack->children, position);
-
-  if (!page)
+  if (position >= self->stack->children->len)
     return NULL;
+
+  page = g_ptr_array_index (self->stack->children, position);
 
   return g_object_ref (page);
 }
@@ -537,6 +610,52 @@ adw_view_stack_pages_list_model_init (GListModelInterface *iface)
   iface->get_item = adw_view_stack_pages_get_item;
 }
 
+static void
+adw_view_stack_pages_get_section (GtkSectionModel *model,
+                                  guint            position,
+                                  guint           *out_start,
+                                  guint           *out_end)
+{
+  AdwViewStackPages *self = ADW_VIEW_STACK_PAGES (model);
+  guint start, end;
+
+  if (position >= self->stack->children->len) {
+    if (out_start)
+      *out_start = self->stack->children->len;
+    if (out_end)
+      *out_end = G_MAXUINT;
+
+    return;
+  }
+
+  end = position + 1;
+
+  for (start = position; start > 0; start--) {
+    AdwViewStackPage *page = g_ptr_array_index (self->stack->children, start);
+
+    if (adw_view_stack_page_get_starts_section (page))
+      break;
+  }
+
+  for (end = position + 1; end <= self->stack->children->len; end++) {
+    AdwViewStackPage *page = g_ptr_array_index (self->stack->children, end - 1);
+
+    if (adw_view_stack_page_get_starts_section (page))
+      break;
+  }
+
+  if (out_start)
+    *out_start = start;
+  if (out_end)
+    *out_end = end;
+}
+
+static void
+adw_view_stack_pages_section_model_init (GtkSectionModelInterface *iface)
+{
+  iface->get_section = adw_view_stack_pages_get_section;
+}
+
 static gboolean
 adw_view_stack_pages_is_selected (GtkSelectionModel *model,
                                   guint              position)
@@ -544,7 +663,10 @@ adw_view_stack_pages_is_selected (GtkSelectionModel *model,
   AdwViewStackPages *self = ADW_VIEW_STACK_PAGES (model);
   AdwViewStackPage *page;
 
-  page = g_list_nth_data (self->stack->children, position);
+  if (position >= self->stack->children->len)
+    return FALSE;
+
+  page = g_ptr_array_index (self->stack->children, position);
 
   return page && page == self->stack->visible_child;
 }
@@ -557,7 +679,10 @@ adw_view_stack_pages_select_item (GtkSelectionModel *model,
   AdwViewStackPages *self = ADW_VIEW_STACK_PAGES (model);
   AdwViewStackPage *page;
 
-  page = g_list_nth_data (self->stack->children, position);
+  if (position >= self->stack->children->len)
+    return FALSE;
+
+  page = g_ptr_array_index (self->stack->children, position);
 
   adw_view_stack_set_visible_child (self->stack, page->widget);
 
@@ -573,10 +698,11 @@ adw_view_stack_pages_selection_model_init (GtkSelectionModelInterface *iface)
 
 G_DEFINE_FINAL_TYPE_WITH_CODE (AdwViewStackPages, adw_view_stack_pages, G_TYPE_OBJECT,
                                G_IMPLEMENT_INTERFACE (G_TYPE_LIST_MODEL, adw_view_stack_pages_list_model_init)
+                               G_IMPLEMENT_INTERFACE (GTK_TYPE_SECTION_MODEL, adw_view_stack_pages_section_model_init)
                                G_IMPLEMENT_INTERFACE (GTK_TYPE_SELECTION_MODEL, adw_view_stack_pages_selection_model_init))
 
 /**
- * adw_view_stack_pages_get_selected_page: (attributes org.gtk.Method.get_property=selected-page)
+ * adw_view_stack_pages_get_selected_page:
  * @self: a [class@ViewStackPages]
  *
  * Gets the [class@ViewStackPage] for the visible child of a view stack
@@ -606,7 +732,7 @@ adw_view_stack_pages_get_selected_page (AdwViewStackPages *self)
 }
 
 /**
- * adw_view_stack_pages_set_selected_page: (attributes org.gtk.Method.set_property=selected-page)
+ * adw_view_stack_pages_set_selected_page:
  * @self: a [class@ViewStackPages]
  * @page: a stack page within the associated stack
  *
@@ -646,6 +772,12 @@ adw_view_stack_pages_get_property (GObject    *object,
   AdwViewStackPages *self = ADW_VIEW_STACK_PAGES (object);
 
   switch (prop_id) {
+  case PAGES_PROP_ITEM_TYPE:
+    g_value_set_gtype (value, ADW_TYPE_VIEW_STACK_PAGE);
+    break;
+  case PAGES_PROP_N_ITEMS:
+    g_value_set_uint (value, adw_view_stack_pages_get_n_items (G_LIST_MODEL (self)));
+    break;
   case PAGES_PROP_SELECTED_PAGE:
     g_value_set_object (value, adw_view_stack_pages_get_selected_page (self));
     break;
@@ -685,7 +817,31 @@ adw_view_stack_pages_class_init (AdwViewStackPagesClass *class)
   object_class->set_property = adw_view_stack_pages_set_property;
 
   /**
-   * AdwViewStackPages:selected-page: (attributes org.gtk.Property.get=adw_view_stack_pages_get_selected_page org.gtk.Property.set=adw_view_stack_pages_set_selected_page)
+   * AdwViewStackPages:item-type:
+   *
+   * The type of the items. See [method@Gio.ListModel.get_item_type].
+   *
+   * Since: 1.9
+   */
+  pages_props[PAGES_PROP_ITEM_TYPE] =
+    g_param_spec_gtype ("item-type", NULL, NULL,
+                        ADW_TYPE_VIEW_STACK_PAGE,
+                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+  /**
+   * AdwViewStackPages:n-items:
+   *
+   * The number of items. See [method@Gio.ListModel.get_n_items].
+   *
+   * Since: 1.9
+   */
+  pages_props[PAGES_PROP_N_ITEMS] =
+    g_param_spec_uint ("n-items", NULL, NULL,
+                       0, G_MAXUINT, 0,
+                       G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+  /**
+   * AdwViewStackPages:selected-page:
    *
    * The selected [class@ViewStackPage] within the [class@ViewStackPages].
    *
@@ -715,31 +871,19 @@ adw_view_stack_pages_new (AdwViewStack *stack)
   return pages;
 }
 
-static GList *
-find_link_for_widget (AdwViewStack *self,
-                      GtkWidget    *child)
-{
-  AdwViewStackPage *page;
-  GList *l;
-
-  for (l = self->children; l; l = l->next) {
-    page = l->data;
-
-    if (page->widget == child)
-      return l;
-  }
-
-  return NULL;
-}
-
 static AdwViewStackPage *
 find_page_for_widget (AdwViewStack *self,
                       GtkWidget    *child)
 {
-  GList *l = find_link_for_widget (self, child);
+  AdwViewStackPage *page;
+  guint i;
 
-  if (l)
-    return l->data;
+  for (i = 0; i < self->children->len; i++) {
+    page = g_ptr_array_index (self->children, i);
+
+    if (page->widget == child)
+      return page;
+  }
 
   return NULL;
 }
@@ -749,16 +893,52 @@ find_page_for_name (AdwViewStack *self,
                     const char   *name)
 {
   AdwViewStackPage *page;
-  GList *l;
+  guint i;
 
-  for (l = self->children; l; l = l->next) {
-    page = l->data;
+  for (i = 0; i < self->children->len; i++) {
+    page = g_ptr_array_index (self->children, i);
 
     if (g_strcmp0 (page->name, name) == 0)
       return page;
   }
 
   return NULL;
+}
+
+static void
+set_transition_running (AdwViewStack *self,
+                        gboolean      running)
+{
+  if (self->transition_running == running)
+    return;
+
+  self->transition_running = running;
+  g_object_notify_by_pspec (G_OBJECT (self), props[PROP_TRANSITION_RUNNING]);
+}
+
+static void
+transition_cb (double        value,
+               AdwViewStack *self)
+{
+  if (self->homogeneous[GTK_ORIENTATION_HORIZONTAL] &&
+      self->homogeneous[GTK_ORIENTATION_VERTICAL]) {
+    gtk_widget_queue_draw (GTK_WIDGET (self));
+  } else {
+    gtk_widget_queue_resize (GTK_WIDGET (self));
+  }
+}
+
+static void
+transition_done_cb (AdwViewStack *self)
+{
+  if (self->last_visible_child) {
+    gtk_widget_set_child_visible (self->last_visible_child->widget, FALSE);
+    self->last_visible_child = NULL;
+  }
+
+  adw_animation_reset (self->animation);
+
+  set_transition_running (self, FALSE);
 }
 
 static void
@@ -780,10 +960,10 @@ set_visible_child (AdwViewStack     *self,
 
   /* If none, pick first visible */
   if (!page) {
-    GList *l;
+    guint i;
 
-    for (l = self->children; l; l = l->next) {
-      AdwViewStackPage *p = l->data;
+    for (i = 0; i < self->children->len; i++) {
+      AdwViewStackPage *p = g_ptr_array_index (self->children, i);
 
       if (gtk_widget_get_visible (p->widget)) {
         page = p;
@@ -797,11 +977,11 @@ set_visible_child (AdwViewStack     *self,
     return;
 
   if (self->pages) {
-    guint position;
-    GList *l;
+    guint position, i;
 
-    for (l = self->children, position = 0; l; l = l->next, position++) {
-      AdwViewStackPage *p = l->data;
+    for (i = 0, position = 0; i < self->children->len; i++, position++) {
+      AdwViewStackPage *p = g_ptr_array_index (self->children, i);
+
       if (p == self->visible_child)
         old_pos = position;
       else if (p == page)
@@ -821,16 +1001,21 @@ set_visible_child (AdwViewStack     *self,
       gtk_widget_is_ancestor (focus, self->visible_child->widget)) {
     contains_focus = TRUE;
 
-    if (self->visible_child->last_focus)
-      g_object_remove_weak_pointer (G_OBJECT (self->visible_child->last_focus),
-                                    (gpointer *)&self->visible_child->last_focus);
-    self->visible_child->last_focus = focus;
-    g_object_add_weak_pointer (G_OBJECT (self->visible_child->last_focus),
-                               (gpointer *)&self->visible_child->last_focus);
+    g_set_weak_pointer (&self->visible_child->last_focus, focus);
   }
 
-  if (self->visible_child && self->visible_child->widget)
-    gtk_widget_set_child_visible (self->visible_child->widget, FALSE);
+  if (self->transition_running)
+    adw_animation_skip (self->animation);
+
+  if (self->visible_child && self->visible_child->widget) {
+    if (gtk_widget_is_visible (widget)) {
+      self->last_visible_child = self->visible_child;
+      self->last_visible_widget_width = gtk_widget_get_width (widget);
+      self->last_visible_widget_height = gtk_widget_get_height (widget);
+    } else {
+      gtk_widget_set_child_visible (self->visible_child->widget, FALSE);
+    }
+  }
 
   self->visible_child = page;
 
@@ -868,6 +1053,9 @@ set_visible_child (AdwViewStack     *self,
                                              MIN (old_pos, new_pos),
                                              MAX (old_pos, new_pos) - MIN (old_pos, new_pos) + 1);
   }
+
+  set_transition_running (self, TRUE);
+  adw_animation_play (self->animation);
 }
 
 static void
@@ -883,9 +1071,25 @@ update_child_visible (AdwViewStack     *self,
   else if (self->visible_child == page && !visible)
     set_visible_child (self, NULL);
 
+  if (page == self->last_visible_child) {
+    gtk_widget_set_child_visible (self->last_visible_child->widget, FALSE);
+    self->last_visible_child = NULL;
+  }
+
   gtk_accessible_update_state (GTK_ACCESSIBLE (page),
                                GTK_ACCESSIBLE_STATE_HIDDEN, !visible,
                                -1);
+}
+
+static void
+section_changed (AdwViewStack     *self,
+                 AdwViewStackPage *page)
+{
+  if (self->pages) {
+    guint n_pages = g_list_model_get_n_items (G_LIST_MODEL (self->pages));
+
+    gtk_section_model_sections_changed (GTK_SECTION_MODEL (self->pages), 0, n_pages);
+  }
 }
 
 static void
@@ -906,13 +1110,13 @@ static void
 add_page (AdwViewStack     *self,
           AdwViewStackPage *page)
 {
-  GList *l;
-
   g_return_if_fail (page->widget != NULL);
 
   if (page->name) {
-    for (l = self->children; l; l = l->next) {
-      AdwViewStackPage *p = l->data;
+    guint i;
+
+    for (i = 0; i < self->children->len; i++) {
+      AdwViewStackPage *p = g_ptr_array_index (self->children, i);
 
       if (p->name && g_strcmp0 (p->name, page->name) == 0) {
         g_warning ("While adding page: duplicate child name in AdwViewStack: %s", page->name);
@@ -921,21 +1125,23 @@ add_page (AdwViewStack     *self,
     }
   }
 
-  if (self->children) {
-    AdwViewStackPage *prev_last = g_list_last (self->children)->data;
+  if (self->children->len > 0) {
+    AdwViewStackPage *prev_last = g_ptr_array_index (self->children, self->children->len - 1);
 
     prev_last->next_page = page;
   } else {
     page->next_page = NULL;
   }
 
-  self->children = g_list_append (self->children, g_object_ref (page));
+  g_ptr_array_add (self->children, g_object_ref (page));
 
   gtk_widget_set_child_visible (page->widget, FALSE);
   gtk_widget_set_parent (page->widget, GTK_WIDGET (self));
 
-  if (self->pages)
-    g_list_model_items_changed (G_LIST_MODEL (self->pages), g_list_length (self->children) - 1, 0, 1);
+  if (self->pages) {
+    g_list_model_items_changed (G_LIST_MODEL (self->pages), self->children->len - 1, 0, 1);
+    g_object_notify_by_pspec (G_OBJECT (self->pages), pages_props[PAGES_PROP_N_ITEMS]);
+  }
 
   g_signal_connect (page->widget, "notify::visible",
                     G_CALLBACK (stack_child_visibility_notify_cb), self);
@@ -981,13 +1187,11 @@ stack_remove (AdwViewStack  *self,
 {
   AdwViewStackPage *page;
   gboolean was_visible;
-  GList *l;
+  guint i;
 
-  l = find_link_for_widget (self, child);
-  if (!l)
+  page = find_page_for_widget (self, child);
+  if (!page)
     return;
-
-  page = l->data;
 
   g_signal_handlers_disconnect_by_func (child,
                                         stack_child_visibility_notify_cb,
@@ -1002,14 +1206,14 @@ stack_remove (AdwViewStack  *self,
 
   g_clear_object (&page->widget);
 
-  l = l->prev;
+  g_ptr_array_remove (self->children, page);
 
-  self->children = g_list_remove (self->children, page);
-
-  if (l) {
-    AdwViewStackPage *prev_page = l->data;
-
-    prev_page->next_page = page->next_page;
+  for (i = 0; i < self->children->len; i++) {
+    AdwViewStackPage *prev_page = g_ptr_array_index (self->children, i);
+    if (prev_page->next_page == page) {
+      prev_page->next_page = page->next_page;
+      break;
+    }
   }
 
   g_object_unref (page);
@@ -1021,6 +1225,33 @@ stack_remove (AdwViewStack  *self,
 }
 
 static void
+adw_view_stack_snapshot (GtkWidget   *widget,
+                         GtkSnapshot *snapshot)
+{
+  AdwViewStack *self = ADW_VIEW_STACK (widget);
+
+  if (!self->visible_child)
+    return;
+
+  if (adw_animation_get_state (self->animation) == ADW_ANIMATION_PLAYING) {
+    double t = adw_animation_get_value (self->animation);
+
+    gtk_snapshot_push_cross_fade (snapshot, t);
+
+    if (self->last_visible_child)
+      gtk_widget_snapshot_child (widget, self->last_visible_child->widget, snapshot);
+    gtk_snapshot_pop (snapshot);
+
+    gtk_widget_snapshot_child (widget, self->visible_child->widget, snapshot);
+    gtk_snapshot_pop (snapshot);
+
+    return;
+  }
+
+  gtk_widget_snapshot_child (widget, self->visible_child->widget, snapshot);
+}
+
+static void
 adw_view_stack_size_allocate (GtkWidget *widget,
                               int        width,
                               int        height,
@@ -1028,10 +1259,47 @@ adw_view_stack_size_allocate (GtkWidget *widget,
 {
   AdwViewStack *self = ADW_VIEW_STACK (widget);
 
-  if (!self->visible_child)
-    return;
+  if (self->last_visible_child) {
+    GtkAllocation child_allocation;
 
-  gtk_widget_allocate (self->visible_child->widget, width, height, baseline, NULL);
+    child_allocation.x = 0;
+    child_allocation.y = 0;
+    child_allocation.width = width;
+    child_allocation.height = height;
+
+    adw_ensure_child_allocation_size (self->last_visible_child->widget, &child_allocation);
+
+    gtk_widget_size_allocate (self->last_visible_child->widget, &child_allocation, -1);
+  }
+
+  if (self->visible_child) {
+    GtkAllocation child_allocation;
+
+    child_allocation.x = 0;
+    child_allocation.y = 0;
+    child_allocation.width = width;
+    child_allocation.height = height;
+
+    adw_ensure_child_allocation_size (self->visible_child->widget, &child_allocation);
+
+    gtk_widget_size_allocate (self->visible_child->widget, &child_allocation, -1);
+  }
+}
+
+/* Given adw_lerp (a, b, t) -> r, find b. In other words: we know what size
+ * we're interpolating *from*, the current size, and the current interpolation
+ * progress; guess which size we're interpolating *to*.
+ *
+ * Note that this is different from the similarly named inverse_lerp function
+ * in adw-clamp-layout.c. That one finds t given a, b, and r, while this one
+ * finds b given a, r, and t.
+ */
+static inline double
+inverse_lerp (int a,
+              int r,
+              double t)
+{
+  return (r - a * (1.0 - t)) / t;
 }
 
 static void
@@ -1044,33 +1312,91 @@ adw_view_stack_measure (GtkWidget      *widget,
                         int            *natural_baseline)
 {
   AdwViewStack *self = ADW_VIEW_STACK (widget);
-  int child_min, child_nat;
-  GList *l;
+  int child_min, child_nat, child_for_size;
+  int last_size, last_opposite_size;
+  double t;
+  guint i;
+
+  if (self->last_visible_child != NULL && !self->homogeneous[orientation]) {
+    t = adw_animation_get_value (self->animation);
+
+    if (orientation == GTK_ORIENTATION_HORIZONTAL) {
+      last_size = self->last_visible_widget_width;
+      last_opposite_size = self->last_visible_widget_height;
+    } else {
+      last_size = self->last_visible_widget_height;
+      last_opposite_size = self->last_visible_widget_width;
+    }
+
+    /* Work out which for_size we want to pass for measuring our children */
+    if (for_size == -1 || for_size == last_opposite_size ||
+        self->homogeneous[OPPOSITE_ORIENTATION(orientation)])
+      child_for_size = for_size;
+    else if (t <= 0.0)  /* avoid -Wfloat-equal */
+      /* We're going to return last_size anyway */
+      child_for_size = -1;
+    else {
+      double d = inverse_lerp (last_opposite_size, for_size, t);
+      /* inverse_lerp is numerically unstable due to its use of floating-point
+       * division, potentially by a very small value when progress is close to
+       * zero. So we sanity check the return value.
+       */
+      if (isnan (d) || isinf (d) || d < 0 || d >= G_MAXINT)
+        child_for_size = -1;
+      else
+        child_for_size = floor (d);
+    }
+  } else {
+    child_for_size = for_size;
+    /* Avoid -Wmaybe-uninitialized */
+    last_size = 0;
+    t = 1.0;
+  }
 
   *minimum = 0;
   *natural = 0;
 
-  for (l = self->children; l; l = l->next) {
-    AdwViewStackPage *page = l->data;
+  for (i = 0; i < self->children->len; i++) {
+    AdwViewStackPage *page = g_ptr_array_index (self->children, i);
     GtkWidget *child = page->widget;
 
     if (!self->homogeneous[orientation] &&
         self->visible_child != page)
       continue;
 
-    if (gtk_widget_get_visible (child)) {
-      if (!self->homogeneous[OPPOSITE_ORIENTATION(orientation)] && self->visible_child != page) {
-        int min_for_size;
+    if (!gtk_widget_get_visible (child))
+      continue;
 
-        gtk_widget_measure (child, OPPOSITE_ORIENTATION (orientation), -1, &min_for_size, NULL, NULL, NULL);
-        gtk_widget_measure (child, orientation, MAX (min_for_size, for_size), &child_min, &child_nat, NULL, NULL);
-      } else {
-        gtk_widget_measure (child, orientation, for_size, &child_min, &child_nat, NULL, NULL);
+    if (!self->homogeneous[OPPOSITE_ORIENTATION(orientation)] && self->visible_child != page) {
+      int measure_for_size;
+
+      if (child_for_size == -1)
+        measure_for_size = -1;
+      else {
+        gtk_widget_measure (child, OPPOSITE_ORIENTATION (orientation),
+                            -1,
+                            &measure_for_size, NULL,
+                            NULL, NULL);
+        measure_for_size = MAX (measure_for_size, child_for_size);
       }
-
-      *minimum = MAX (*minimum, child_min);
-      *natural = MAX (*natural, child_nat);
+      gtk_widget_measure (child, orientation,
+                          measure_for_size,
+                          &child_min, &child_nat,
+                          NULL, NULL);
+    } else {
+      gtk_widget_measure (child, orientation,
+                          child_for_size,
+                          &child_min, &child_nat,
+                          NULL, NULL);
     }
+
+    *minimum = MAX (*minimum, child_min);
+    *natural = MAX (*natural, child_nat);
+  }
+
+  if (self->last_visible_child != NULL && !self->homogeneous[orientation]) {
+    *minimum = ceil (adw_lerp (last_size, *minimum, t));
+    *natural = ceil (adw_lerp (last_size, *natural, t));
   }
 }
 
@@ -1094,6 +1420,15 @@ adw_view_stack_get_property (GObject    *object,
     break;
   case PROP_VISIBLE_CHILD_NAME:
     g_value_set_string (value, adw_view_stack_get_visible_child_name (self));
+    break;
+  case PROP_ENABLE_TRANSITIONS:
+    g_value_set_boolean (value, adw_view_stack_get_enable_transitions (self));
+    break;
+  case PROP_TRANSITION_DURATION:
+    g_value_set_uint (value, adw_view_stack_get_transition_duration (self));
+    break;
+  case PROP_TRANSITION_RUNNING:
+    g_value_set_boolean (value, adw_view_stack_get_transition_running (self));
     break;
   case PROP_PAGES:
     g_value_take_object (value, adw_view_stack_get_pages (self));
@@ -1125,6 +1460,12 @@ adw_view_stack_set_property (GObject      *object,
   case PROP_VISIBLE_CHILD_NAME:
     adw_view_stack_set_visible_child_name (self, g_value_get_string (value));
     break;
+  case PROP_ENABLE_TRANSITIONS:
+    adw_view_stack_set_enable_transitions (self, g_value_get_boolean (value));
+    break;
+  case PROP_TRANSITION_DURATION:
+    adw_view_stack_set_transition_duration (self, g_value_get_uint (value));
+    break;
   default:
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
     break;
@@ -1137,9 +1478,11 @@ adw_view_stack_dispose (GObject *object)
   AdwViewStack *self = ADW_VIEW_STACK (object);
   GtkWidget *child;
 
-  if (self->pages)
+  if (self->pages) {
     g_list_model_items_changed (G_LIST_MODEL (self->pages), 0,
-                                g_list_length (self->children), 0);
+                                self->children->len, 0);
+    g_object_notify_by_pspec (G_OBJECT (self->pages), pages_props[PAGES_PROP_N_ITEMS]);
+  }
 
   while ((child = gtk_widget_get_first_child (GTK_WIDGET (self))))
     stack_remove (self, child, TRUE);
@@ -1152,9 +1495,9 @@ adw_view_stack_finalize (GObject *object)
 {
   AdwViewStack *self = ADW_VIEW_STACK (object);
 
-  if (self->pages)
-    g_object_remove_weak_pointer (G_OBJECT (self->pages),
-                                  (gpointer *) &self->pages);
+  g_clear_weak_pointer (&self->pages);
+
+  g_ptr_array_free (self->children, TRUE);
 
   G_OBJECT_CLASS (adw_view_stack_parent_class)->finalize (object);
 }
@@ -1170,13 +1513,14 @@ adw_view_stack_class_init (AdwViewStackClass *klass)
   object_class->dispose = adw_view_stack_dispose;
   object_class->finalize = adw_view_stack_finalize;
 
+  widget_class->snapshot = adw_view_stack_snapshot;
   widget_class->size_allocate = adw_view_stack_size_allocate;
   widget_class->measure = adw_view_stack_measure;
   widget_class->get_request_mode = adw_widget_get_request_mode;
   widget_class->compute_expand = adw_widget_compute_expand;
 
   /**
-   * AdwViewStack:hhomogeneous: (attributes org.gtk.Property.get=adw_view_stack_get_hhomogeneous org.gtk.Property.set=adw_view_stack_set_hhomogeneous)
+   * AdwViewStack:hhomogeneous:
    *
    * Whether the stack is horizontally homogeneous.
    *
@@ -1192,7 +1536,7 @@ adw_view_stack_class_init (AdwViewStackClass *klass)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwViewStack:vhomogeneous: (attributes org.gtk.Property.get=adw_view_stack_get_vhomogeneous org.gtk.Property.set=adw_view_stack_set_vhomogeneous)
+   * AdwViewStack:vhomogeneous:
    *
    * Whether the stack is vertically homogeneous.
    *
@@ -1208,7 +1552,7 @@ adw_view_stack_class_init (AdwViewStackClass *klass)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwViewStack:visible-child: (attributes org.gtk.Property.get=adw_view_stack_get_visible_child org.gtk.Property.set=adw_view_stack_set_visible_child)
+   * AdwViewStack:visible-child:
    *
    * The widget currently visible in the stack.
    */
@@ -1218,7 +1562,7 @@ adw_view_stack_class_init (AdwViewStackClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwViewStack:visible-child-name: (attributes org.gtk.Property.get=adw_view_stack_get_visible_child_name org.gtk.Property.set=adw_view_stack_set_visible_child_name)
+   * AdwViewStack:visible-child-name:
    *
    * The name of the widget currently visible in the stack.
    *
@@ -1230,13 +1574,63 @@ adw_view_stack_class_init (AdwViewStackClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwViewStack:pages: (attributes org.gtk.Property.get=adw_view_stack_get_pages)
+   * AdwViewStack:enable-transitions:
+   *
+   * Whether the stack uses a crossfade transition between pages.
+   *
+   * Use [property@ViewStack:transition-duration] to control the duration, and
+   * [property@ViewStack:transition-running] to know when the transition is
+   * running.
+   *
+   * Since: 1.7
+   */
+  props[PROP_ENABLE_TRANSITIONS] =
+    g_param_spec_boolean ("enable-transitions", NULL, NULL,
+                          FALSE,
+                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
+
+  /**
+   * AdwViewStack:transition-duration:
+   *
+   * The transition animation duration, in milliseconds.
+   *
+   * Only used when [property@ViewStack:enable-transitions] is set to `TRUE`.
+   *
+   * Since: 1.7
+   */
+  props[PROP_TRANSITION_DURATION] =
+    g_param_spec_uint ("transition-duration", NULL, NULL,
+                       0, G_MAXUINT, 200,
+                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
+
+  /**
+   * AdwViewStack:transition-running:
+   *
+   * Whether a transition is currently running.
+   *
+   * If a transition is impossible, the property value will be set to `TRUE` and
+   * then immediately to `FALSE`, so it's possible to rely on its notifications
+   * to know that a transition has happened.
+   *
+   * Since: 1.7
+   */
+  props[PROP_TRANSITION_RUNNING] =
+    g_param_spec_boolean ("transition-running", NULL, NULL,
+                          FALSE,
+                          G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+  /**
+   * AdwViewStack:pages:
    *
    * A selection model with the stack's pages.
    *
-   * This can be used to keep an up-to-date view. The model also implements
-   * [iface@Gtk.SelectionModel] and can be used to track and change the visible
-   * page.
+   * This can be used to keep an up-to-date view.
+   *
+   * The model implements [iface@Gtk.SectionModel] and creates sections based on
+   * [property@ViewStackPage:starts-section] values.
+   *
+   * The model also implements [iface@Gtk.SelectionModel] and can be used to
+   * track and change the visible page.
    */
   props[PROP_PAGES] =
     g_param_spec_object ("pages", NULL, NULL,
@@ -1252,8 +1646,21 @@ adw_view_stack_class_init (AdwViewStackClass *klass)
 static void
 adw_view_stack_init (AdwViewStack *self)
 {
+  AdwAnimationTarget *target;
+
   self->homogeneous[GTK_ORIENTATION_VERTICAL] = TRUE;
   self->homogeneous[GTK_ORIENTATION_HORIZONTAL] = TRUE;
+  self->transition_duration = 200;
+  self->children = g_ptr_array_new ();
+
+  target = adw_callback_animation_target_new ((AdwAnimationTargetFunc) transition_cb,
+                                              self, NULL);
+  self->animation = adw_timed_animation_new (GTK_WIDGET (self), 0, 1, 0, target);
+
+  adw_timed_animation_set_easing (ADW_TIMED_ANIMATION (self->animation), ADW_EASE);
+
+  g_signal_connect_swapped (self->animation, "done",
+                            G_CALLBACK (transition_done_cb), self);
 }
 
 static void
@@ -1285,8 +1692,8 @@ adw_view_stack_accessible_get_first_accessible_child (GtkAccessible *accessible)
 {
   AdwViewStack *self = ADW_VIEW_STACK (accessible);
 
-  if (self->children && self->children->data)
-    return g_object_ref (self->children->data);
+  if (self->children->len > 0)
+    return g_object_ref (g_ptr_array_index (self->children, 0));
 
   return NULL;
 }
@@ -1297,8 +1704,29 @@ adw_view_stack_accessible_init (GtkAccessibleInterface *iface)
   iface->get_first_accessible_child = adw_view_stack_accessible_get_first_accessible_child;
 }
 
+static void
+update_page (AdwViewStackPage *self)
+{
+  if (self->title && *self->title) {
+    if (self->use_underline) {
+      char *stripped_label = adw_strip_mnemonic (self->title);
+      gtk_accessible_update_property (GTK_ACCESSIBLE (self),
+                                      GTK_ACCESSIBLE_PROPERTY_LABEL, stripped_label,
+                                      -1);
+      g_free (stripped_label);
+    } else {
+      gtk_accessible_update_property (GTK_ACCESSIBLE (self),
+                                      GTK_ACCESSIBLE_PROPERTY_LABEL, self->title,
+                                      -1);
+    }
+  } else {
+    gtk_accessible_reset_property (GTK_ACCESSIBLE (self),
+                                   GTK_ACCESSIBLE_PROPERTY_LABEL);
+  }
+}
+
 /**
- * adw_view_stack_page_get_child: (attributes org.gtk.Method.get_property=child)
+ * adw_view_stack_page_get_child:
  * @self: a view stack page
  *
  * Gets the stack child to which @self belongs.
@@ -1314,7 +1742,7 @@ adw_view_stack_page_get_child (AdwViewStackPage *self)
 }
 
 /**
- * adw_view_stack_page_get_name: (attributes org.gtk.Method.get_property=name)
+ * adw_view_stack_page_get_name:
  * @self: a view stack page
  *
  * Gets the name of the page.
@@ -1330,7 +1758,7 @@ adw_view_stack_page_get_name (AdwViewStackPage *self)
 }
 
 /**
- * adw_view_stack_page_set_name: (attributes org.gtk.Method.set_property=name)
+ * adw_view_stack_page_set_name:
  * @self: a view stack page
  * @name: (nullable): the page name
  *
@@ -1348,12 +1776,12 @@ adw_view_stack_page_set_name (AdwViewStackPage *self,
       gtk_widget_get_parent (self->widget) &&
       ADW_IS_VIEW_STACK (gtk_widget_get_parent (self->widget)) &&
       name) {
-    GList *l;
+    guint i;
 
     stack = ADW_VIEW_STACK (gtk_widget_get_parent (self->widget));
 
-    for (l = stack->children; l; l = l->next) {
-      AdwViewStackPage *p = l->data;
+    for (i = 0; i < stack->children->len; i++) {
+      AdwViewStackPage *p = g_ptr_array_index (stack->children, i);
       if (self == p)
         continue;
 
@@ -1375,7 +1803,7 @@ adw_view_stack_page_set_name (AdwViewStackPage *self,
 }
 
 /**
- * adw_view_stack_page_get_title: (attributes org.gtk.Method.get_property=title)
+ * adw_view_stack_page_get_title:
  * @self: a view stack page
  *
  * Gets the page title.
@@ -1391,7 +1819,7 @@ adw_view_stack_page_get_title (AdwViewStackPage *self)
 }
 
 /**
- * adw_view_stack_page_set_title: (attributes org.gtk.Method.set_property=title)
+ * adw_view_stack_page_set_title:
  * @self: a view stack page
  * @title: (nullable): the page title
  *
@@ -1406,15 +1834,13 @@ adw_view_stack_page_set_title (AdwViewStackPage *self,
   if (!g_set_str (&self->title, title))
     return;
 
-  g_object_notify_by_pspec (G_OBJECT (self), page_props[PAGE_PROP_TITLE]);
+  update_page (self);
 
-  gtk_accessible_update_property (GTK_ACCESSIBLE (self),
-                                  GTK_ACCESSIBLE_PROPERTY_LABEL, self->title,
-                                  -1);
+  g_object_notify_by_pspec (G_OBJECT (self), page_props[PAGE_PROP_TITLE]);
 }
 
 /**
- * adw_view_stack_page_get_use_underline: (attributes org.gtk.Method.get_property=use-underline)
+ * adw_view_stack_page_get_use_underline:
  * @self: a view stack page
  *
  * Gets whether underlines in the page title indicate mnemonics.
@@ -1428,7 +1854,7 @@ adw_view_stack_page_get_use_underline (AdwViewStackPage *self)
 }
 
 /**
- * adw_view_stack_page_set_use_underline: (attributes org.gtk.Method.set_property=use-underline)
+ * adw_view_stack_page_set_use_underline:
  * @self: a view stack page
  * @use_underline: the new value to set
  *
@@ -1445,11 +1871,13 @@ adw_view_stack_page_set_use_underline (AdwViewStackPage *self,
 
   self->use_underline = use_underline;
 
+  update_page (self);
+
   g_object_notify_by_pspec (G_OBJECT (self), page_props[PAGE_PROP_USE_UNDERLINE]);
 }
 
 /**
- * adw_view_stack_page_get_icon_name: (attributes org.gtk.Method.get_property=icon-name)
+ * adw_view_stack_page_get_icon_name:
  * @self: a view stack page
  *
  * Gets the icon name of the page.
@@ -1465,7 +1893,7 @@ adw_view_stack_page_get_icon_name (AdwViewStackPage *self)
 }
 
 /**
- * adw_view_stack_page_set_icon_name: (attributes org.gtk.Method.set_property=icon-name)
+ * adw_view_stack_page_set_icon_name:
  * @self: a view stack page
  * @icon_name: (nullable): the icon name
  *
@@ -1484,7 +1912,7 @@ adw_view_stack_page_set_icon_name (AdwViewStackPage *self,
 }
 
 /**
- * adw_view_stack_page_get_needs_attention: (attributes org.gtk.Method.get_property=needs-attention)
+ * adw_view_stack_page_get_needs_attention:
  * @self: a view stack page
  *
  * Gets whether the page requires the user attention.
@@ -1500,7 +1928,7 @@ adw_view_stack_page_get_needs_attention (AdwViewStackPage *self)
 }
 
 /**
- * adw_view_stack_page_set_needs_attention: (attributes org.gtk.Method.set_property=needs-attention)
+ * adw_view_stack_page_set_needs_attention:
  * @self: a view stack page
  * @needs_attention: the new value to set
  *
@@ -1525,7 +1953,7 @@ adw_view_stack_page_set_needs_attention (AdwViewStackPage *self,
 }
 
 /**
- * adw_view_stack_page_get_badge_number: (attributes org.gtk.Method.get_property=badge-number)
+ * adw_view_stack_page_get_badge_number:
  * @self: a view stack page
  *
  * Gets the badge number for this page.
@@ -1541,7 +1969,7 @@ adw_view_stack_page_get_badge_number (AdwViewStackPage *self)
 }
 
 /**
- * adw_view_stack_page_set_badge_number: (attributes org.gtk.Method.set_property=badge-number)
+ * adw_view_stack_page_set_badge_number:
  * @self: a view stack page
  * @badge_number: the new value to set
  *
@@ -1567,7 +1995,7 @@ adw_view_stack_page_set_badge_number (AdwViewStackPage *self,
 }
 
 /**
- * adw_view_stack_page_get_visible: (attributes org.gtk.Method.get_property=visible)
+ * adw_view_stack_page_get_visible:
  * @self: a view stack page
  *
  * Gets whether @self is visible in its `AdwViewStack`.
@@ -1586,11 +2014,11 @@ adw_view_stack_page_get_visible (AdwViewStackPage *self)
 }
 
 /**
- * adw_view_stack_page_set_visible: (attributes org.gtk.Method.set_property=visible)
+ * adw_view_stack_page_set_visible:
  * @self: a view stack page
  * @visible: whether @self is visible
  *
- * Sets whether @page is visible in its `AdwViewStack`.
+ * Sets whether @self is visible in its `AdwViewStack`.
  *
  * This is independent from the [property@Gtk.Widget:visible] property of
  * [property@ViewStackPage:child].
@@ -1612,6 +2040,99 @@ adw_view_stack_page_set_visible (AdwViewStackPage *self,
     update_child_visible (ADW_VIEW_STACK (gtk_widget_get_parent (self->widget)), self);
 
   g_object_notify_by_pspec (G_OBJECT (self), page_props[PAGE_PROP_VISIBLE]);
+}
+
+/**
+ * adw_view_stack_page_get_starts_section:
+ * @self: a view stack page
+ *
+ * Gets whether @self starts a section.
+ *
+ * Returns: whether @self starts a section
+ *
+ * Since: 1.9
+ */
+gboolean
+adw_view_stack_page_get_starts_section (AdwViewStackPage *self)
+{
+  g_return_val_if_fail (ADW_IS_VIEW_STACK_PAGE (self), FALSE);
+
+  return self->starts_section;
+}
+
+/**
+ * adw_view_stack_page_set_starts_section:
+ * @self: a view stack page
+ * @starts_section: whether @self starts a section
+ *
+ * Sets whether @self starts a section.
+ *
+ * If set to `TRUE`, [property@ViewStack:pages] will have a section starting
+ * from this page.
+ *
+ * If [property@ViewStackPage:section-title] is set, it should be used as a
+ * title for the section.
+ *
+ * Since: 1.9
+ */
+void
+adw_view_stack_page_set_starts_section (AdwViewStackPage *self,
+                                        gboolean          starts_section)
+{
+  g_return_if_fail (ADW_IS_VIEW_STACK_PAGE (self));
+
+  starts_section = !!starts_section;
+
+  if (starts_section == self->starts_section)
+    return;
+
+  self->starts_section = starts_section;
+
+  if (self->widget && gtk_widget_get_parent (self->widget))
+    section_changed (ADW_VIEW_STACK (gtk_widget_get_parent (self->widget)), self);
+
+  g_object_notify_by_pspec (G_OBJECT (self), page_props[PAGE_PROP_STARTS_SECTION]);
+}
+
+/**
+ * adw_view_stack_page_get_section_title:
+ * @self: a view stack page
+ *
+ * Gets the section title for @self.
+ *
+ * Returns: (nullable): the section title
+ *
+ * Since: 1.9
+ */
+const char *
+adw_view_stack_page_get_section_title (AdwViewStackPage *self)
+{
+  g_return_val_if_fail (ADW_IS_VIEW_STACK_PAGE (self), NULL);
+
+  return self->section_title;
+}
+
+/**
+ * adw_view_stack_page_set_section_title:
+ * @self: a view stack page
+ * @section_title: (nullable): the section title
+ *
+ * Sets the section title for @self.
+ *
+ * Does nothing unless [property@ViewStackPage:starts-section] is set.
+ *
+ * Since: 1.9
+ */
+void
+adw_view_stack_page_set_section_title (AdwViewStackPage *self,
+                                       const char       *section_title)
+{
+  g_return_if_fail (ADW_IS_VIEW_STACK_PAGE (self));
+
+  if (!g_set_str (&self->section_title, section_title))
+    return;
+
+  g_object_notify_by_pspec (G_OBJECT (self), page_props[PAGE_PROP_SECTION_TITLE]);
 }
 
 /**
@@ -1740,15 +2261,14 @@ void
 adw_view_stack_remove (AdwViewStack  *self,
                        GtkWidget     *child)
 {
-  GList *l;
   guint position;
 
   g_return_if_fail (ADW_IS_VIEW_STACK (self));
   g_return_if_fail (GTK_IS_WIDGET (child));
   g_return_if_fail (gtk_widget_get_parent (child) == GTK_WIDGET (self));
 
-  for (l = self->children, position = 0; l; l = l->next, position++) {
-    AdwViewStackPage *page = l->data;
+  for (position = 0; position < self->children->len; position++) {
+    AdwViewStackPage *page = g_ptr_array_index (self->children, position);
 
     if (page->widget == child)
       break;
@@ -1756,8 +2276,10 @@ adw_view_stack_remove (AdwViewStack  *self,
 
   stack_remove (self, child, FALSE);
 
-  if (self->pages)
+  if (self->pages) {
     g_list_model_items_changed (G_LIST_MODEL (self->pages), position, 1, 0);
+    g_object_notify_by_pspec (G_OBJECT (self->pages), pages_props[PAGES_PROP_N_ITEMS]);
+  }
 }
 
 /**
@@ -1803,10 +2325,10 @@ adw_view_stack_get_child_by_name (AdwViewStack *self,
 }
 
 /**
- * adw_view_stack_get_visible_child: (attributes org.gtk.Method.get_property=visible-child)
+ * adw_view_stack_get_visible_child:
  * @self: a view stack
  *
- * Gets the currently visible child of @self, .
+ * Gets the currently visible child of @self.
  *
  * Returns: (transfer none) (nullable): the visible child
  */
@@ -1819,7 +2341,7 @@ adw_view_stack_get_visible_child (AdwViewStack *self)
 }
 
 /**
- * adw_view_stack_set_visible_child: (attributes org.gtk.Method.set_property=visible-child)
+ * adw_view_stack_set_visible_child:
  * @self: a view stack
  * @child: a child of @self
  *
@@ -1847,7 +2369,7 @@ adw_view_stack_set_visible_child (AdwViewStack *self,
 }
 
 /**
- * adw_view_stack_get_visible_child_name: (attributes org.gtk.Method.get_property=visible-child-name)
+ * adw_view_stack_get_visible_child_name:
  * @self: a view stack
  *
  * Returns the name of the currently visible child of @self.
@@ -1863,7 +2385,7 @@ adw_view_stack_get_visible_child_name (AdwViewStack *self)
 }
 
 /**
- * adw_view_stack_set_visible_child_name: (attributes org.gtk.Method.set_property=visible-child-name)
+ * adw_view_stack_set_visible_child_name:
  * @self: a view stack
  * @name: the name of the child
  *
@@ -1895,7 +2417,7 @@ adw_view_stack_set_visible_child_name (AdwViewStack *self,
 }
 
 /**
- * adw_view_stack_get_hhomogeneous: (attributes org.gtk.Method.get_property=hhomogeneous)
+ * adw_view_stack_get_hhomogeneous:
  * @self: a view stack
  *
  * Gets whether @self is horizontally homogeneous.
@@ -1911,7 +2433,7 @@ adw_view_stack_get_hhomogeneous (AdwViewStack *self)
 }
 
 /**
- * adw_view_stack_set_hhomogeneous: (attributes org.gtk.Method.set_property=hhomogeneous)
+ * adw_view_stack_set_hhomogeneous:
  * @self: a view stack
  * @hhomogeneous: whether to make @self horizontally homogeneous
  *
@@ -1943,7 +2465,7 @@ adw_view_stack_set_hhomogeneous (AdwViewStack *self,
 }
 
 /**
- * adw_view_stack_get_vhomogeneous: (attributes org.gtk.Method.get_property=vhomogeneous)
+ * adw_view_stack_get_vhomogeneous:
  * @self: a view stack
  *
  * Gets whether @self is vertically homogeneous.
@@ -1959,7 +2481,7 @@ adw_view_stack_get_vhomogeneous (AdwViewStack *self)
 }
 
 /**
- * adw_view_stack_set_vhomogeneous: (attributes org.gtk.Method.set_property=vhomogeneous)
+ * adw_view_stack_set_vhomogeneous:
  * @self: a view stack
  * @vhomogeneous: whether to make @self vertically homogeneous
  *
@@ -1991,14 +2513,144 @@ adw_view_stack_set_vhomogeneous (AdwViewStack *self,
 }
 
 /**
- * adw_view_stack_get_pages: (attributes org.gtk.Method.get_property=pages)
+ * adw_view_stack_get_enable_transitions:
+ * @self: a view stack
+ *
+ * Gets whether @self uses a crossfade transition between pages.
+ *
+ * Use [property@ViewStack:transition-duration] to control the duration, and
+ * [property@ViewStack:transition-running] to know when the transition is
+ * running.
+ *
+ * Returns: whether to enable page transitions
+ *
+ * Since: 1.7
+ */
+gboolean
+adw_view_stack_get_enable_transitions (AdwViewStack *self)
+{
+  g_return_val_if_fail (ADW_IS_VIEW_STACK (self), FALSE);
+
+  return self->enable_transitions;
+}
+
+/**
+ * adw_view_stack_set_enable_transitions:
+ * @self: a view stack
+ * @enable_transitions: whether to enable page transitions
+ *
+ * Sets whether @self uses a crossfade transition between pages.
+ *
+ * Since: 1.7
+ */
+void
+adw_view_stack_set_enable_transitions (AdwViewStack *self,
+                                       gboolean      enable_transitions)
+{
+  g_return_if_fail (ADW_IS_VIEW_STACK (self));
+
+  enable_transitions = !!enable_transitions;
+
+  if (enable_transitions == self->enable_transitions)
+    return;
+
+  self->enable_transitions = enable_transitions;
+
+  if (self->enable_transitions) {
+    adw_timed_animation_set_duration (ADW_TIMED_ANIMATION (self->animation),
+                                      self->transition_duration);
+  } else {
+    adw_timed_animation_set_duration (ADW_TIMED_ANIMATION (self->animation), 0);
+  }
+
+  g_object_notify_by_pspec (G_OBJECT (self), props[PROP_ENABLE_TRANSITIONS]);
+}
+
+/**
+ * adw_view_stack_get_transition_duration:
+ * @self: a view stack
+ *
+ * Gets the transition animation duration for @self.
+ *
+ * Returns: the transition duration, in milliseconds
+ *
+ * Since: 1.7
+ */
+guint
+adw_view_stack_get_transition_duration (AdwViewStack *self)
+{
+  g_return_val_if_fail (ADW_IS_VIEW_STACK (self), 0);
+
+  return self->transition_duration;
+}
+
+/**
+ * adw_view_stack_set_transition_duration:
+ * @self: a view stack
+ * @duration: the new duration, in milliseconds
+ *
+ * Sets the transition animation duration for @self.
+ *
+ * Only used when [property@ViewStack:enable-transitions] is set to `TRUE`.
+ *
+ * Since: 1.7
+ */
+void
+adw_view_stack_set_transition_duration (AdwViewStack *self,
+                                        guint         duration)
+{
+  g_return_if_fail (ADW_IS_VIEW_STACK (self));
+
+  if (self->transition_duration == duration)
+    return;
+
+  self->transition_duration = duration;
+
+  if (self->enable_transitions) {
+    adw_timed_animation_set_duration (ADW_TIMED_ANIMATION (self->animation),
+                                      self->transition_duration);
+  } else {
+    adw_timed_animation_set_duration (ADW_TIMED_ANIMATION (self->animation), 0);
+  }
+
+  g_object_notify_by_pspec (G_OBJECT (self), props[PROP_TRANSITION_DURATION]);
+}
+
+/**
+ * adw_view_stack_get_transition_running:
+ * @self: a view stack
+ *
+ * Gets whether a transition is currently running for @self.
+ *
+ * If a transition is impossible, the property value will be set to `TRUE` and
+ * then immediately to `FALSE`, so it's possible to rely on its notifications
+ * to know that a transition has happened.
+ *
+ * Returns: whether a transition is currently running
+ *
+ * Since: 1.7
+ */
+gboolean
+adw_view_stack_get_transition_running (AdwViewStack *self)
+{
+  g_return_val_if_fail (ADW_IS_VIEW_STACK (self), FALSE);
+
+  return self->transition_running;
+}
+
+/**
+ * adw_view_stack_get_pages:
  * @self: a view stack
  *
  * Returns a [iface@Gio.ListModel] that contains the pages of the stack.
  *
- * This can be used to keep an up-to-date view. The model also implements
- * [iface@Gtk.SelectionModel] and can be used to track and change the visible
- * page.
+ * This can be used to keep an up-to-date view.
+ *
+ * The model implements [iface@Gtk.SectionModel] and creates sections based on
+ * [property@ViewStackPage:starts-section] values.
+ *
+ * The model also implements [iface@Gtk.SelectionModel] and can be used to track
+ * and change the visible page.
  *
  * Returns: (transfer full): a `GtkSelectionModel` for the stack's children
  */
@@ -2010,8 +2662,9 @@ adw_view_stack_get_pages (AdwViewStack *self)
   if (self->pages)
     return g_object_ref (self->pages);
 
-  self->pages = GTK_SELECTION_MODEL (adw_view_stack_pages_new (self));
-  g_object_add_weak_pointer (G_OBJECT (self->pages), (gpointer *) &self->pages);
+  g_set_weak_pointer (&self->pages,
+                      GTK_SELECTION_MODEL (adw_view_stack_pages_new (self)));
 
   return self->pages;
 }
+

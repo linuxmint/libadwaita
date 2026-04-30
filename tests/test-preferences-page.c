@@ -56,6 +56,9 @@ test_adw_preferences_page_title (void)
   adw_preferences_page_set_title (page, "Dummy title");
   g_assert_cmpstr (adw_preferences_page_get_title (page), ==, "Dummy title");
 
+  adw_preferences_page_set_title (page, "<b>Dummy title</b>");
+  g_assert_cmpstr (adw_preferences_page_get_title (page), ==, "<b>Dummy title</b>");
+
   adw_preferences_page_set_title (page, NULL);
   g_assert_cmpstr (adw_preferences_page_get_title (page), ==, "");
 
@@ -74,6 +77,9 @@ test_adw_preferences_page_description (void)
 
   adw_preferences_page_set_description (page, "Dummy description");
   g_assert_cmpstr (adw_preferences_page_get_description (page), ==, "Dummy description");
+
+  adw_preferences_page_set_description (page, "<b>Dummy description</b>");
+  g_assert_cmpstr (adw_preferences_page_get_description (page), ==, "<b>Dummy description</b>");
 
   adw_preferences_page_set_description (page, NULL);
   g_assert_cmpstr (adw_preferences_page_get_description (page), ==, "");
@@ -100,6 +106,20 @@ test_adw_preferences_page_use_underline (void)
   g_assert_finalize_object (page);
 }
 
+static void
+test_adw_preferences_page_description_center (void)
+{
+  AdwPreferencesPage *page = g_object_ref_sink (ADW_PREFERENCES_PAGE (adw_preferences_page_new ()));
+
+  g_assert_nonnull (page);
+
+  g_assert_false (adw_preferences_page_get_description_centered (page));
+
+  adw_preferences_page_set_description_centered (page, TRUE);
+  g_assert_true (adw_preferences_page_get_description_centered (page));
+
+  g_assert_finalize_object (page);
+}
 
 int
 main (int   argc,
@@ -113,6 +133,7 @@ main (int   argc,
   g_test_add_func("/Adwaita/PreferencesPage/title", test_adw_preferences_page_title);
   g_test_add_func("/Adwaita/PreferencesPage/description", test_adw_preferences_page_description);
   g_test_add_func("/Adwaita/PreferencesPage/use_underline", test_adw_preferences_page_use_underline);
+  g_test_add_func("/Adwaita/PreferencesPage/description_center", test_adw_preferences_page_description_center);
 
   return g_test_run();
 }

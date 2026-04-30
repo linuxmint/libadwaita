@@ -8,17 +8,17 @@ Origin: https://gitlab.gnome.org/GNOME/libadwaita/-/merge_requests/814
  1 file changed, 4 insertions(+)
 
 diff --git a/src/stylesheet/_common.scss b/src/stylesheet/_common.scss
-index 1a30c6e..2619f37 100644
+index 15d5921..064b0d7 100644
 --- a/src/stylesheet/_common.scss
 +++ b/src/stylesheet/_common.scss
-@@ -30,6 +30,10 @@ dnd {
+@@ -34,6 +34,10 @@ dnd {
    -gtk-icon-size: 32px;
  }
  
 +image:disabled {
-+  -gtk-icon-filter: opacity($disabled_opacity);
++  -gtk-icon-filter: opacity(var(--disabled-opacity));
 +}
 +
  picture:disabled {
-   opacity: $disabled_opacity;
+   opacity: var(--disabled-opacity);
  }

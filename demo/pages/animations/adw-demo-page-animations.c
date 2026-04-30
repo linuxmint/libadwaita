@@ -6,7 +6,7 @@ struct _AdwDemoPageAnimations
 {
   AdwBin parent_instance;
 
-  GtkStack *animation_preferences_stack;
+  AdwViewStack *animation_preferences_stack;
   AdwAnimation *timed_animation;
   GtkWidget *timed_animation_sample;
   GtkWidget *timed_animation_button_box;
@@ -40,7 +40,7 @@ get_current_animation (AdwDemoPageAnimations *self)
 {
   const char *current_animation;
 
-  current_animation = gtk_stack_get_visible_child_name (self->animation_preferences_stack);
+  current_animation = adw_view_stack_get_visible_child_name (self->animation_preferences_stack);
 
   if (!g_strcmp0 (current_animation, "Timed")) {
     return self->timed_animation;
@@ -118,6 +118,14 @@ animations_easing_name (AdwEnumListItem *value,
     return g_strdup (_("Ease-out (Bounce)"));
   case ADW_EASE_IN_OUT_BOUNCE:
     return g_strdup (_("Ease-in-out (Bounce)"));
+  case ADW_EASE:
+    return g_strdup (_("Ease"));
+  case ADW_EASE_IN:
+    return g_strdup (_("Ease-in"));
+  case ADW_EASE_OUT:
+    return g_strdup (_("Ease-out"));
+  case ADW_EASE_IN_OUT:
+    return g_strdup (_("Ease-in-out"));
   default:
     return NULL;
   }

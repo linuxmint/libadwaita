@@ -7,8 +7,9 @@ Libadwaita provides API to implement the [boxed lists](https://developer.gnome.o
 pattern.
 
 Boxed lists are composed of a [class@Gtk.ListBox] with the
-[property@Gtk.ListBox:selection-mode] set to `GTK_SELECTION_NONE` and with the
-[`.boxed-list`](style-classes.html#boxed-lists-cards) style class.
+[property@Gtk.ListBox:selection-mode] set to [enum@Gtk.SelectionMode.none] and
+with the [`.boxed-list` or `.boxed-list-separate`](style-classes.html#boxed-lists-cards)
+style classes.
 
 [class@Gtk.ListView] cannot be used as a boxed list at the moment.
 
@@ -142,11 +143,24 @@ properties:
   <img src="property-row.png" alt="property-row">
 </picture>
 
+## Button Rows
+
+[class@ButtonRow] is a list row that acts as a button. It can be useful for
+presenting actions at the end of a boxed list.
+
+<picture>
+  <source srcset="button-rows-dark.png" media="(prefers-color-scheme: dark)">
+  <img src="button-rows.png" alt="button-rows">
+</picture>
+
 ## Preferences Group
 
 [class@PreferencesGroup] provides a boxed list along with a title and a
 description. It's mainly meant to be used as a child of [class@PreferencesPage],
 but can also be used separately.
+
+The [property@PreferencesGroup:separate-rows] property can be used to separate
+rows in its boxed list.
 
 <picture>
   <source srcset="preferences-group-dark.png" media="(prefers-color-scheme: dark)">

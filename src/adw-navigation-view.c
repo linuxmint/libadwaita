@@ -9,13 +9,17 @@
 #include "config.h"
 #include "adw-navigation-view-private.h"
 
+#include "adw-animation-util-private.h"
 #include "adw-gizmo-private.h"
+#include "adw-gtkbuilder-utils-private.h"
 #include "adw-marshalers.h"
 #include "adw-shadow-helper-private.h"
 #include "adw-spring-animation.h"
 #include "adw-swipeable.h"
 #include "adw-swipe-tracker.h"
 #include "adw-widget-utils-private.h"
+
+#define SPRING_STIFFNESS 1000
 
 /**
  * AdwNavigationView:
@@ -176,7 +180,7 @@
  *
  * ## Accessibility
  *
- * `AdwNavigationView` uses the `GTK_ACCESSIBLE_ROLE_GROUP` role.
+ * `AdwNavigationView` uses the [enum@Gtk.AccessibleRole.group] role.
  *
  * Since: 1.4
  */
@@ -209,7 +213,7 @@
  *
  * ## Accessibility
  *
- * `AdwNavigationPage` uses the `GTK_ACCESSIBLE_ROLE_GROUP` role.
+ * `AdwNavigationPage` uses the [enum@Gtk.AccessibleRole.group] role.
  *
  * Since: 1.4
  */
@@ -267,6 +271,8 @@ struct _AdwNavigationView
   GHashTable *tag_mapping;
   GListStore *navigation_stack;
 
+  gboolean homogeneous[2];
+
   gboolean animate_transitions;
   gboolean pop_on_escape;
 
@@ -277,6 +283,9 @@ struct _AdwNavigationView
   gboolean transition_cancel;
   double transition_progress;
   gboolean gesture_active;
+  /* AdwNavigationDirection or -1 */
+  int swipe_direction;
+  gboolean use_crossfade;
 
   AdwShadowHelper *shadow_helper;
   AdwSwipeTracker *swipe_tracker;
@@ -296,6 +305,9 @@ G_DEFINE_FINAL_TYPE_WITH_CODE (AdwNavigationView, adw_navigation_view, GTK_TYPE_
 enum {
   PROP_0,
   PROP_VISIBLE_PAGE,
+  PROP_VISIBLE_PAGE_TAG,
+  PROP_HHOMOGENEOUS,
+  PROP_VHOMOGENEOUS,
   PROP_ANIMATE_TRANSITIONS,
   PROP_POP_ON_ESCAPE,
   PROP_NAVIGATION_STACK,
@@ -318,6 +330,15 @@ static guint signals[LAST_SIGNAL];
 
 G_DECLARE_FINAL_TYPE (AdwNavigationViewModel, adw_navigation_view_model, ADW, NAVIGATION_VIEW_MODEL, GObject)
 
+enum {
+  MODEL_PROP_0,
+  MODEL_PROP_ITEM_TYPE,
+  MODEL_PROP_N_ITEMS,
+  N_MODEL_PROPS,
+};
+
+static GParamSpec *model_props[N_MODEL_PROPS];
+
 struct _AdwNavigationViewModel
 {
   GObject parent_instance;
@@ -335,6 +356,9 @@ adw_navigation_view_model_get_n_items (GListModel *model)
 {
   AdwNavigationViewModel *self = ADW_NAVIGATION_VIEW_MODEL (model);
 
+  if (G_UNLIKELY (!ADW_IS_NAVIGATION_VIEW (self->view)))
+    return 0;
+
   return g_list_model_get_n_items (G_LIST_MODEL (self->view->navigation_stack));
 }
 
@@ -343,6 +367,9 @@ adw_navigation_view_model_get_item (GListModel *model,
                                     guint       position)
 {
   AdwNavigationViewModel *self = ADW_NAVIGATION_VIEW_MODEL (model);
+
+  if (G_UNLIKELY (!ADW_IS_NAVIGATION_VIEW (self->view)))
+    return NULL;
 
   return g_list_model_get_item (G_LIST_MODEL (self->view->navigation_stack),
                                 position);
@@ -360,13 +387,73 @@ G_DEFINE_FINAL_TYPE_WITH_CODE (AdwNavigationViewModel, adw_navigation_view_model
                                G_IMPLEMENT_INTERFACE (G_TYPE_LIST_MODEL, adw_navigation_view_model_list_model_init))
 
 static void
+adw_navigation_view_model_dispose (GObject *object)
+{
+  AdwNavigationViewModel *self = ADW_NAVIGATION_VIEW_MODEL (object);
+
+  g_clear_weak_pointer (&self->view);
+
+  G_OBJECT_CLASS (adw_navigation_view_model_parent_class)->dispose (object);
+}
+
+static void
+adw_navigation_view_model_get_property (GObject    *object,
+                                        guint       prop_id,
+                                        GValue     *value,
+                                        GParamSpec *pspec)
+{
+  AdwNavigationViewModel *self = ADW_NAVIGATION_VIEW_MODEL (object);
+
+  switch (prop_id) {
+  case MODEL_PROP_ITEM_TYPE:
+    g_value_set_gtype (value, ADW_TYPE_NAVIGATION_PAGE);
+    break;
+  case MODEL_PROP_N_ITEMS:
+    g_value_set_uint (value, adw_navigation_view_model_get_n_items (G_LIST_MODEL (self)));
+    break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+  }
+}
+
+static void
 adw_navigation_view_model_init (AdwNavigationViewModel *self)
 {
 }
 
 static void
-adw_navigation_view_model_class_init (AdwNavigationViewModelClass *class)
+adw_navigation_view_model_class_init (AdwNavigationViewModelClass *klass)
 {
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+  object_class->dispose = adw_navigation_view_model_dispose;
+  object_class->get_property = adw_navigation_view_model_get_property;
+
+  /**
+   * AdwNavigationViewModel:item-type:
+   *
+   * The type of the items. See [method@Gio.ListModel.get_item_type].
+   *
+   * Since: 1.9
+   */
+  model_props[MODEL_PROP_ITEM_TYPE] =
+    g_param_spec_gtype ("item-type", NULL, NULL,
+                        ADW_TYPE_NAVIGATION_PAGE,
+                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+  /**
+   * AdwNavigationViewModel:n-items:
+   *
+   * The number of items. See [method@Gio.ListModel.get_n_items].
+   *
+   * Since: 1.9
+   */
+  model_props[MODEL_PROP_N_ITEMS] =
+    g_param_spec_uint ("n-items", NULL, NULL,
+                       0, G_MAXUINT, 0,
+                       G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+  g_object_class_install_properties (object_class, N_MODEL_PROPS, model_props);
 }
 
 static GListModel *
@@ -375,7 +462,7 @@ adw_navigation_view_model_new (AdwNavigationView *view)
   AdwNavigationViewModel *model;
 
   model = g_object_new (ADW_TYPE_NAVIGATION_VIEW_MODEL, NULL);
-  model->view = view;
+  g_set_weak_pointer (&model->view, view);
 
   return G_LIST_MODEL (model);
 }
@@ -418,13 +505,7 @@ adw_navigation_page_dispose (GObject *object)
   AdwNavigationPagePrivate *priv = adw_navigation_page_get_instance_private (self);
 
   g_clear_pointer (&priv->child, gtk_widget_unparent);
-
-  if (priv->child_view) {
-    g_object_remove_weak_pointer (G_OBJECT (priv->child_view),
-                                  (gpointer *) &priv->child_view);
-
-    priv->child_view = NULL;
-  }
+  g_clear_weak_pointer (&priv->child_view);
 
   G_OBJECT_CLASS (adw_navigation_page_parent_class)->dispose (object);
 }
@@ -437,10 +518,7 @@ adw_navigation_page_finalize (GObject *object)
 
   g_free (priv->title);
   g_free (priv->tag);
-
-  if (priv->last_focus)
-    g_object_remove_weak_pointer (G_OBJECT (priv->last_focus),
-                                  (gpointer *) &priv->last_focus);
+  g_clear_weak_pointer (&priv->last_focus);
 
   G_OBJECT_CLASS (adw_navigation_page_parent_class)->finalize (object);
 }
@@ -498,6 +576,26 @@ adw_navigation_page_set_property (GObject      *object,
 }
 
 static void
+adw_navigation_page_real_showing (AdwNavigationPage *self)
+{
+}
+
+static void
+adw_navigation_page_real_shown (AdwNavigationPage *self)
+{
+}
+
+static void
+adw_navigation_page_real_hiding (AdwNavigationPage *self)
+{
+}
+
+static void
+adw_navigation_page_real_hidden (AdwNavigationPage *self)
+{
+}
+
+static void
 adw_navigation_page_class_init (AdwNavigationPageClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
@@ -511,8 +609,13 @@ adw_navigation_page_class_init (AdwNavigationPageClass *klass)
   widget_class->realize = adw_navigation_page_realize;
   widget_class->compute_expand = adw_widget_compute_expand;
 
+  klass->showing = adw_navigation_page_real_showing;
+  klass->shown = adw_navigation_page_real_shown;
+  klass->hiding = adw_navigation_page_real_hiding;
+  klass->hidden = adw_navigation_page_real_hidden;
+
   /**
-   * AdwNavigationPage:child: (attributes org.gtk.Property.get=adw_navigation_page_get_child org.gtk.Property.set=adw_navigation_page_set_child)
+   * AdwNavigationPage:child:
    *
    * The child widget.
    *
@@ -524,7 +627,7 @@ adw_navigation_page_class_init (AdwNavigationPageClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwNavigationPage:tag: (attributes org.gtk.Property.get=adw_navigation_page_get_tag org.gtk.Property.set=adw_navigation_page_set_tag)
+   * AdwNavigationPage:tag:
    *
    * The page tag.
    *
@@ -545,7 +648,7 @@ adw_navigation_page_class_init (AdwNavigationPageClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwNavigationPage:title: (attributes org.gtk.Property.get=adw_navigation_page_get_title org.gtk.Property.set=adw_navigation_page_set_title)
+   * AdwNavigationPage:title:
    *
    * The page title.
    *
@@ -560,7 +663,7 @@ adw_navigation_page_class_init (AdwNavigationPageClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwNavigationPage:can-pop: (attributes org.gtk.Property.get=adw_navigation_page_get_can_pop org.gtk.Property.set=adw_navigation_page_set_can_pop)
+   * AdwNavigationPage:can-pop:
    *
    * Whether the page can be popped from navigation stack.
    *
@@ -702,10 +805,12 @@ adw_navigation_page_buildable_add_child (GtkBuildable *buildable,
                                          GObject      *child,
                                          const char   *type)
 {
-  if (GTK_IS_WIDGET (child))
+  if (GTK_IS_WIDGET (child)) {
+    gtk_buildable_child_deprecation_warning (buildable, builder, NULL, "child");
     adw_navigation_page_set_child (ADW_NAVIGATION_PAGE (buildable), GTK_WIDGET (child));
-  else
+  } else {
     parent_buildable_iface->add_child (buildable, builder, child, type);
+  }
 }
 
 static void
@@ -746,12 +851,7 @@ switch_page (AdwNavigationView *self,
 
     contains_focus = TRUE;
 
-    if (priv->last_focus)
-      g_object_remove_weak_pointer (G_OBJECT (priv->last_focus),
-                                    (gpointer *)&priv->last_focus);
-    priv->last_focus = focus;
-    g_object_add_weak_pointer (G_OBJECT (priv->last_focus),
-                               (gpointer *)&priv->last_focus);
+    g_set_weak_pointer (&priv->last_focus, focus);
   }
 
   if (!prev_page)
@@ -795,6 +895,9 @@ switch_page (AdwNavigationView *self,
 
   gtk_widget_set_child_visible (self->shield, TRUE);
 
+  self->use_crossfade = !self->gesture_active &&
+                        adw_get_reduce_motion (GTK_WIDGET (self));
+
   adw_spring_animation_set_value_from (ADW_SPRING_ANIMATION (self->transition),
                                        self->transition_progress);
   adw_spring_animation_set_value_to (ADW_SPRING_ANIMATION (self->transition),
@@ -820,6 +923,11 @@ switch_page (AdwNavigationView *self,
     adw_animation_skip (self->transition);
 
   g_object_notify_by_pspec (G_OBJECT (self), props[PROP_VISIBLE_PAGE]);
+
+  if ((prev_page && adw_navigation_page_get_tag (prev_page)) ||
+      (page && adw_navigation_page_get_tag (page))) {
+    g_object_notify_by_pspec (G_OBJECT (self), props[PROP_VISIBLE_PAGE_TAG]);
+  }
 }
 
 static void
@@ -854,6 +962,7 @@ push_to_stack (AdwNavigationView *self,
 
     g_list_model_items_changed (self->navigation_stack_model,
                                 length - 1, 0, 1);
+    g_object_notify_by_pspec (G_OBJECT (self->navigation_stack_model), model_props[MODEL_PROP_N_ITEMS]);
   }
 }
 
@@ -869,6 +978,9 @@ pop_from_stack (AdwNavigationView *self,
   guint length, pos, i;
 
   old_page = adw_navigation_view_get_visible_page (self);
+
+  if (page_to == old_page)
+    return;
 
   length = g_list_model_get_n_items (G_LIST_MODEL (self->navigation_stack));
 
@@ -896,9 +1008,11 @@ pop_from_stack (AdwNavigationView *self,
       adw_navigation_view_remove (self, c);
   }
 
-  if (self->navigation_stack_model)
+  if (self->navigation_stack_model) {
     g_list_model_items_changed (self->navigation_stack_model,
                                 pos + 1, length - pos - 1, 0);
+    g_object_notify_by_pspec (G_OBJECT (self->navigation_stack_model), model_props[MODEL_PROP_N_ITEMS]);
+  }
 
   g_slist_free_full (popped, g_object_unref);
 }
@@ -1224,21 +1338,40 @@ prepare_cb (AdwSwipeTracker        *tracker,
             AdwNavigationDirection  direction,
             AdwNavigationView      *self)
 {
+  if (!adw_navigation_view_get_visible_page (self))
+    return;
+
+  self->swipe_direction = ADW_NAVIGATION_DIRECTION_BACK;
+}
+
+static void
+begin_swipe_cb (AdwSwipeTracker   *tracker,
+                AdwNavigationView *self)
+{
   AdwNavigationPage *visible_page = adw_navigation_view_get_visible_page (self);
   AdwNavigationPage *new_page;
   gboolean remove_on_pop = FALSE;
 
-  if (!visible_page)
+  if (self->swipe_direction < 0)
     return;
 
-  if (direction == ADW_NAVIGATION_DIRECTION_BACK) {
-    if (!adw_navigation_page_get_can_pop (visible_page))
+  if (!visible_page) {
+    self->swipe_direction = -1;
+    return;
+  }
+
+  if (self->swipe_direction == ADW_NAVIGATION_DIRECTION_BACK) {
+    if (!adw_navigation_page_get_can_pop (visible_page)) {
+      self->swipe_direction = -1;
       return;
+    }
 
     new_page = adw_navigation_view_get_previous_page (self, visible_page);
 
-    if (!new_page)
+    if (!new_page) {
+      self->swipe_direction = -1;
       return;
+    }
 
   } else {
     new_page = get_next_page (self);
@@ -1253,12 +1386,14 @@ prepare_cb (AdwSwipeTracker        *tracker,
   if (self->showing_page || self->hiding_page)
     adw_animation_skip (self->transition);
 
+  self->use_crossfade = FALSE;
+
   self->showing_page = new_page;
   self->hiding_page = g_object_ref (visible_page);
 
-  self->transition_pop = (direction == ADW_NAVIGATION_DIRECTION_BACK);
+  self->transition_pop = (self->swipe_direction == ADW_NAVIGATION_DIRECTION_BACK);
 
-  if (direction == ADW_NAVIGATION_DIRECTION_BACK) {
+  if (self->swipe_direction == ADW_NAVIGATION_DIRECTION_BACK) {
     g_object_ref (new_page);
   } else {
     if (remove_on_pop)
@@ -1283,6 +1418,8 @@ prepare_cb (AdwSwipeTracker        *tracker,
   gtk_widget_queue_resize (GTK_WIDGET (self));
 
   adw_swipe_tracker_set_upper_overshoot (self->swipe_tracker, TRUE);
+
+  self->swipe_direction = -1;
 }
 
 static void
@@ -1309,10 +1446,10 @@ end_swipe_cb (AdwSwipeTracker   *tracker,
 {
   gboolean animate;
 
+  self->swipe_direction = -1;
+
   if (!self->gesture_active)
     return;
-
-  self->gesture_active = FALSE;
 
   animate = !G_APPROX_VALUE (to, self->transition_progress, DBL_EPSILON) ||
             !G_APPROX_VALUE (velocity, 0, DBL_EPSILON);
@@ -1349,6 +1486,8 @@ end_swipe_cb (AdwSwipeTracker   *tracker,
   }
 
   adw_swipe_tracker_set_upper_overshoot (self->swipe_tracker, FALSE);
+
+  self->gesture_active = FALSE;
 }
 
 static void
@@ -1357,20 +1496,7 @@ set_child_view (AdwNavigationPage *self,
 {
   AdwNavigationPagePrivate *priv = adw_navigation_page_get_instance_private (self);
 
-  if (view == priv->child_view)
-    return;
-
-  if (priv->child_view) {
-    g_object_remove_weak_pointer (G_OBJECT (priv->child_view),
-                                  (gpointer *) &priv->child_view);
-  }
-
-  priv->child_view = view;
-
-  if (priv->child_view) {
-    g_object_add_weak_pointer (G_OBJECT (priv->child_view),
-                               (gpointer *) &priv->child_view);
-  }
+  g_set_weak_pointer (&priv->child_view, view);
 }
 
 static void
@@ -1383,29 +1509,51 @@ adw_navigation_view_measure (GtkWidget      *widget,
                              int            *natural_baseline)
 {
   AdwNavigationView *self = ADW_NAVIGATION_VIEW (widget);
-  AdwNavigationPage *visible_page = NULL;
-  int min = 0, nat = 0, min_baseline = -1, nat_baseline = -1;
-  int last_min = 0, last_nat = 0, last_min_baseline = -1, last_nat_baseline = -1;
+  int min = 0, nat = 0;
 
-  visible_page = adw_navigation_view_get_visible_page (self);
+  if (self->homogeneous[orientation]) {
+    int child_min = 0, child_nat = 0;
+    GtkWidget *child;
 
-  if (visible_page)
-    gtk_widget_measure (GTK_WIDGET (visible_page), orientation, for_size,
-                        &min, &nat, &min_baseline, &nat_baseline);
+    for (child = gtk_widget_get_first_child (GTK_WIDGET (self));
+         child;
+         child = gtk_widget_get_next_sibling (child)) {
+      if (!ADW_IS_NAVIGATION_PAGE (child))
+        continue;
 
-  if (self->hiding_page)
-    gtk_widget_measure (GTK_WIDGET (self->hiding_page),
-                        orientation, for_size, &last_min, &last_nat,
-                        &last_min_baseline, &last_nat_baseline);
+      gtk_widget_measure (child, orientation, for_size,
+                          &child_min, &child_nat, NULL, NULL);
+
+      min = MAX (min, child_min);
+      nat = MAX (nat, child_nat);
+    }
+  } else {
+    AdwNavigationPage *visible_page = adw_navigation_view_get_visible_page (self);
+
+    if (visible_page) {
+      gtk_widget_measure (GTK_WIDGET (visible_page), orientation, for_size,
+                          &min, &nat, NULL, NULL);
+    }
+
+    if (self->hiding_page) {
+      int last_min = 0, last_nat = 0;
+
+      gtk_widget_measure (GTK_WIDGET (self->hiding_page), orientation, for_size,
+                          &last_min, &last_nat, NULL, NULL);
+
+      min = MAX (min, last_min);
+      nat = MAX (nat, last_nat);
+    }
+  }
 
   if (minimum)
-    *minimum = MAX (min, last_min);
+    *minimum = min;
   if (natural)
-    *natural = MAX (nat, last_nat);
+    *natural = nat;
   if (minimum_baseline)
-    *minimum_baseline = MAX (min_baseline, last_min_baseline);
+    *minimum_baseline = -1;
   if (natural_baseline)
-    *natural_baseline = MAX (nat_baseline, last_nat_baseline);
+    *natural_baseline = -1;
 }
 
 static void
@@ -1452,7 +1600,10 @@ adw_navigation_view_size_allocate (GtkWidget *widget,
   if (!self->transition_pop)
     progress = 1 - progress;
 
-  offset = (int) round (progress * width);
+  if (self->use_crossfade)
+    offset = 0;
+  else
+    offset = (int) round (progress * width);
 
   if (static_page)
     gtk_widget_allocate (static_page, width, height, baseline, NULL);
@@ -1499,11 +1650,6 @@ adw_navigation_view_snapshot (GtkWidget   *widget,
 {
   AdwNavigationView *self = ADW_NAVIGATION_VIEW (widget);
   AdwNavigationPage *visible_page = NULL;
-  GtkWidget *static_page = NULL, *moving_page = NULL;
-  int width, height;
-  int offset;
-  int clip_x, clip_width;
-  double progress;
 
   visible_page = adw_navigation_view_get_visible_page (self);
 
@@ -1514,55 +1660,75 @@ adw_navigation_view_snapshot (GtkWidget   *widget,
     return;
   }
 
-  if (self->transition_pop) {
-    if (self->showing_page)
-      static_page = GTK_WIDGET (self->showing_page);
-    if (self->hiding_page && self->showing_page != self->hiding_page)
-      moving_page = GTK_WIDGET (self->hiding_page);
+  if (self->use_crossfade) {
+    if (self->showing_page && self->hiding_page && self->showing_page != self->hiding_page) {
+      gtk_snapshot_push_cross_fade (snapshot, self->transition_progress);
+
+      gtk_widget_snapshot_child (widget, GTK_WIDGET (self->hiding_page), snapshot);
+      gtk_snapshot_pop (snapshot);
+
+      gtk_widget_snapshot_child (widget, GTK_WIDGET (self->showing_page), snapshot);
+      gtk_snapshot_pop (snapshot);
+    } else if (self->showing_page) {
+      gtk_widget_snapshot_child (widget, GTK_WIDGET (self->showing_page), snapshot);
+    }
   } else {
-    if (self->hiding_page)
-      static_page = GTK_WIDGET (self->hiding_page);
-    if (self->showing_page && self->showing_page != self->hiding_page)
-      moving_page = GTK_WIDGET (self->showing_page);
+    GtkWidget *static_page = NULL, *moving_page = NULL;
+    int width, height;
+    int offset;
+    int clip_x, clip_width;
+    double progress;
+
+    if (self->transition_pop) {
+      if (self->showing_page)
+        static_page = GTK_WIDGET (self->showing_page);
+      if (self->hiding_page && self->showing_page != self->hiding_page)
+        moving_page = GTK_WIDGET (self->hiding_page);
+    } else {
+      if (self->hiding_page)
+        static_page = GTK_WIDGET (self->hiding_page);
+      if (self->showing_page && self->showing_page != self->hiding_page)
+        moving_page = GTK_WIDGET (self->showing_page);
+    }
+
+    width = gtk_widget_get_width (widget);
+    height = gtk_widget_get_height (widget);
+    progress = self->transition_progress;
+
+    if (!self->transition_pop)
+      progress = 1 - progress;
+
+    offset = (int) round (progress * width);
+
+    if (gtk_widget_get_direction (GTK_WIDGET (self)) == GTK_TEXT_DIR_RTL) {
+      clip_x = width - offset;
+      clip_width = offset;
+    } else {
+      clip_x = 0;
+      clip_width = offset;
+    }
+
+    if (static_page) {
+      gtk_snapshot_push_clip (snapshot, &GRAPHENE_RECT_INIT (clip_x, 0, clip_width, height));
+      gtk_widget_snapshot_child (widget, static_page, snapshot);
+      gtk_snapshot_pop (snapshot);
+    }
+
+    if (gtk_widget_get_direction (GTK_WIDGET (self)) == GTK_TEXT_DIR_RTL)
+      clip_x = -offset;
+    else
+      clip_x = offset;
+
+    clip_width = width;
+
+    if (moving_page) {
+      gtk_snapshot_push_clip (snapshot, &GRAPHENE_RECT_INIT (clip_x, 0, clip_width, height));
+      gtk_widget_snapshot_child (widget, moving_page, snapshot);
+      gtk_snapshot_pop (snapshot);
+    }
+
+    adw_shadow_helper_snapshot (self->shadow_helper, snapshot);
   }
-
-  width = gtk_widget_get_width (widget);
-  height = gtk_widget_get_height (widget);
-  progress = self->transition_progress;
-
-  if (!self->transition_pop)
-    progress = 1 - progress;
-
-  offset = (int) round (progress * width);
-
-  if (gtk_widget_get_direction (GTK_WIDGET (self)) == GTK_TEXT_DIR_RTL) {
-    clip_x = width - offset;
-    clip_width = offset;
-  } else {
-    clip_x = 0;
-    clip_width = offset;
-  }
-
-  if (static_page) {
-    gtk_snapshot_push_clip (snapshot, &GRAPHENE_RECT_INIT (clip_x, 0, clip_width, height));
-    gtk_widget_snapshot_child (widget, static_page, snapshot);
-    gtk_snapshot_pop (snapshot);
-  }
-
-  if (gtk_widget_get_direction (GTK_WIDGET (self)) == GTK_TEXT_DIR_RTL)
-    clip_x = -offset;
-  else
-    clip_x = offset;
-
-  clip_width = width;
-
-  if (moving_page) {
-    gtk_snapshot_push_clip (snapshot, &GRAPHENE_RECT_INIT (clip_x, 0, clip_width, height));
-    gtk_widget_snapshot_child (widget, moving_page, snapshot);
-    gtk_snapshot_pop (snapshot);
-  }
-
-  adw_shadow_helper_snapshot (self->shadow_helper, snapshot);
 }
 
 static void
@@ -1608,9 +1774,11 @@ adw_navigation_view_dispose (GObject *object)
   AdwNavigationView *self = ADW_NAVIGATION_VIEW (object);
   GtkWidget *child;
 
-  if (self->navigation_stack_model)
+  if (self->navigation_stack_model) {
     g_list_model_items_changed (self->navigation_stack_model, 0,
                                 g_list_model_get_n_items (G_LIST_MODEL (self->navigation_stack)), 0);
+    g_object_notify_by_pspec (G_OBJECT (self->navigation_stack_model), model_props[MODEL_PROP_N_ITEMS]);
+  }
 
   g_clear_object (&self->shadow_helper);
   g_clear_object (&self->swipe_tracker);
@@ -1632,9 +1800,7 @@ adw_navigation_view_finalize (GObject *object)
 {
   AdwNavigationView *self = ADW_NAVIGATION_VIEW (object);
 
-  if (self->navigation_stack_model)
-    g_object_remove_weak_pointer (G_OBJECT (self->navigation_stack_model),
-                                  (gpointer *) &self->navigation_stack_model);
+  g_clear_weak_pointer (&self->navigation_stack_model);
 
   G_OBJECT_CLASS (adw_navigation_view_parent_class)->finalize (object);
 }
@@ -1650,6 +1816,15 @@ adw_navigation_view_get_property (GObject    *object,
   switch (prop_id) {
   case PROP_VISIBLE_PAGE:
     g_value_set_object (value, adw_navigation_view_get_visible_page (self));
+    break;
+  case PROP_VISIBLE_PAGE_TAG:
+    g_value_set_string (value, adw_navigation_view_get_visible_page_tag (self));
+    break;
+  case PROP_HHOMOGENEOUS:
+    g_value_set_boolean (value, adw_navigation_view_get_hhomogeneous (self));
+    break;
+  case PROP_VHOMOGENEOUS:
+    g_value_set_boolean (value, adw_navigation_view_get_vhomogeneous (self));
     break;
   case PROP_ANIMATE_TRANSITIONS:
     g_value_set_boolean (value, adw_navigation_view_get_animate_transitions (self));
@@ -1674,6 +1849,12 @@ adw_navigation_view_set_property (GObject      *object,
   AdwNavigationView *self = ADW_NAVIGATION_VIEW (object);
 
   switch (prop_id) {
+  case PROP_HHOMOGENEOUS:
+    adw_navigation_view_set_hhomogeneous (self, g_value_get_boolean (value));
+    break;
+  case PROP_VHOMOGENEOUS:
+    adw_navigation_view_set_vhomogeneous (self, g_value_get_boolean (value));
+    break;
   case PROP_ANIMATE_TRANSITIONS:
     adw_navigation_view_set_animate_transitions (self, g_value_get_boolean (value));
     break;
@@ -1719,7 +1900,7 @@ adw_navigation_view_class_init (AdwNavigationViewClass *klass)
   widget_class->compute_expand = adw_widget_compute_expand;
 
   /**
-   * AdwNavigationView:visible-page: (attributes org.gtk.Property.get=adw_navigation_view_get_visible_page)
+   * AdwNavigationView:visible-page:
    *
    * The currently visible page.
    *
@@ -1731,7 +1912,55 @@ adw_navigation_view_class_init (AdwNavigationViewClass *klass)
                          G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
   /**
-   * AdwNavigationView:animate-transitions: (attributes org.gtk.Property.get=adw_navigation_view_get_animate_transitions org.gtk.Property.set=adw_navigation_view_set_animate_transitions)
+   * AdwNavigationView:visible-page-tag:
+   *
+   * The tag of the currently visible page.
+   *
+   * Since: 1.7
+   */
+  props[PROP_VISIBLE_PAGE_TAG] =
+    g_param_spec_string ("visible-page-tag", NULL, NULL,
+                         NULL,
+                         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+  /**
+   * AdwNavigationView:hhomogeneous:
+   *
+   * Whether the view is horizontally homogeneous.
+   *
+   * If the view is horizontally homogeneous, it allocates the same width for
+   * all pages.
+   *
+   * If it's not, the page may change width when a different page becomes
+   * visible.
+   *
+   * Since: 1.7
+   */
+  props[PROP_HHOMOGENEOUS] =
+    g_param_spec_boolean ("hhomogeneous", NULL, NULL,
+                          FALSE,
+                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
+
+  /**
+   * AdwNavigationView:vhomogeneous:
+   *
+   * Whether the view is vertically homogeneous.
+   *
+   * If the view is vertically homogeneous, it allocates the same height for
+   * all pages.
+   *
+   * If it's not, the view may change height when a different page becomes
+   * visible.
+   *
+   * Since: 1.7
+   */
+  props[PROP_VHOMOGENEOUS] =
+    g_param_spec_boolean ("vhomogeneous", NULL, NULL,
+                          FALSE,
+                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
+
+  /**
+   * AdwNavigationView:animate-transitions:
    *
    * Whether to animate page transitions.
    *
@@ -1745,7 +1974,7 @@ adw_navigation_view_class_init (AdwNavigationViewClass *klass)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwNavigationView:pop-on-escape: (attributes org.gtk.Property.get=adw_navigation_view_get_pop_on_escape org.gtk.Property.set=adw_navigation_view_set_pop_on_escape)
+   * AdwNavigationView:pop-on-escape:
    *
    * Whether pressing Escape pops the current page.
    *
@@ -1760,7 +1989,7 @@ adw_navigation_view_class_init (AdwNavigationViewClass *klass)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwNavigationView:navigation-stack: (attributes org.gtk.Property.get=adw_navigation_view_get_navigation_stack)
+   * AdwNavigationView:navigation-stack:
    *
    * A list model that contains the pages in navigation stack.
    *
@@ -1920,7 +2149,7 @@ adw_navigation_view_init (AdwNavigationView *self)
   target = adw_callback_animation_target_new ((AdwAnimationTargetFunc) transition_cb,
                                               self, NULL);
   self->transition = adw_spring_animation_new (GTK_WIDGET (self), 0, 1,
-                                               adw_spring_params_new (1, 1, 1000),
+                                               adw_spring_params_new (1, 1, SPRING_STIFFNESS),
                                                target);
   g_signal_connect_swapped (self->transition, "done",
                             G_CALLBACK (transition_done_cb), self);
@@ -1940,10 +2169,14 @@ adw_navigation_view_init (AdwNavigationView *self)
 
   g_signal_connect (self->swipe_tracker, "prepare",
                     G_CALLBACK (prepare_cb), self);
+  g_signal_connect (self->swipe_tracker, "begin-swipe",
+                    G_CALLBACK (begin_swipe_cb), self);
   g_signal_connect (self->swipe_tracker, "update-swipe",
                     G_CALLBACK (update_swipe_cb), self);
   g_signal_connect (self->swipe_tracker, "end-swipe",
                     G_CALLBACK (end_swipe_cb), self);
+
+  self->swipe_direction = -1;
 
   self->shield = adw_gizmo_new ("widget", NULL, NULL, NULL, NULL, NULL, NULL);
   gtk_widget_set_child_visible (self->shield, FALSE);
@@ -2097,7 +2330,7 @@ adw_navigation_page_new_with_tag (GtkWidget  *child,
 }
 
 /**
- * adw_navigation_page_get_child: (attributes org.gtk.Method.get_property=child)
+ * adw_navigation_page_get_child:
  * @self: a navigation page
  *
  * Gets the child widget of @self.
@@ -2119,7 +2352,7 @@ adw_navigation_page_get_child (AdwNavigationPage *self)
 }
 
 /**
- * adw_navigation_page_set_child: (attributes org.gtk.Method.set_property=child)
+ * adw_navigation_page_set_child:
  * @self: a navigation page
  * @child: (nullable): the child widget
  *
@@ -2136,13 +2369,13 @@ adw_navigation_page_set_child (AdwNavigationPage *self,
   g_return_if_fail (ADW_IS_NAVIGATION_PAGE (self));
   g_return_if_fail (child == NULL || GTK_IS_WIDGET (child));
 
-  if (child)
-    g_return_if_fail (gtk_widget_get_parent (child) == NULL);
-
   priv = adw_navigation_page_get_instance_private (self);
 
   if (priv->child == child)
     return;
+
+  if (child)
+    g_return_if_fail (gtk_widget_get_parent (child) == NULL);
 
   g_object_freeze_notify (G_OBJECT (self));
 
@@ -2160,7 +2393,7 @@ adw_navigation_page_set_child (AdwNavigationPage *self,
 }
 
 /**
- * adw_navigation_page_get_tag: (attributes org.gtk.Method.get_property=tag)
+ * adw_navigation_page_get_tag:
  * @self: a navigation page
  *
  * Gets the tag of @self.
@@ -2182,7 +2415,7 @@ adw_navigation_page_get_tag (AdwNavigationPage *self)
 }
 
 /**
- * adw_navigation_page_set_tag: (attributes org.gtk.Method.set_property=tag)
+ * adw_navigation_page_set_tag:
  * @self: a navigation page
  * @tag: (nullable): the page tag
  *
@@ -2238,7 +2471,7 @@ adw_navigation_page_set_tag (AdwNavigationPage *self,
 }
 
 /**
- * adw_navigation_page_get_title: (attributes org.gtk.Method.get_property=title)
+ * adw_navigation_page_get_title:
  * @self: a navigation page
  *
  * Gets the title of @self.
@@ -2260,7 +2493,7 @@ adw_navigation_page_get_title (AdwNavigationPage *self)
 }
 
 /**
- * adw_navigation_page_set_title: (attributes org.gtk.Method.set_property=title)
+ * adw_navigation_page_set_title:
  * @self: a navigation page
  * @title: the title
  *
@@ -2293,7 +2526,7 @@ adw_navigation_page_set_title (AdwNavigationPage *self,
 }
 
 /**
- * adw_navigation_page_get_can_pop: (attributes org.gtk.Method.get_property=can-pop)
+ * adw_navigation_page_get_can_pop:
  * @self: a navigation page
  *
  * Gets whether @self can be popped from navigation stack.
@@ -2315,7 +2548,7 @@ adw_navigation_page_get_can_pop (AdwNavigationPage *self)
 }
 
 /**
- * adw_navigation_page_set_can_pop: (attributes org.gtk.Method.set_property=can-pop)
+ * adw_navigation_page_set_can_pop:
  * @self: a navigation page
  * @can_pop: whether the page can be popped from navigation stack
  *
@@ -2770,15 +3003,16 @@ adw_navigation_view_replace (AdwNavigationView  *self,
                              AdwNavigationPage **pages,
                              int                 n_pages)
 {
-  AdwNavigationPage *visible_page, *old_visible_page;
+  AdwNavigationPage *visible_page;
   GHashTable *added_pages;
   guint i, old_length;
+  gboolean had_visible_page, old_visible_page_had_tag = FALSE;
 
   g_return_if_fail (ADW_IS_NAVIGATION_VIEW (self));
   g_return_if_fail (n_pages >= 0);
 
   visible_page = adw_navigation_view_get_visible_page (self);
-  old_visible_page = visible_page;
+  had_visible_page = visible_page != NULL;
   old_length = g_list_model_get_n_items (G_LIST_MODEL (self->navigation_stack));
 
   added_pages = g_hash_table_new (g_direct_hash, g_direct_equal);
@@ -2799,6 +3033,7 @@ adw_navigation_view_replace (AdwNavigationView  *self,
     if (get_remove_on_pop (c) &&
         !g_hash_table_contains (added_pages, c)) {
       if (c == visible_page) {
+        old_visible_page_had_tag = adw_navigation_page_get_tag (visible_page) != NULL;
         adw_navigation_page_hiding (visible_page);
         adw_navigation_page_hidden (visible_page);
         visible_page = NULL;
@@ -2840,8 +3075,11 @@ adw_navigation_view_replace (AdwNavigationView  *self,
       switch_page (self, visible_page, new_visible_page, TRUE, FALSE, 0);
   } else if (visible_page) {
     switch_page (self, visible_page, NULL, TRUE, FALSE, 0);
-  } else if (old_visible_page) {
+  } else if (had_visible_page) {
     g_object_notify_by_pspec (G_OBJECT (self), props[PROP_VISIBLE_PAGE]);
+
+    if (old_visible_page_had_tag)
+      g_object_notify_by_pspec (G_OBJECT (self), props[PROP_VISIBLE_PAGE_TAG]);
   }
 
   g_hash_table_unref (added_pages);
@@ -2853,6 +3091,7 @@ adw_navigation_view_replace (AdwNavigationView  *self,
 
     g_list_model_items_changed (self->navigation_stack_model,
                                 0, old_length, length);
+    g_object_notify_by_pspec (G_OBJECT (self->navigation_stack_model), model_props[MODEL_PROP_N_ITEMS]);
   }
 }
 
@@ -2913,7 +3152,7 @@ adw_navigation_view_replace_with_tags (AdwNavigationView  *self,
 }
 
 /**
- * adw_navigation_view_get_visible_page: (attributes org.gtk.Method.get_property=visible-page)
+ * adw_navigation_view_get_visible_page:
  * @self: a navigation view
  *
  * Gets the currently visible page in @self.
@@ -2940,6 +3179,33 @@ adw_navigation_view_get_visible_page (AdwNavigationView *self)
   g_object_unref (ret);
 
   return ret;
+}
+
+/**
+ * adw_navigation_view_get_visible_page_tag:
+ * @self: a navigation view
+ *
+ * Gets the tag of the currently visible page in @self.
+ *
+ * Returns: (transfer none) (nullable): the tag of the currently visible page
+ *
+ * Since: 1.7
+ */
+const char *
+adw_navigation_view_get_visible_page_tag (AdwNavigationView *self)
+{
+  g_return_val_if_fail (ADW_IS_NAVIGATION_VIEW (self), NULL);
+
+  AdwNavigationPage *current_page;
+
+  g_return_val_if_fail (ADW_IS_NAVIGATION_VIEW (self), NULL);
+
+  current_page = adw_navigation_view_get_visible_page (self);
+
+  if (current_page == NULL)
+    return NULL;
+
+  return adw_navigation_page_get_tag (current_page);
 }
 
 /**
@@ -2982,7 +3248,110 @@ adw_navigation_view_get_previous_page (AdwNavigationView *self,
 }
 
 /**
- * adw_navigation_view_get_animate_transitions: (attributes org.gtk.Method.get_property=animate-transitions)
+ * adw_navigation_view_get_hhomogeneous:
+ * @self: a navigation view
+ *
+ * Gets whether @self is horizontally homogeneous.
+ *
+ * Returns: whether @self is horizontally homogeneous
+ *
+ * Since: 1.7
+ */
+gboolean
+adw_navigation_view_get_hhomogeneous (AdwNavigationView *self)
+{
+  g_return_val_if_fail (ADW_IS_NAVIGATION_VIEW (self), FALSE);
+
+  return self->homogeneous[GTK_ORIENTATION_HORIZONTAL];
+}
+
+/**
+ * adw_navigation_view_set_hhomogeneous:
+ * @self: a navigation view
+ * @hhomogeneous: whether to make @self horizontally homogeneous
+ *
+ * Sets @self to be horizontally homogeneous or not.
+ *
+ * If the view is horizontally homogeneous, it allocates the same width for
+ * all pages.
+ *
+ * If it's not, the view may change width when a different page becomes visible.
+ *
+ * Since: 1.7
+ */
+void
+adw_navigation_view_set_hhomogeneous (AdwNavigationView *self,
+                                      gboolean           hhomogeneous)
+{
+  g_return_if_fail (ADW_IS_NAVIGATION_VIEW (self));
+
+  hhomogeneous = !!hhomogeneous;
+
+  if (self->homogeneous[GTK_ORIENTATION_HORIZONTAL] == hhomogeneous)
+    return;
+
+  self->homogeneous[GTK_ORIENTATION_HORIZONTAL] = hhomogeneous;
+
+  if (gtk_widget_get_visible (GTK_WIDGET (self)))
+    gtk_widget_queue_resize (GTK_WIDGET (self));
+
+  g_object_notify_by_pspec (G_OBJECT (self), props[PROP_HHOMOGENEOUS]);
+}
+
+/**
+ * adw_navigation_view_get_vhomogeneous:
+ * @self: a navigation view
+ *
+ * Gets whether @self is vertically homogeneous.
+ *
+ * Returns: whether @self is vertically homogeneous
+ *
+ * Since: 1.7
+ */
+gboolean
+adw_navigation_view_get_vhomogeneous (AdwNavigationView *self)
+{
+  g_return_val_if_fail (ADW_IS_NAVIGATION_VIEW (self), FALSE);
+
+  return self->homogeneous[GTK_ORIENTATION_VERTICAL];
+}
+
+/**
+ * adw_navigation_view_set_vhomogeneous:
+ * @self: a navigation view
+ * @vhomogeneous: whether to make @self vertically homogeneous
+ *
+ * Sets @self to be vertically homogeneous or not.
+ *
+ * If the view is vertically homogeneous, it allocates the same height for
+ * all pages.
+ *
+ * If it's not, the view may change height when a different page becomes
+ * visible.
+ *
+ * Since: 1.7
+ */
+void
+adw_navigation_view_set_vhomogeneous (AdwNavigationView *self,
+                                      gboolean           vhomogeneous)
+{
+  g_return_if_fail (ADW_IS_NAVIGATION_VIEW (self));
+
+  vhomogeneous = !!vhomogeneous;
+
+  if (self->homogeneous[GTK_ORIENTATION_VERTICAL] == vhomogeneous)
+    return;
+
+  self->homogeneous[GTK_ORIENTATION_VERTICAL] = vhomogeneous;
+
+  if (gtk_widget_get_visible (GTK_WIDGET (self)))
+    gtk_widget_queue_resize (GTK_WIDGET (self));
+
+  g_object_notify_by_pspec (G_OBJECT (self), props[PROP_VHOMOGENEOUS]);
+}
+
+/**
+ * adw_navigation_view_get_animate_transitions:
  * @self: a navigation view
  *
  * Gets whether @self animates page transitions.
@@ -3000,7 +3369,7 @@ adw_navigation_view_get_animate_transitions (AdwNavigationView *self)
 }
 
 /**
- * adw_navigation_view_set_animate_transitions: (attributes org.gtk.Method.set_property=animate-transitions)
+ * adw_navigation_view_set_animate_transitions:
  * @self: a navigation view
  * @animate_transitions: whether to animate page transitions
  *
@@ -3027,7 +3396,7 @@ adw_navigation_view_set_animate_transitions (AdwNavigationView *self,
 }
 
 /**
- * adw_navigation_view_get_pop_on_escape: (attributes org.gtk.Method.get_property=pop-on-escape)
+ * adw_navigation_view_get_pop_on_escape:
  * @self: a navigation view
  *
  * Gets whether pressing Escape pops the current page on @self.
@@ -3045,7 +3414,7 @@ adw_navigation_view_get_pop_on_escape (AdwNavigationView *self)
 }
 
 /**
- * adw_navigation_view_set_pop_on_escape: (attributes org.gtk.Method.set_property=pop-on-escape)
+ * adw_navigation_view_set_pop_on_escape:
  * @self: a navigation view
  * @pop_on_escape: whether to pop the current page when pressing Escape
  *
@@ -3073,7 +3442,7 @@ adw_navigation_view_set_pop_on_escape (AdwNavigationView *self,
 }
 
 /**
- * adw_navigation_view_get_navigation_stack: (attributes org.gtk.Method.get_property=navigation-stack)
+ * adw_navigation_view_get_navigation_stack:
  * @self: a navigation view
  *
  * Returns a [iface@Gio.ListModel] that contains the pages in navigation stack.
@@ -3094,9 +3463,8 @@ adw_navigation_view_get_navigation_stack (AdwNavigationView *self)
   if (self->navigation_stack_model)
     return g_object_ref (self->navigation_stack_model);
 
-  self->navigation_stack_model = adw_navigation_view_model_new (self);
-  g_object_add_weak_pointer (G_OBJECT (self->navigation_stack_model),
-                             (gpointer *) &self->navigation_stack_model);
+  g_set_weak_pointer (&self->navigation_stack_model,
+                      adw_navigation_view_model_new (self));
 
   return self->navigation_stack_model;
 }

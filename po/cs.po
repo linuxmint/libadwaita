@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: libadwaita\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libadwaita/issues\n"
-"POT-Creation-Date: 2024-02-26 19:00+0000\n"
-"PO-Revision-Date: 2024-02-26 22:48+0100\n"
+"POT-Creation-Date: 2026-02-03 19:01+0000\n"
+"PO-Revision-Date: 2026-02-23 21:22+0100\n"
 "Last-Translator: Daniel Rusek <mail@asciiwolf.com>\n"
 "Language-Team: Czech <gnome-cs-list@gnome.org>\n"
 "Language: cs\n"
@@ -17,101 +17,100 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Poedit 3.4.2\n"
+"X-Generator: Poedit 3.8\n"
 
-#: src/adw-about-dialog.c:207 src/adw-about-window.c:206
+#: src/adw-about-dialog.c:214 src/adw-about-window.c:209
 msgid "GNU General Public License, version 2 or later"
 msgstr "GNU General Public License, verze 2 nebo novější"
 
-#: src/adw-about-dialog.c:208 src/adw-about-window.c:207
+#: src/adw-about-dialog.c:215 src/adw-about-window.c:210
 msgid "GNU General Public License, version 3 or later"
 msgstr "GNU General Public License, verze 3 nebo novější"
 
-#: src/adw-about-dialog.c:209 src/adw-about-window.c:208
+#: src/adw-about-dialog.c:216 src/adw-about-window.c:211
 msgid "GNU Lesser General Public License, version 2.1 or later"
 msgstr "GNU Lesser General Public License, verze 2.1 nebo novější"
 
-#: src/adw-about-dialog.c:210 src/adw-about-window.c:209
+#: src/adw-about-dialog.c:217 src/adw-about-window.c:212
 msgid "GNU Lesser General Public License, version 3 or later"
 msgstr "GNU Lesser General Public License, verze 3 nebo novější"
 
-#: src/adw-about-dialog.c:211 src/adw-about-window.c:210
+#: src/adw-about-dialog.c:218 src/adw-about-window.c:213
 msgid "BSD 2-Clause License"
 msgstr "BSD 2-Clause License"
 
-#: src/adw-about-dialog.c:212 src/adw-about-window.c:211
+#: src/adw-about-dialog.c:219 src/adw-about-window.c:214
 msgid "The MIT License (MIT)"
 msgstr "The MIT License (MIT)"
 
-#: src/adw-about-dialog.c:213 src/adw-about-window.c:212
+#: src/adw-about-dialog.c:220 src/adw-about-window.c:215
 msgid "Artistic License 2.0"
 msgstr "Artistic License 2.0"
 
-#: src/adw-about-dialog.c:214 src/adw-about-window.c:213
+#: src/adw-about-dialog.c:221 src/adw-about-window.c:216
 msgid "GNU General Public License, version 2 only"
 msgstr "GNU General Public License, výhradně verze 2"
 
-#: src/adw-about-dialog.c:215 src/adw-about-window.c:214
+#: src/adw-about-dialog.c:222 src/adw-about-window.c:217
 msgid "GNU General Public License, version 3 only"
 msgstr "GNU General Public License, výhradně verze 3"
 
-#: src/adw-about-dialog.c:216 src/adw-about-window.c:215
+#: src/adw-about-dialog.c:223 src/adw-about-window.c:218
 msgid "GNU Lesser General Public License, version 2.1 only"
 msgstr "GNU Lesser General Public License, výhradně verze 2.1"
 
-#: src/adw-about-dialog.c:217 src/adw-about-window.c:216
+#: src/adw-about-dialog.c:224 src/adw-about-window.c:219
 msgid "GNU Lesser General Public License, version 3 only"
 msgstr "GNU Lesser General Public License, výhradně verze 3"
 
-#: src/adw-about-dialog.c:218 src/adw-about-window.c:217
+#: src/adw-about-dialog.c:225 src/adw-about-window.c:220
 msgid "GNU Affero General Public License, version 3 or later"
 msgstr "GNU Affero General Public License, verze 3 nebo novější"
 
-#: src/adw-about-dialog.c:219 src/adw-about-window.c:218
+#: src/adw-about-dialog.c:226 src/adw-about-window.c:221
 msgid "GNU Affero General Public License, version 3 only"
 msgstr "GNU Affero General Public License, výhradně verze 3"
 
-#: src/adw-about-dialog.c:220 src/adw-about-window.c:219
+#: src/adw-about-dialog.c:227 src/adw-about-window.c:222
 msgid "BSD 3-Clause License"
 msgstr "BSD 3-Clause License"
 
-#: src/adw-about-dialog.c:221 src/adw-about-window.c:220
+#: src/adw-about-dialog.c:228 src/adw-about-window.c:223
 msgid "Apache License, Version 2.0"
 msgstr "Apache License, verze 2.0"
 
-#: src/adw-about-dialog.c:222 src/adw-about-window.c:221
+#: src/adw-about-dialog.c:229 src/adw-about-window.c:224
 msgid "Mozilla Public License 2.0"
 msgstr "Mozilla Public License 2.0"
 
-#: src/adw-about-dialog.c:223 src/adw-about-window.c:222
-#| msgid "BSD 2-Clause License"
+#: src/adw-about-dialog.c:230 src/adw-about-window.c:225
 msgid "BSD Zero-Clause License"
 msgstr "BSD Zero-Clause License"
 
-#: src/adw-about-dialog.c:560 src/adw-about-window.c:558
+#: src/adw-about-dialog.c:577 src/adw-about-window.c:567
 msgid "Code by"
 msgstr "Naprogramovali"
 
-#: src/adw-about-dialog.c:561 src/adw-about-window.c:559
+#: src/adw-about-dialog.c:578 src/adw-about-window.c:568
 msgid "Design by"
 msgstr "Navrhli"
 
-#: src/adw-about-dialog.c:562 src/adw-about-window.c:560
+#: src/adw-about-dialog.c:579 src/adw-about-window.c:569
 msgid "Artwork by"
 msgstr "Ztvárnili"
 
-#: src/adw-about-dialog.c:563 src/adw-about-window.c:561
+#: src/adw-about-dialog.c:580 src/adw-about-window.c:570
 msgid "Documentation by"
 msgstr "Zdokumentovali"
 
-#: src/adw-about-dialog.c:564 src/adw-about-window.c:562
+#: src/adw-about-dialog.c:581 src/adw-about-window.c:571
 msgid "Translated by"
 msgstr "Přeložili"
 
 #. Translators: this is the license preamble; the string at the end
 #. * contains the name of the license as link text.
 #.
-#: src/adw-about-dialog.c:593 src/adw-about-window.c:591
+#: src/adw-about-dialog.c:610 src/adw-about-window.c:600
 #, c-format
 msgid ""
 "This application comes with absolutely no warranty. See the <a "
@@ -120,94 +119,104 @@ msgstr ""
 "Tato aplikace je šířena bez jakýchkoliv záruk. Podrobnosti viz <a "
 "href=\"%s\">%s</a>."
 
-#: src/adw-about-dialog.c:671 src/adw-about-window.c:669
+#: src/adw-about-dialog.c:688 src/adw-about-window.c:678
 msgid "This Application"
 msgstr "Tato aplikace"
 
-#: src/adw-about-dialog.c:973 src/adw-about-window.c:971
+#: src/adw-about-dialog.c:990 src/adw-about-window.c:980
 #, c-format
 msgid "Version %s"
 msgstr "Verze %s"
 
-#: src/adw-about-dialog.c:999 src/adw-about-window.c:997
+#: src/adw-about-dialog.c:1016 src/adw-about-window.c:1006
 msgid "Unable to parse release notes:"
 msgstr "Nezdařilo se zpracovat poznámky k vydání:"
 
-#: src/adw-about-dialog.c:1005 src/adw-about-window.c:1003
+#: src/adw-about-dialog.c:1022 src/adw-about-window.c:1012
 #, c-format
 msgid "Line: %d, character: %d"
 msgstr "řádek: %d, znak: %d"
 
-#: src/adw-about-dialog.c:1291 src/adw-about-window.c:1289
+#: src/adw-about-dialog.c:1441 src/adw-about-window.c:1273
 msgid "Copied to clipboard"
 msgstr "Zkopírováno do schránky"
 
-#: src/adw-about-dialog.c:1318 src/adw-about-window.c:1317
+#: src/adw-about-dialog.c:1468 src/adw-about-window.c:1301
 msgid "Unable to save debugging information"
 msgstr "Nezdařilo se uložit ladicí informace"
 
-#: src/adw-about-dialog.c:1323 src/adw-about-window.c:1322
+#: src/adw-about-dialog.c:1473 src/adw-about-window.c:1306
+#: src/adw-sheet-controls.c:127
 msgid "Close"
 msgstr "Zavřít"
 
-#: src/adw-about-dialog.c:1340 src/adw-about-window.c:1338
+#: src/adw-about-dialog.c:1490 src/adw-about-window.c:1322
 msgid "Save debugging information"
 msgstr "Uložení ladicích informací"
+
+#: src/adw-about-dialog.c:2333
+#, c-format
+msgid "Other Apps by %s"
+msgstr "Co dalšího nabízí %s"
+
+#: src/adw-about-dialog.c:2339
+msgid "Other Apps"
+msgstr "Další aplikace"
 
 #: src/adw-about-dialog.ui:5 src/adw-about-window.ui:5
 msgid "About"
 msgstr "O aplikaci"
 
-#: src/adw-about-dialog.ui:89 src/adw-about-window.ui:92
-msgid "_What’s New"
-msgstr "_Co je nového"
+#: src/adw-about-dialog.ui:88 src/adw-about-window.ui:91
+msgid "What’s _New"
+msgstr "Co je _nového"
 
-#: src/adw-about-dialog.ui:105 src/adw-about-window.ui:108
+#: src/adw-about-dialog.ui:104 src/adw-about-window.ui:107
 msgid "_Details"
 msgstr "Po_drobnosti"
 
-#: src/adw-about-dialog.ui:121 src/adw-about-dialog.ui:341
-#: src/adw-about-window.ui:124 src/adw-about-window.ui:344
+#: src/adw-about-dialog.ui:120 src/adw-about-dialog.ui:324
+#: src/adw-about-window.ui:123 src/adw-about-window.ui:322
 msgid "_Website"
 msgstr "_Webové stránky"
 
-#: src/adw-about-dialog.ui:145 src/adw-about-window.ui:148
+#: src/adw-about-dialog.ui:135 src/adw-about-window.ui:138
 msgid "_Support Questions"
 msgstr "_Dotazy na podporu"
 
-#: src/adw-about-dialog.ui:162 src/adw-about-window.ui:165
+#: src/adw-about-dialog.ui:144 src/adw-about-window.ui:147
 msgid "_Report an Issue"
 msgstr "Nahlásit p_roblém"
 
-#: src/adw-about-dialog.ui:178 src/adw-about-window.ui:181
+#: src/adw-about-dialog.ui:153 src/adw-about-window.ui:156
 msgid "_Troubleshooting"
 msgstr "Řešení pro_blémů"
 
-#: src/adw-about-dialog.ui:198 src/adw-about-window.ui:201
+#: src/adw-about-dialog.ui:173 src/adw-about-window.ui:176
 msgid "_Credits"
 msgstr "Zá_sluhy"
 
-#: src/adw-about-dialog.ui:214 src/adw-about-window.ui:217
+#: src/adw-about-dialog.ui:189 src/adw-about-window.ui:192
 msgid "_Legal"
 msgstr "_Právní ustanovení"
 
-#: src/adw-about-dialog.ui:230 src/adw-about-window.ui:233
+#: src/adw-about-dialog.ui:205 src/adw-about-window.ui:208
 msgid "_Acknowledgements"
 msgstr "_Poděkování"
 
-#: src/adw-about-dialog.ui:260 src/adw-about-window.ui:263
+#: src/adw-about-dialog.ui:240 src/adw-about-window.ui:238
 msgid "What’s New"
 msgstr "Co je nového"
 
-#: src/adw-about-dialog.ui:303 src/adw-about-window.ui:306
+#: src/adw-about-dialog.ui:286 src/adw-about-window.ui:284
 msgid "Details"
 msgstr "Podrobnosti"
 
-#: src/adw-about-dialog.ui:369 src/adw-about-window.ui:372
+#: src/adw-about-dialog.ui:344 src/adw-about-window.ui:342
 msgid "Troubleshooting"
 msgstr "Řešení problémů"
 
-#: src/adw-about-dialog.ui:392 src/adw-about-window.ui:395
+#: src/adw-about-dialog.ui:367 src/adw-about-window.ui:365
 msgid ""
 "To assist in troubleshooting, you can view your debugging information. "
 "Providing this information to the application developers can help diagnose "
@@ -217,63 +226,252 @@ msgstr ""
 "informací vývojářům aplikace může výrazně pomoci odhalit příčiny problémů, "
 "na které jste narazili a nahlásili je."
 
-#: src/adw-about-dialog.ui:403 src/adw-about-window.ui:406
+#: src/adw-about-dialog.ui:378 src/adw-about-window.ui:376
 msgid "_Debugging Information"
 msgstr "La_dicí informace"
 
-#: src/adw-about-dialog.ui:430 src/adw-about-window.ui:433
+#: src/adw-about-dialog.ui:405 src/adw-about-window.ui:403
 msgid "Debugging Information"
 msgstr "Ladicí informace"
 
-#: src/adw-about-dialog.ui:475 src/adw-about-window.ui:478
+#: src/adw-about-dialog.ui:453 src/adw-about-window.ui:451
 msgid "_Copy Text"
 msgstr "Z_kopírovat text"
 
-#: src/adw-about-dialog.ui:483 src/adw-about-window.ui:486
+#: src/adw-about-dialog.ui:461 src/adw-about-window.ui:459
 msgid "_Save As…"
 msgstr "_Uložit jako…"
 
-#: src/adw-about-dialog.ui:496 src/adw-about-window.ui:499
+#: src/adw-about-dialog.ui:474 src/adw-about-window.ui:472
 msgid "Credits"
 msgstr "Zásluhy"
 
-#: src/adw-about-dialog.ui:527 src/adw-about-window.ui:530
+#: src/adw-about-dialog.ui:505 src/adw-about-window.ui:503
 msgid "Legal"
 msgstr "Právní ustanovení"
 
-#: src/adw-about-dialog.ui:559 src/adw-about-window.ui:562
+#: src/adw-about-dialog.ui:537 src/adw-about-window.ui:535
 msgid "Acknowledgements"
 msgstr "Poděkování"
 
-#: src/adw-back-button.c:347 src/adw-back-button.c:445
-#: src/adw-back-button.c:555
+#: src/adw-adaptive-preview.c:387
+msgid "Screenshot Copied to Clipboard"
+msgstr "Snímek obrazovky zkopírován do schránky"
+
+#: src/adw-adaptive-preview.ui:19 src/adw-inspector-page.c:67
+#: src/adw-inspector-page.ui:88
+msgid "Adaptive Preview"
+msgstr "Adaptivní náhled"
+
+#: src/adw-adaptive-preview.ui:28
+msgid "Display"
+msgstr "Zobrazení"
+
+#: src/adw-adaptive-preview.ui:31
+msgid "Device"
+msgstr "Zařízení"
+
+#: src/adw-adaptive-preview.ui:37
+msgid "Width"
+msgstr "Šířka"
+
+#: src/adw-adaptive-preview.ui:51
+msgid "Height"
+msgstr "Výška"
+
+#: src/adw-adaptive-preview.ui:65
+msgid "Rotate"
+msgstr "Otočit"
+
+#: src/adw-adaptive-preview.ui:68 src/adw-adaptive-preview.ui:70
+msgid "Rotate Left"
+msgstr "Otočit doleva"
+
+#: src/adw-adaptive-preview.ui:80 src/adw-adaptive-preview.ui:82
+msgid "Rotate Right"
+msgstr "Otočit doprava"
+
+#: src/adw-adaptive-preview.ui:96
+msgid "Shell"
+msgstr "Shell"
+
+#: src/adw-adaptive-preview.ui:99
+msgid "Preset"
+msgstr "Předvolba"
+
+#: src/adw-adaptive-preview.ui:105
+msgid "Top Bar"
+msgstr "Horní lišta"
+
+#: src/adw-adaptive-preview.ui:119
+msgid "Bottom Bar"
+msgstr "Spodní lišta"
+
+#: src/adw-adaptive-preview.ui:133
+msgid "Window Controls"
+msgstr "Ovládání oken"
+
+#: src/adw-adaptive-preview.ui:141
+msgid "View"
+msgstr "Zobrazit"
+
+#: src/adw-adaptive-preview.ui:144
+msgid "Scale to Fit"
+msgstr "Přizpůsobit velikosti"
+
+#. Translators: screen bezel, e.g. on a phone
+#: src/adw-adaptive-preview.ui:151
+msgid "Highlight Bezel"
+msgstr "Zvýraznit rámeček"
+
+#: src/adw-adaptive-preview.ui:177
+msgid "Toggle Sidebar"
+msgstr "Přepnout postranní lištu"
+
+#: src/adw-adaptive-preview.ui:187
+msgid "Exit"
+msgstr "Ukončit"
+
+#: src/adw-adaptive-preview.ui:197
+msgid "Take Screenshot"
+msgstr "Pořídit snímek obrazovky"
+
+#: src/adw-adaptive-preview-presets-private.h:24
+msgctxt "Shell preset"
+msgid "Desktop Shell"
+msgstr "Desktopový shell"
+
+#: src/adw-adaptive-preview-presets-private.h:25
+msgctxt "Shell preset"
+msgid "Mobile Shell"
+msgstr "Mobilní shell"
+
+#: src/adw-adaptive-preview-presets-private.h:26
+msgctxt "Shell preset"
+msgid "Phosh"
+msgstr "Phosh"
+
+#: src/adw-adaptive-preview-presets-private.h:27
+msgctxt "Shell preset"
+msgid "Fullscreen"
+msgstr "Celá obrazovka"
+
+#: src/adw-adaptive-preview-presets-private.h:28
+msgctxt "Shell preset"
+msgid "Custom"
+msgstr "Vlastní"
+
+#: src/adw-adaptive-preview-presets-private.h:90
+msgctxt "Device preset"
+msgid "Generic Phone"
+msgstr "Obecný telefon"
+
+#: src/adw-adaptive-preview-presets-private.h:99
+msgctxt "Device preset"
+msgid "Generic Tablet"
+msgstr "Obecný tablet"
+
+#: src/adw-adaptive-preview-presets-private.h:108
+msgctxt "Device preset"
+msgid "OnePlus 6"
+msgstr "OnePlus 6"
+
+#: src/adw-adaptive-preview-presets-private.h:117
+msgctxt "Device preset"
+msgid "OnePlus 6T"
+msgstr "OnePlus 6T"
+
+#: src/adw-adaptive-preview-presets-private.h:126
+msgctxt "Device preset"
+msgid "Custom"
+msgstr "Vlastní"
+
+#: src/adw-avatar.c:159
+#, c-format
+msgid "Avatar of %s"
+msgstr "Avatar od %s"
+
+#: src/adw-back-button.c:313 src/adw-back-button.c:411
+#: src/adw-back-button.c:521
 msgid "Back"
 msgstr "Zpět"
 
 #. Translators: This is a placeholder text of the search entry from AdwComboRow. It should be phrased as a verb.
-#: src/adw-combo-row.ui:50 src/adw-preferences-dialog.ui:85
-#: src/adw-preferences-window.ui:96
+#: src/adw-combo-row.ui:50 src/adw-preferences-dialog.ui:86
+#: src/adw-preferences-window.ui:97
 msgid "Search"
 msgstr "Hledat"
 
-#: src/adw-entry-row.ui:97
+#: src/adw-entry-row.ui:96
 msgid "Apply"
 msgstr "Použít"
 
-#: src/adw-inspector-page.c:75
+#: src/adw-indicator-bin.c:78
+msgctxt "view switcher button badge"
+msgid "Attention requested."
+msgstr "Vyžadována pozornost."
+
+#: src/adw-indicator-bin.c:81
+msgctxt "view switcher button badge"
+msgid "Has a badge: more than 999."
+msgstr "Má odznak: více než 999."
+
+#: src/adw-indicator-bin.c:83
+#, c-format
+msgctxt "view switcher button badge"
+msgid "Has a badge: %u."
+msgstr "Má odznak: %u."
+
+#: src/adw-inspector-page.c:131
 msgid "No Preference"
 msgstr "žádné preference"
 
-#: src/adw-inspector-page.c:77
+#: src/adw-inspector-page.c:133
 msgid "Prefer Dark"
 msgstr "upřednostnit tmavé"
 
-#: src/adw-inspector-page.c:79
+#: src/adw-inspector-page.c:135
 msgid "Prefer Light"
 msgstr "upřednostnit světlé"
 
+#: src/adw-inspector-page.c:148
+msgid "Blue"
+msgstr "modrá"
+
+#: src/adw-inspector-page.c:150
+msgid "Teal"
+msgstr "modrozelená"
+
+#: src/adw-inspector-page.c:152
+msgid "Green"
+msgstr "zelená"
+
+#: src/adw-inspector-page.c:154
+msgid "Yellow"
+msgstr "žlutá"
+
+#: src/adw-inspector-page.c:156
+msgid "Orange"
+msgstr "oranžová"
+
+#: src/adw-inspector-page.c:158
+msgid "Red"
+msgstr "červená"
+
+#: src/adw-inspector-page.c:160
+msgid "Pink"
+msgstr "růžová"
+
+#: src/adw-inspector-page.c:162
+msgid "Purple"
+msgstr "fialová"
+
+#: src/adw-inspector-page.c:164
+msgid "Slate"
+msgstr "břidlicová"
+
 #. Translators: The name of the library, not the stylesheet
-#: src/adw-inspector-page.c:97
+#: src/adw-inspector-page.c:303
 msgid "Adwaita"
 msgstr "Adwaita"
 
@@ -297,9 +495,42 @@ msgstr "Systém podporuje schémata barev"
 msgid "Preferred Color Scheme"
 msgstr "Upřednostňované schéma barev"
 
-#: src/adw-inspector-page.ui:37
+#: src/adw-inspector-page.ui:39
+msgid "Accent Color"
+msgstr "Barevný odstín"
+
+#: src/adw-inspector-page.ui:42
+msgid "System Supports Accent Colors"
+msgstr "Systém podporuje barevné odstíny"
+
+#: src/adw-inspector-page.ui:48
+msgid "Preferred Accent Color"
+msgstr "Upřednostňovaný barevný odstín"
+
+#: src/adw-inspector-page.ui:77
+msgid "Accessibility"
+msgstr "Přístupnost"
+
+#: src/adw-inspector-page.ui:80
 msgid "High Contrast"
 msgstr "Vysoký kontrast"
+
+#: src/adw-inspector-page.ui:89
+msgid ""
+"Test the app at specific screen sizes to simulate a mobile environment. Open "
+"the preview directly on any supported window using Shift+Ctrl+M"
+msgstr ""
+"Otestujte aplikaci na konkrétních velikostech obrazovky, abyste simulovali "
+"mobilní prostředí. Otevřete náhled přímo v jakémkoli podporovaném okně "
+"pomocí Shift+Ctrl+M"
+
+#: src/adw-link-row.c:327
+msgid "_Open Link"
+msgstr "_Otevřít odkaz"
+
+#: src/adw-link-row.c:328
+msgid "Copy _Link Address"
+msgstr "Zkopírovat adresu o_dkazu"
 
 #: src/adw-password-entry-row.c:70
 msgid "Hide Password"
@@ -317,7 +548,7 @@ msgstr "Je zapnutý Caps Lock"
 msgid "_Show Password"
 msgstr "_Zobrazit heslo"
 
-#: src/adw-preferences-dialog.c:256 src/adw-preferences-window.c:259
+#: src/adw-preferences-dialog.c:217 src/adw-preferences-window.c:218
 msgid "Untitled page"
 msgstr "Stránka bez názvu"
 
@@ -327,18 +558,59 @@ msgstr "Předvolby"
 
 #: src/adw-preferences-dialog.ui:70 src/adw-preferences-window.ui:81
 msgid "Search preferences"
-msgstr "Předvolby hledání"
+msgstr "předvolby hledání"
 
-#: src/adw-preferences-dialog.ui:152 src/adw-preferences-window.ui:163
+#: src/adw-preferences-dialog.ui:154 src/adw-preferences-window.ui:164
+#: src/adw-shortcuts-dialog.ui:79
 msgid "No Results Found"
 msgstr "Nic nenalezeno"
 
-#: src/adw-preferences-dialog.ui:153 src/adw-preferences-window.ui:164
+#: src/adw-preferences-dialog.ui:155 src/adw-shortcuts-dialog.ui:80
 #: src/adw-tab-overview.ui:111
-msgid "Try a different search."
-msgstr "Zkuste hledat něco jiného."
+msgid "Try a different search"
+msgstr "Zkuste jiné hledání"
 
-#: src/adw-split-button.c:519 src/adw-split-button.c:1033
+#: src/adw-preferences-window.ui:165
+msgid "Try a different search."
+msgstr "Zkuste jiné hledání."
+
+#: src/adw-sheet-controls.c:129
+msgid "Close the window"
+msgstr "Zavřít okno"
+
+#. Translators: This string is used to mark left/right variants of modifier
+#. * keys in the shortcut window (e.g. Control_L vs Control_R). Please keep
+#. * this string very short, ideally just a single character, since it will
+#. * be rendered as part of the key.
+#.
+#: src/adw-shortcut-label.c:133
+msgctxt "keyboard side marker"
+msgid "L"
+msgstr "L"
+
+#. Translators: This string is used to mark left/right variants of modifier
+#. * keys in the shortcut window (e.g. Control_L vs Control_R). Please keep
+#. * this string very short, ideally just a single character, since it will
+#. * be rendered as part of the key.
+#.
+#: src/adw-shortcut-label.c:146
+msgctxt "keyboard side marker"
+msgid "R"
+msgstr "R"
+
+#: src/adw-shortcuts-dialog.ui:5
+msgid "Keyboard Shortcuts"
+msgstr "Klávesové zkratky"
+
+#: src/adw-shortcuts-dialog.ui:20 src/adw-shortcuts-dialog.ui:22
+msgid "Search shortcuts"
+msgstr "hledat zkratky"
+
+#: src/adw-shortcut-row.c:257
+msgid "No Shortcut"
+msgstr "Žádná zkratka"
+
+#: src/adw-split-button.c:531 src/adw-split-button.c:1048
 msgid "More Options"
 msgstr "Další volby"
 
@@ -347,7 +619,7 @@ msgid "View Open Tabs"
 msgstr "Zobrazit otevřené karty"
 
 #. Translators: Tab overview title, %u is the number of open tabs
-#: src/adw-tab-overview.c:928
+#: src/adw-tab-overview.c:965
 #, c-format
 msgid "%u Tab"
 msgid_plural "%u Tabs"
@@ -355,11 +627,11 @@ msgstr[0] "%u karta"
 msgstr[1] "%u karty"
 msgstr[2] "%u karet"
 
-#: src/adw-tab-overview.ui:21
+#: src/adw-tab-overview.ui:20
 msgid "Search Tabs"
 msgstr "Hledat karty"
 
-#: src/adw-tab-overview.ui:51
+#: src/adw-tab-overview.ui:50
 msgid "Search tabs"
 msgstr "hledat karty"
 
@@ -375,9 +647,35 @@ msgstr "Nenalezena žádná karta"
 msgid "New _Tab"
 msgstr "Nová kar_ta"
 
-#: src/adw-tab-thumbnail.ui:39 src/adw-tab.ui:95
+#: src/adw-tab-thumbnail.ui:39 src/adw-tab.ui:75
 msgid "Close Tab"
 msgstr "Zavřít kartu"
+
+#: src/adw-toast-overlay.c:286
+#, c-format
+msgid "A toast appeared: %s, has a button: %s"
+msgstr "Objevil se toast: %s, má tlačítko: %s"
+
+#: src/adw-toast-overlay.c:289
+#, c-format
+msgid "A toast appeared: %s"
+msgstr "Objevil se toast: %s"
+
+#: src/adw-toast-overlay.c:291
+#, c-format
+msgid "A toast appeared, has a button: %s"
+msgstr "Objevil se toast, má tlačítko: %s"
+
+#: src/adw-toast-overlay.c:294
+msgid "A toast appeared"
+msgstr "Objevil se toast"
+
+#: src/adw-toast-widget.ui:66
+msgid "Dismiss"
+msgstr "Zavřít"
+
+#~ msgid "_What’s New"
+#~ msgstr "_Co je nového"
 
 #~ msgid "Search…"
 #~ msgstr "Hledat…"

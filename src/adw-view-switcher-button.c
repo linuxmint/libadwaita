@@ -9,6 +9,7 @@
 
 #include "adw-indicator-bin-private.h"
 #include "adw-view-switcher-button-private.h"
+#include "adw-widget-utils-private.h"
 
 #define TIMEOUT_EXPAND 500
 
@@ -94,6 +95,23 @@ drag_leave_cb (AdwViewSwitcherButton *self)
   g_clear_handle_id (&self->switch_timer, g_source_remove);
 }
 
+static void
+update_description_cb (AdwViewSwitcherButton *self,
+                       GParamSpec            *pspec,
+                       AdwIndicatorBin       *indicator)
+{
+  const char *description = adw_indicator_bin_get_description (indicator);
+
+  if (description && *description) {
+    gtk_accessible_update_property (GTK_ACCESSIBLE (self),
+                                    GTK_ACCESSIBLE_PROPERTY_DESCRIPTION, description,
+                                    -1);
+  } else {
+    gtk_accessible_reset_property (GTK_ACCESSIBLE (self),
+                                   GTK_ACCESSIBLE_PROPERTY_DESCRIPTION);
+  }
+}
+
 static GtkOrientation
 get_orientation (AdwViewSwitcherButton *self)
 {
@@ -119,19 +137,6 @@ set_orientation (AdwViewSwitcherButton *self,
                                              self->horizontal_box));
 
   update_mnemonic (self);
-}
-
-static gchar *
-get_badge_text (AdwViewSwitcherButton *self,
-                guint                  badge_number)
-{
-  if (badge_number > 999)
-    return g_strdup ("999+");
-
-  if (!badge_number)
-    return g_strdup ("");
-
-  return g_strdup_printf ("%u", badge_number);
 }
 
 static void
@@ -272,17 +277,17 @@ adw_view_switcher_button_class_init (AdwViewSwitcherButtonClass *klass)
                                     "orientation");
 
   /**
-   * AdwViewSwitcherButton:icon-name: (attributes org.gtk.Property.get=adw_view_switcher_button_get_icon_name org.gtk.Property.set=adw_view_switcher_button_set_icon_name)
+   * AdwViewSwitcherButton:icon-name:
    *
    * The icon name representing the view, or `NULL` for no icon.
    */
   props[PROP_ICON_NAME] =
     g_param_spec_string ("icon-name", NULL, NULL,
-                         "text-x-generic-symbolic",
+                         "image-missing",
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwViewSwitcherButton:needs-attention: (attributes org.gtk.Property.get=adw_view_switcher_button_get_needs_attention org.gtk.Property.set=adw_view_switcher_button_set_needs_attention)
+   * AdwViewSwitcherButton:needs-attention:
    *
    * Sets a flag specifying whether the view requires the user attention.
    *
@@ -327,7 +332,7 @@ adw_view_switcher_button_class_init (AdwViewSwitcherButtonClass *klass)
   gtk_widget_class_bind_template_child (widget_class, AdwViewSwitcherButton, vertical_label);
   gtk_widget_class_bind_template_callback (widget_class, drag_enter_cb);
   gtk_widget_class_bind_template_callback (widget_class, drag_leave_cb);
-  gtk_widget_class_bind_template_callback (widget_class, get_badge_text);
+  gtk_widget_class_bind_template_callback (widget_class, update_description_cb);
 
   gtk_widget_class_set_accessible_role (widget_class, GTK_ACCESSIBLE_ROLE_TAB);
 
@@ -363,7 +368,7 @@ adw_view_switcher_button_new (void)
 }
 
 /**
- * adw_view_switcher_button_get_icon_name: (attributes org.gtk.Method.get_property=icon-name)
+ * adw_view_switcher_button_get_icon_name:
  * @self: a view switcher button
  *
  * Gets the icon name representing the view.
@@ -379,7 +384,7 @@ adw_view_switcher_button_get_icon_name (AdwViewSwitcherButton *self)
 }
 
 /**
- * adw_view_switcher_button_set_icon_name: (attributes org.gtk.Method.set_property=icon-name)
+ * adw_view_switcher_button_set_icon_name:
  * @self: a view switcher button
  * @icon_name: (nullable): an icon name
  *
@@ -403,7 +408,7 @@ adw_view_switcher_button_set_icon_name (AdwViewSwitcherButton *self,
 }
 
 /**
- * adw_view_switcher_button_get_needs_attention: (attributes org.gtk.Method.get_property=needs-attention)
+ * adw_view_switcher_button_get_needs_attention:
  * @self: a view switcher button
  *
  * Gets whether the view represented by @self requires the user attention.
@@ -419,7 +424,7 @@ adw_view_switcher_button_get_needs_attention (AdwViewSwitcherButton *self)
 }
 
 /**
- * adw_view_switcher_button_set_needs_attention: (attributes org.gtk.Method.set_property=needs-attention)
+ * adw_view_switcher_button_set_needs_attention:
  * @self: a view switcher button
  * @needs_attention: whether the view needs attention
  *

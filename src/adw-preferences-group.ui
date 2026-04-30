@@ -2,6 +2,10 @@
 <interface domain="libadwaita">
   <requires lib="gtk" version="4.0"/>
   <template class="AdwPreferencesGroup" parent="GtkWidget">
+    <accessibility>
+      <relation name="labelled-by">title</relation>
+      <relation name="described-by">description</relation>
+    </accessibility>
     <child>
       <object class="GtkBox" id="box">
         <property name="orientation">vertical</property>
@@ -33,7 +37,8 @@
                     <property name="wrap-mode">word-char</property>
                     <property name="xalign">0</property>
                     <style>
-                      <class name="dim-label"/>
+                      <class name="body"/>
+                      <class name="dimmed"/>
                     </style>
                   </object>
                 </child>
@@ -54,11 +59,7 @@
               <object class="GtkListBox" id="listbox">
                 <property name="visible">False</property>
                 <property name="selection_mode">none</property>
-                <accessibility>
-                  <relation name="labelled-by">title</relation>
-                  <relation name="described-by">description</relation>
-                </accessibility>
-                <signal name="keynav-failed" handler="listbox_keynav_failed_cb" swapped="yes"/>
+                <signal name="keynav-failed" handler="adw_widget_on_vertical_keynav_failed" swapped="yes"/>
                 <style>
                   <class name="boxed-list"/>
                 </style>

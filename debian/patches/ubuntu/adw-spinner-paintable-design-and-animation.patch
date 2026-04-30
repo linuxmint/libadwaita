@@ -1,0 +1,219 @@
+From: Vincent Renzo Quilon <kaurichannel@gmail.com>
+Date: Tue, 19 Aug 2025 15:36:28 +0800
+Subject: Align AdwSpinnerPaintable Design and Animation to
+ YaruCircularProgressIndicator
+
+Forwarded: no, ubuntu only.
+Bug-Ubuntu: https://bugs.launchpad.net/bugs/2114778
+---
+ src/adw-spinner-paintable.c | 155 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 155 insertions(+)
+
+diff --git a/src/adw-spinner-paintable.c b/src/adw-spinner-paintable.c
+index aaf0eac..74ed7d6 100644
+--- a/src/adw-spinner-paintable.c
++++ b/src/adw-spinner-paintable.c
+@@ -11,6 +11,7 @@
+ 
+ #include "adw-animation-util.h"
+ #include "adw-easing.h"
++#include "adw-settings-private.h"
+ #include "adw-timed-animation.h"
+ 
+ #include <math.h>
+@@ -34,6 +35,17 @@
+  * where k is an integer */
+ #define N_CYCLES 53
+ 
++/* Yaru Definitions */
++#define YARU_LARGE_WIDTH 6
++#define YARU_SMALL_WIDTH 2
++#define YARU_START_ANGLE (-G_PI * 0.5)
++#define SEGMENT_ANGLE (2 * G_PI / 3) // 120 degress per segment
++#define YARU_SPIN_DURATION_MS 8000
++#define YARU_N_CYCLES 6
++#define UPPER_MIN_GAP_ANGLE 0.2
++#define LOWER_MIN_GAP_ANGLE 0.1
++#define MAX_GAP_ANGLE 0.5
++
+ /**
+  * AdwSpinnerPaintable:
+  *
+@@ -194,6 +206,28 @@ widget_map_cb (AdwSpinnerPaintable *self)
+   adw_animation_play (self->animation);
+ }
+ 
++static void
++update_animation_style (AdwSpinnerPaintable *self)
++{
++  g_return_if_fail (ADW_IS_TIMED_ANIMATION (self->animation));
++
++  if G_UNLIKELY (!adw_settings_get_yaru_accent (adw_settings_get_default ())) {
++    adw_timed_animation_set_easing (ADW_TIMED_ANIMATION (self->animation),
++                                    ADW_LINEAR);
++    adw_timed_animation_set_duration (ADW_TIMED_ANIMATION (self->animation),
++                                      ADW_DURATION_INFINITE);
++    adw_timed_animation_set_value_to (ADW_TIMED_ANIMATION (self->animation), 0);
++    return;
++  }
++
++  adw_timed_animation_set_easing (ADW_TIMED_ANIMATION(self->animation),
++                                  ADW_EASE_IN_OUT_SINE);
++  adw_timed_animation_set_duration (ADW_TIMED_ANIMATION(self->animation),
++                                    YARU_SPIN_DURATION_MS);
++  adw_timed_animation_set_value_to (ADW_TIMED_ANIMATION(self->animation),
++                                    2 * YARU_N_CYCLES * G_PI);
++}
++
+ static void
+ adw_spinner_paintable_dispose (GObject *object)
+ {
+@@ -282,6 +316,113 @@ adw_spinner_paintable_init (AdwSpinnerPaintable *self)
+ {
+ }
+ 
++static void
++adw_yaru_spinner_paintable_snapshot_symbolic (GtkSymbolicPaintable *paintable,
++                                              GtkSnapshot          *snapshot,
++                                              double                width,
++                                              double                height,
++                                              const GdkRGBA        *colors,
++                                              gsize                 n_colors)
++{
++  AdwSpinnerPaintable *self = ADW_SPINNER_PAINTABLE (paintable);
++  float radius, radius_t, line_width;
++  GdkRGBA color;
++  g_autoptr (GskPathBuilder) builder = NULL;
++  g_autoptr (GskPath) circle_path = NULL;
++  g_autoptr (GskStroke) stroke = NULL;
++  g_autoptr (GskPathMeasure) measure = NULL;
++  double progress;
++  float base_angle, start_angle, end_angle, length;
++  float gap_angle, min_gap_angle, gap_angle_t_actual, gap_angle_t;
++  uint8_t segment_counter;
++  GskPathPoint start_point, end_point;
++
++  radius = MIN (floorf (MIN (width, height) / 2), MAX_RADIUS);
++  radius_t = inverse_lerp (MIN_RADIUS, MAX_RADIUS, radius);
++  line_width = adw_lerp (YARU_SMALL_WIDTH, YARU_LARGE_WIDTH,  radius_t);
++
++  if (radius < line_width / 2)
++    return;
++
++  gtk_snapshot_translate (snapshot,
++                          &GRAPHENE_POINT_INIT (roundf (width / 2),
++                                                roundf (height / 2)));
++
++  stroke = gsk_stroke_new (line_width);
++  gsk_stroke_set_line_cap (stroke, GSK_LINE_CAP_BUTT);
++
++  gtk_snapshot_push_mask (snapshot, GSK_MASK_MODE_LUMINANCE);
++
++  /* Circle */
++
++  builder = gsk_path_builder_new ();
++
++  gsk_path_builder_add_circle (builder,
++                               &GRAPHENE_POINT_INIT (0, 0),
++                               radius - line_width / 2);
++  circle_path = gsk_path_builder_free_to_path (g_steal_pointer (&builder));
++  color.alpha = 1;
++
++  /* Moving part */
++
++  if (self->animation)
++    progress = adw_animation_get_value (self->animation);
++  else
++    progress = START_ANGLE;
++
++
++  segment_counter = 0;
++  base_angle = (float) progress;
++
++  min_gap_angle = adw_lerp(UPPER_MIN_GAP_ANGLE, LOWER_MIN_GAP_ANGLE, radius_t);
++  gap_angle_t_actual = inverse_lerp (0, 2 * G_PI * YARU_N_CYCLES, base_angle);
++  gap_angle_t = 1 - fabs (2 * gap_angle_t_actual - 1);
++  gap_angle = adw_lerp (min_gap_angle, MAX_GAP_ANGLE, gap_angle_t);
++
++  end_angle = base_angle + START_ANGLE - SEGMENT_ANGLE;
++  start_angle = base_angle + START_ANGLE - gap_angle;
++
++  measure = gsk_path_measure_new (circle_path);
++  length = gsk_path_measure_get_length (measure);
++
++  /* Arcs */
++
++  do {
++    g_autoptr(GskPath) arc_path = NULL;
++    g_autoptr(GskPathBuilder) arc_builder = NULL;
++
++    start_angle = normalize_angle (start_angle);
++    end_angle = normalize_angle (end_angle);
++
++    g_assert (gsk_path_measure_get_point (measure,
++                                          start_angle / (G_PI * 2) * length,
++                                          &start_point));
++    g_assert (gsk_path_measure_get_point (measure,
++                                          end_angle / (G_PI * 2) * length,
++                                          &end_point));
++
++    arc_builder = gsk_path_builder_new ();
++    gsk_path_builder_add_segment (arc_builder, circle_path, &end_point, &start_point);
++    arc_path = gsk_path_builder_free_to_path (g_steal_pointer (&arc_builder));
++
++    color.red = color.green = color.blue = 1;
++    gtk_snapshot_append_stroke (snapshot, arc_path, stroke, &color);
++
++    segment_counter++;
++    start_angle += SEGMENT_ANGLE;
++    end_angle += SEGMENT_ANGLE;
++  } while (segment_counter < 3);
++
++  /* Mask with the correct color */
++
++  gtk_snapshot_pop (snapshot);
++
++  gtk_snapshot_append_color (snapshot,
++                             &colors[0],
++                             &GRAPHENE_RECT_INIT (-radius, -radius, radius * 2, radius * 2));
++  gtk_snapshot_pop (snapshot);
++}
++
+ static void
+ adw_spinner_paintable_snapshot_symbolic (GtkSymbolicPaintable *paintable,
+                                          GtkSnapshot          *snapshot,
+@@ -301,6 +442,13 @@ adw_spinner_paintable_snapshot_symbolic (GtkSymbolicPaintable *paintable,
+   GskPathPoint start_point, end_point;
+   GskPathMeasure *measure;
+ 
++  if G_LIKELY (adw_settings_get_yaru_accent (adw_settings_get_default ())) {
++    adw_yaru_spinner_paintable_snapshot_symbolic (paintable, snapshot,
++                                                  width, height,
++                                                  colors, n_colors);
++    return;
++  }
++
+   radius = MIN (floorf (MIN (width, height) / 2), MAX_RADIUS);
+   line_width = adw_lerp (SMALL_WIDTH, LARGE_WIDTH,
+                          inverse_lerp (MIN_RADIUS, MAX_RADIUS, radius));
+@@ -477,6 +625,8 @@ adw_spinner_paintable_set_widget (AdwSpinnerPaintable *self,
+     g_clear_object (&self->animation);
+ 
+     g_signal_handlers_disconnect_by_func (self->widget, widget_map_cb, self);
++    g_signal_handlers_disconnect_by_func (adw_settings_get_default (),
++                                          update_animation_style, self);
+ 
+     g_object_weak_unref (G_OBJECT (self->widget),
+                          (GWeakNotify) widget_notify_cb,
+@@ -500,6 +650,11 @@ adw_spinner_paintable_set_widget (AdwSpinnerPaintable *self,
+     adw_timed_animation_set_repeat_count (ADW_TIMED_ANIMATION (self->animation), 0);
+     adw_timed_animation_set_easing (ADW_TIMED_ANIMATION (self->animation), ADW_LINEAR);
+ 
++    update_animation_style (self);
++    g_signal_connect_object (adw_settings_get_default (), "notify::yaru-accent",
++                             G_CALLBACK (update_animation_style), self,
++                             G_CONNECT_SWAPPED);
++
+     if (gtk_widget_get_mapped (self->widget))
+       adw_animation_play (self->animation);
+ 

@@ -12,7 +12,7 @@ static void
 response_text_cb (AdwAlertDialog *dialog,
                   const char     *response)
 {
-  GtkWidget *entry = adw_alert_dialog_get_extra_child (dialog);
+  GtkWidget *entry = g_object_get_data (G_OBJECT (dialog), "entry");
   const char *text;
 
   g_assert (GTK_IS_EDITABLE (entry));
@@ -57,9 +57,8 @@ simple_cb (GtkWidget *parent)
   adw_dialog_present (dialog, parent);
 }
 
-/* This dialog will have horizontal or vertical buttons, depending on the available room */
 static void
-adaptive_cb (GtkWidget *parent)
+narrow_cb (GtkWidget *parent)
 {
   AdwDialog *dialog =
     adw_alert_dialog_new (_("Save Changes?"),
@@ -67,7 +66,7 @@ adaptive_cb (GtkWidget *parent)
 
   adw_alert_dialog_add_responses (ADW_ALERT_DIALOG (dialog),
                                   "cancel",  _("_Cancel"),
-                                  "discard", _("_Discard Changes"),
+                                  "discard", _("_Discard"),
                                   "save",    _("_Save"),
                                   NULL);
 
@@ -128,10 +127,51 @@ entry_changed_cb (GtkEditable    *editable,
 }
 
 static void
-child_cb (GtkWidget *parent)
+adaptive_cb (GtkWidget *parent)
+{
+  AdwDialog *dialog =
+    adw_alert_dialog_new (_("Save Changes?"),
+                          _("Open document contains unsaved changes. Changes which are not saved will be permanently lost."));
+  GtkWidget *group;
+  int i;
+
+  adw_alert_dialog_add_responses (ADW_ALERT_DIALOG (dialog),
+                                  "cancel",  _("_Cancel"),
+                                  "discard", _("_Discard All"),
+                                  "save",    _("_Save"),
+                                  NULL);
+
+  adw_alert_dialog_set_response_appearance (ADW_ALERT_DIALOG (dialog),
+                                            "discard",
+                                            ADW_RESPONSE_DESTRUCTIVE);
+  adw_alert_dialog_set_response_appearance (ADW_ALERT_DIALOG (dialog),
+                                            "save",
+                                            ADW_RESPONSE_SUGGESTED);
+
+  adw_alert_dialog_set_default_response (ADW_ALERT_DIALOG (dialog), "save");
+  adw_alert_dialog_set_close_response (ADW_ALERT_DIALOG (dialog), "cancel");
+
+  group = adw_preferences_group_new ();
+
+  for (i = 0; i < 3; i++) {
+    GtkWidget *row = adw_action_row_new ();
+    adw_preferences_row_set_title (ADW_PREFERENCES_ROW (row), _("Row"));
+    adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), row);
+  }
+
+  adw_alert_dialog_set_extra_child (ADW_ALERT_DIALOG (dialog), group);
+  adw_alert_dialog_set_prefer_wide_layout (ADW_ALERT_DIALOG (dialog), TRUE);
+
+  g_signal_connect (dialog, "response", G_CALLBACK (response_cb), NULL);
+
+  adw_dialog_present (dialog, parent);
+}
+
+static void
+entry_cb (GtkWidget *parent)
 {
   AdwDialog *dialog;
-  GtkWidget *entry;
+  GtkWidget *group, *entry;
 
   dialog =
     adw_alert_dialog_new (_("Add New Profile"),
@@ -151,14 +191,38 @@ child_cb (GtkWidget *parent)
 
   adw_alert_dialog_set_response_enabled (ADW_ALERT_DIALOG (dialog), "add", FALSE);
 
-  entry = gtk_entry_new ();
-  gtk_entry_set_placeholder_text (GTK_ENTRY (entry), _("Name"));
-  gtk_entry_set_activates_default (GTK_ENTRY (entry), TRUE);
+  group = adw_preferences_group_new ();
+  adw_alert_dialog_set_extra_child (ADW_ALERT_DIALOG (dialog), group);
+
+  entry = adw_entry_row_new ();
+  adw_preferences_row_set_title (ADW_PREFERENCES_ROW (entry), _("Name"));
+  adw_entry_row_set_activates_default (ADW_ENTRY_ROW (entry), TRUE);
   g_signal_connect (entry, "changed", G_CALLBACK (entry_changed_cb), dialog);
-  adw_alert_dialog_set_extra_child (ADW_ALERT_DIALOG (dialog), entry);
+  adw_preferences_group_add (ADW_PREFERENCES_GROUP (group), entry);
+
+  g_object_set_data (G_OBJECT (dialog), "entry", entry);
 
   g_signal_connect (dialog, "response::add", G_CALLBACK (response_text_cb), NULL);
   g_signal_connect (dialog, "response::cancel", G_CALLBACK (response_cb), NULL);
+
+  adw_dialog_present (dialog, parent);
+}
+
+static void
+single_cb (GtkWidget *parent)
+{
+  AdwDialog *dialog =
+    adw_alert_dialog_new (_("Something happened"),
+                          _("Close this dialog to continue"));
+
+  adw_alert_dialog_add_responses (ADW_ALERT_DIALOG (dialog),
+                                  "close",  _("_Close"),
+                                  NULL);
+
+  adw_alert_dialog_set_default_response (ADW_ALERT_DIALOG (dialog), "close");
+  adw_alert_dialog_set_close_response (ADW_ALERT_DIALOG (dialog), "close");
+
+  g_signal_connect (dialog, "response", G_CALLBACK (response_cb), NULL);
 
   adw_dialog_present (dialog, parent);
 }
@@ -189,7 +253,7 @@ async_cb (GtkWidget *parent)
 static GtkWidget *
 create_content (GtkWidget *parent)
 {
-  GtkWidget *view, *box, *button;
+  GtkWidget *view, *swindow, *box, *button;
 
   box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 24);
   gtk_widget_set_margin_top (box, 48);
@@ -204,9 +268,9 @@ create_content (GtkWidget *parent)
   g_signal_connect_swapped (button, "clicked", G_CALLBACK (simple_cb), parent);
   gtk_box_append (GTK_BOX (box), button);
 
-  button = gtk_button_new_with_label ("Adaptive Dialog");
+  button = gtk_button_new_with_label ("Narrow Dialog");
   gtk_widget_add_css_class (button, "pill");
-  g_signal_connect_swapped (button, "clicked", G_CALLBACK (adaptive_cb), parent);
+  g_signal_connect_swapped (button, "clicked", G_CALLBACK (narrow_cb), parent);
   gtk_box_append (GTK_BOX (box), button);
 
   button = gtk_button_new_with_label ("Wide Dialog");
@@ -214,9 +278,19 @@ create_content (GtkWidget *parent)
   g_signal_connect_swapped (button, "clicked", G_CALLBACK (wide_cb), parent);
   gtk_box_append (GTK_BOX (box), button);
 
-  button = gtk_button_new_with_label ("Extra Child");
+  button = gtk_button_new_with_label ("Adaptive Dialog");
   gtk_widget_add_css_class (button, "pill");
-  g_signal_connect_swapped (button, "clicked", G_CALLBACK (child_cb), parent);
+  g_signal_connect_swapped (button, "clicked", G_CALLBACK (adaptive_cb), parent);
+  gtk_box_append (GTK_BOX (box), button);
+
+  button = gtk_button_new_with_label ("Entry Dialog");
+  gtk_widget_add_css_class (button, "pill");
+  g_signal_connect_swapped (button, "clicked", G_CALLBACK (entry_cb), parent);
+  gtk_box_append (GTK_BOX (box), button);
+
+  button = gtk_button_new_with_label ("Single Button");
+  gtk_widget_add_css_class (button, "pill");
+  g_signal_connect_swapped (button, "clicked", G_CALLBACK (single_cb), parent);
   gtk_box_append (GTK_BOX (box), button);
 
   button = gtk_button_new_with_label ("Async Call");
@@ -224,9 +298,16 @@ create_content (GtkWidget *parent)
   g_signal_connect_swapped (button, "clicked", G_CALLBACK (async_cb), parent);
   gtk_box_append (GTK_BOX (box), button);
 
+  swindow = gtk_scrolled_window_new ();
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (swindow),
+                                  GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+  gtk_scrolled_window_set_propagate_natural_height (GTK_SCROLLED_WINDOW (swindow),
+                                                    TRUE);
+  gtk_scrolled_window_set_child (GTK_SCROLLED_WINDOW (swindow), box);
+
   view = adw_toolbar_view_new ();
   adw_toolbar_view_add_top_bar (ADW_TOOLBAR_VIEW (view), adw_header_bar_new ());
-  adw_toolbar_view_set_content (ADW_TOOLBAR_VIEW (view), box);
+  adw_toolbar_view_set_content (ADW_TOOLBAR_VIEW (view), swindow);
 
   return view;
 }
@@ -247,10 +328,10 @@ main (int   argc,
   adw_init ();
 
   window = adw_window_new ();
+  gtk_widget_set_size_request (window, 360, 294);
   g_signal_connect_swapped (window, "destroy", G_CALLBACK (close_cb), &done);
   gtk_window_set_title (GTK_WINDOW (window), "Alert Dialogs");
   adw_window_set_content (ADW_WINDOW (window), create_content (window));
-  gtk_widget_set_size_request (window, 360, -1);
   gtk_window_present (GTK_WINDOW (window));
 
   while (!done)

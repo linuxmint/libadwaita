@@ -1,33 +1,36 @@
 Source: libadwaita-1
 Section: libs
-Priority: optional
+Standards-Version: 4.7.3
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 XSBC-Original-Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
-Uploaders: Guido Günther <agx@sigxcpu.org>, Jeremy Bicha <jbicha@ubuntu.com>, Marco Trevisan (Treviño) <marco@ubuntu.com>
+Uploaders: Guido Günther <agx@sigxcpu.org>,
+           Jeremy Bícha <jbicha@ubuntu.com>,
+           Marco Trevisan (Treviño) <marco@ubuntu.com>
 Build-Depends: debhelper-compat (= 13),
                dh-sequence-gir,
                dh-sequence-gnome,
+               appstream <!nocheck>,
                gir1.2-gio-2.0-dev,
                gir1.2-gtk-4.0-dev,
+               gobject-introspection (>= 1.80),
                libappstream-dev,
-               libgirepository1.0-dev,
-               libglib2.0-dev (>= 2.76.0),
+               libfribidi-dev,
+               libglib2.0-dev (>= 2.80.0),
                libgnome-desktop-3-dev,
-               libgtk-4-dev (>= 4.13.4),
+               libgtk-4-dev (>= 4.21.1),
                libxml2-utils,
-               meson (>= 0.59.0),
+               mesa-vulkan-drivers <!nocheck>,
+               meson,
                pkgconf,
-               python3-gi (>= 3.40) <!nocheck>,
+               python3-gi <!nocheck>,
                sassc,
-               valac (>= 0.20),
+               valac,
                xauth <!nocheck>,
                xvfb <!nocheck>
 Build-Depends-Indep: gi-docgen <!nodoc>
-Standards-Version: 4.6.2
+Vcs-Browser: https://salsa.debian.org/gnome-team/libadwaita
+Vcs-Git: https://salsa.debian.org/gnome-team/libadwaita.git
 Homepage: https://gnome.pages.gitlab.gnome.org/libadwaita/
-Vcs-Browser: https://salsa.debian.org/gnome-team/libadwaita/tree/ubuntu/latest
-Vcs-Git: https://salsa.debian.org/gnome-team/libadwaita.git -b ubuntu/latest
-Rules-Requires-Root: no
 
 Package: libadwaita-1-0
 Architecture: any
@@ -47,7 +50,7 @@ Section: libdevel
 Depends: gir1.2-adw-1 (= ${binary:Version}),
          libadwaita-1-0 (= ${binary:Version}),
          libappstream-dev,
-         libgtk-4-dev (>= 4.13.4),
+         libgtk-4-dev (>= 4.21.1),
          ${gir:Depends},
          ${misc:Depends},
          ${shlibs:Depends}
@@ -73,11 +76,11 @@ Description: GObject introspection files for libadwaita
  This package contains the GObject-introspection data in binary typelib format.
 
 Package: libadwaita-1-doc
-Section: doc
 Architecture: all
-Multi-Arch: foreign
-Depends: ${misc:Depends}
 Build-Profiles: <!nodoc>
+Multi-Arch: foreign
+Section: doc
+Depends: ${misc:Depends}
 Description: Documentation for libadwaita
  libadwaita provides GTK widgets and GObjects to ease developing
  applications for mobile phones.
@@ -85,8 +88,8 @@ Description: Documentation for libadwaita
  This package contains the API reference.
 
 Package: libadwaita-1-examples
-Section: x11
 Architecture: any
+Section: x11
 Depends: ${misc:Depends},
          ${shlibs:Depends}
 Description: Example programs for libadwaita

@@ -158,11 +158,25 @@ void adw_navigation_view_replace_with_tags (AdwNavigationView  *self,
                                             int                 n_tags);
 
 ADW_AVAILABLE_IN_1_4
-AdwNavigationPage *adw_navigation_view_get_visible_page (AdwNavigationView *self);
+AdwNavigationPage *adw_navigation_view_get_visible_page     (AdwNavigationView *self);
+ADW_AVAILABLE_IN_1_7
+const char        *adw_navigation_view_get_visible_page_tag (AdwNavigationView *self);
 
 ADW_AVAILABLE_IN_1_4
 AdwNavigationPage *adw_navigation_view_get_previous_page (AdwNavigationView *self,
                                                           AdwNavigationPage *page);
+
+ADW_AVAILABLE_IN_1_7
+gboolean adw_navigation_view_get_hhomogeneous (AdwNavigationView *self);
+ADW_AVAILABLE_IN_1_7
+void     adw_navigation_view_set_hhomogeneous (AdwNavigationView *self,
+                                               gboolean           hhomogeneous);
+
+ADW_AVAILABLE_IN_1_7
+gboolean adw_navigation_view_get_vhomogeneous (AdwNavigationView *self);
+ADW_AVAILABLE_IN_1_7
+void     adw_navigation_view_set_vhomogeneous (AdwNavigationView *self,
+                                               gboolean           vhomogeneous);
 
 ADW_AVAILABLE_IN_1_4
 gboolean adw_navigation_view_get_animate_transitions (AdwNavigationView *self);

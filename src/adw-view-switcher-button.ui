@@ -20,14 +20,13 @@
             <child>
               <object class="AdwIndicatorBin">
                 <property name="valign">center</property>
-                <binding name="badge">
-                  <closure type="gchararray" function="get_badge_text">
-                    <lookup name="badge-number">AdwViewSwitcherButton</lookup>
-                  </closure>
+                <binding name="badge-number">
+                  <lookup name="badge-number">AdwViewSwitcherButton</lookup>
                 </binding>
                 <binding name="needs-attention">
                   <lookup name="needs-attention">AdwViewSwitcherButton</lookup>
                 </binding>
+                <signal name="notify::description" handler="update_description_cb" swapped="yes"/>
                 <property name="child">
                   <object class="GtkImage" id="horizontal_image">
                     <property name="icon-name" bind-source="AdwViewSwitcherButton" bind-property="icon-name" bind-flags="sync-create" />
@@ -57,14 +56,13 @@
               <object class="AdwIndicatorBin">
                 <property name="halign">center</property>
                 <property name="valign">center</property>
-                <binding name="badge">
-                  <closure type="gchararray" function="get_badge_text">
-                    <lookup name="badge-number">AdwViewSwitcherButton</lookup>
-                  </closure>
+                <binding name="badge-number">
+                  <lookup name="badge-number">AdwViewSwitcherButton</lookup>
                 </binding>
                 <binding name="needs-attention">
                   <lookup name="needs-attention">AdwViewSwitcherButton</lookup>
                 </binding>
+                <signal name="notify::description" handler="update_description_cb" swapped="yes"/>
                 <property name="child">
                   <object class="GtkImage" id="vertical_image">
                     <property name="icon-name" bind-source="AdwViewSwitcherButton" bind-property="icon-name" bind-flags="sync-create" />

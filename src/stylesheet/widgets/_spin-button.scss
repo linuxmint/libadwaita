@@ -16,7 +16,11 @@ spinbutton {
     box-shadow: none;
 
     border-style: solid;
-    border-color: gtkalpha(currentColor, if($contrast == 'high', .5, .1));
+    border-color: color-mix(in srgb, currentColor 10%, transparent);
+
+    @media (prefers-contrast: more) {
+      border-color: color-mix(in srgb, currentColor 50%, transparent);
+    }
   }
 
   &:not(.vertical) {

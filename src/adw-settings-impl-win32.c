@@ -160,16 +160,29 @@ color_values_changed (AdwSettingsImplWin32 *self)
 {
   struct __x_ABI_CWindows_CUI_CColor color;
   HRESULT res;
+  GdkRGBA rgba;
 
   if (!self->ui)
     return S_FALSE;
 
-  res = self->ui->lpVtbl->GetColorValue (self->ui, UIColorType_Foreground, &color);
-  if (FAILED (res))
-    return res;
+  if (adw_settings_impl_get_has_color_scheme (ADW_SETTINGS_IMPL (self))) {
+    res = self->ui->lpVtbl->GetColorValue (self->ui, UIColorType_Foreground, &color);
+    if (SUCCEEDED (res))
+      adw_settings_impl_set_color_scheme (ADW_SETTINGS_IMPL (self),
+                                          scheme_for_fg_color (RGB (color.R, color.G, color.B)));
+  }
 
-  adw_settings_impl_set_color_scheme (ADW_SETTINGS_IMPL (self),
-                                      scheme_for_fg_color (RGB (color.R, color.G, color.B)));
+  if (adw_settings_impl_get_has_accent_colors (ADW_SETTINGS_IMPL (self))) {
+    res = self->ui->lpVtbl->GetColorValue (self->ui, UIColorType_Accent, &color);
+    if (SUCCEEDED (res)) {
+      rgba.red = color.R / 255.0f;
+      rgba.green = color.G / 255.0f;
+      rgba.blue = color.B / 255.0f;
+      rgba.alpha = 1.0f;
+      adw_settings_impl_set_accent_color (ADW_SETTINGS_IMPL (self),
+                                          adw_accent_color_nearest_from_rgba (&rgba));
+    }
+  }
 
   return S_OK;
 }
@@ -226,10 +239,6 @@ init_winrt_ui_settings (AdwSettingsImplWin32 *self)
                                                   &self->color_changed_token);
   TypedEventHandler_Release (handler);
 
-  if (FAILED (res))
-    return E_FAIL;
-
-  res = color_values_changed (self);
   if (FAILED (res))
     return E_FAIL;
 
@@ -375,11 +384,13 @@ adw_settings_impl_win32_init (AdwSettingsImplWin32 *self)
 
 AdwSettingsImpl *
 adw_settings_impl_win32_new (gboolean enable_color_scheme,
-                             gboolean enable_high_contrast)
+                             gboolean enable_high_contrast,
+                             gboolean enable_accent_colors,
+                             gboolean enable_document_font_name,
+                             gboolean enable_monospace_font_name)
 {
   AdwSettingsImplWin32 *self = g_object_new (ADW_TYPE_SETTINGS_IMPL_WIN32, NULL);
   GdkDisplay *display = gdk_display_get_default ();
-  gboolean found_color_scheme = FALSE;
 
   if (!GDK_IS_WIN32_DISPLAY (display))
     return ADW_SETTINGS_IMPL (self);
@@ -392,16 +403,23 @@ adw_settings_impl_win32_new (gboolean enable_color_scheme,
   }
 
 #ifdef HAS_WINRT
-  if (enable_color_scheme && SUCCEEDED (init_winrt_settings (self)))
-    found_color_scheme = TRUE;
+  if ((enable_color_scheme || enable_accent_colors) && FAILED (init_winrt_settings (self)))
+    enable_color_scheme = enable_accent_colors = FALSE;
 #endif
+
+  adw_settings_impl_set_features (ADW_SETTINGS_IMPL (self),
+                                  enable_color_scheme,
+                                  enable_high_contrast,
+                                  enable_accent_colors,
+                                  FALSE,
+                                  FALSE);
 
   if (enable_high_contrast)
     system_colors_changed (self);
 
-  adw_settings_impl_set_features (ADW_SETTINGS_IMPL (self),
-                                  found_color_scheme,
-                                  enable_high_contrast);
+#ifdef HAS_WINRT
+  color_values_changed (self);
+#endif
 
   return ADW_SETTINGS_IMPL (self);
 }

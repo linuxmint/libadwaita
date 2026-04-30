@@ -200,10 +200,7 @@ adw_squeezer_page_finalize (GObject *object)
   AdwSqueezerPage *self = ADW_SQUEEZER_PAGE (object);
 
   g_clear_object (&self->widget);
-
-  if (self->last_focus)
-    g_object_remove_weak_pointer (G_OBJECT (self->last_focus),
-                                  (gpointer *) &self->last_focus);
+  g_clear_weak_pointer (&self->last_focus);
 
   G_OBJECT_CLASS (adw_squeezer_page_parent_class)->finalize (object);
 }
@@ -218,7 +215,7 @@ adw_squeezer_page_class_init (AdwSqueezerPageClass *klass)
   object_class->finalize = adw_squeezer_page_finalize;
 
   /**
-   * AdwSqueezerPage:child: (attributes org.gtk.Property.get=adw_squeezer_page_get_child)
+   * AdwSqueezerPage:child:
    *
    * The the squeezer child to which the page belongs.
    *
@@ -230,7 +227,7 @@ adw_squeezer_page_class_init (AdwSqueezerPageClass *klass)
                          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS | G_PARAM_DEPRECATED);
 
   /**
-   * AdwSqueezerPage:enabled: (attributes org.gtk.Property.get=adw_squeezer_page_get_enabled org.gtk.Property.set=adw_squeezer_page_set_enabled)
+   * AdwSqueezerPage:enabled:
    *
    * Whether the child is enabled.
    *
@@ -477,12 +474,7 @@ set_visible_child (AdwSqueezer               *self,
       gtk_widget_is_ancestor (focus, self->visible_child->widget)) {
     contains_focus = TRUE;
 
-    if (self->visible_child->last_focus)
-      g_object_remove_weak_pointer (G_OBJECT (self->visible_child->last_focus),
-                                    (gpointer *)&self->visible_child->last_focus);
-    self->visible_child->last_focus = focus;
-    g_object_add_weak_pointer (G_OBJECT (self->visible_child->last_focus),
-                               (gpointer *)&self->visible_child->last_focus);
+    g_set_weak_pointer (&self->visible_child->last_focus, focus);
   }
 
   if (self->transition_running)
@@ -1011,9 +1003,7 @@ adw_squeezer_finalize (GObject *object)
 {
   AdwSqueezer *self = ADW_SQUEEZER (object);
 
-  if (self->pages)
-    g_object_remove_weak_pointer (G_OBJECT (self->pages),
-                                  (gpointer *) &self->pages);
+  g_clear_weak_pointer (&self->pages);
 
   G_OBJECT_CLASS (adw_squeezer_parent_class)->finalize (object);
 }
@@ -1040,7 +1030,7 @@ adw_squeezer_class_init (AdwSqueezerClass *klass)
                                     "orientation");
 
   /**
-   * AdwSqueezer:visible-child: (attributes org.gtk.Property.get=adw_squeezer_get_visible_child)
+   * AdwSqueezer:visible-child:
    *
    * The currently visible child.
    *
@@ -1052,7 +1042,7 @@ adw_squeezer_class_init (AdwSqueezerClass *klass)
                          G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_DEPRECATED);
 
   /**
-   * AdwSqueezer:homogeneous: (attributes org.gtk.Property.get=adw_squeezer_get_homogeneous org.gtk.Property.set=adw_squeezer_set_homogeneous)
+   * AdwSqueezer:homogeneous:
    *
    * Whether all children have the same size for the opposite orientation.
    *
@@ -1068,14 +1058,14 @@ adw_squeezer_class_init (AdwSqueezerClass *klass)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY | G_PARAM_DEPRECATED);
 
   /**
-   * AdwSqueezer:switch-threshold-policy: (attributes org.gtk.Property.get=adw_squeezer_get_switch_threshold_policy org.gtk.Property.set=adw_squeezer_set_switch_threshold_policy)
+   * AdwSqueezer:switch-threshold-policy:
    *
    * The switch threshold policy.
    *
    * Determines when the squeezer will switch children.
    *
-   * If set to `ADW_FOLD_THRESHOLD_POLICY_MINIMUM`, it will only switch when the
-   * visible child cannot fit anymore. With `ADW_FOLD_THRESHOLD_POLICY_NATURAL`,
+   * If set to [enum@Adw.FoldThresholdPolicy.minimum], it will only switch when
+   * the visible child cannot fit anymore. With [enum@Adw.FoldThresholdPolicy.natural],
    * it will switch as soon as the visible child doesn't get their natural size.
    *
    * This can be useful if you have a long ellipsizing label and want to let it
@@ -1090,7 +1080,7 @@ adw_squeezer_class_init (AdwSqueezerClass *klass)
                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY | G_PARAM_DEPRECATED);
 
   /**
-   * AdwSqueezer:allow-none: (attributes org.gtk.Property.get=adw_squeezer_get_allow_none org.gtk.Property.set=adw_squeezer_set_allow_none)
+   * AdwSqueezer:allow-none:
    *
    * Whether to allow squeezing beyond the last child's minimum size.
    *
@@ -1106,7 +1096,7 @@ adw_squeezer_class_init (AdwSqueezerClass *klass)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY | G_PARAM_DEPRECATED);
 
   /**
-   * AdwSqueezer:transition-duration: (attributes org.gtk.Property.get=adw_squeezer_get_transition_duration org.gtk.Property.set=adw_squeezer_set_transition_duration)
+   * AdwSqueezer:transition-duration:
    *
    * The transition animation duration, in milliseconds.
    *
@@ -1118,7 +1108,7 @@ adw_squeezer_class_init (AdwSqueezerClass *klass)
                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY | G_PARAM_DEPRECATED);
 
   /**
-   * AdwSqueezer:transition-type: (attributes org.gtk.Property.get=adw_squeezer_get_transition_type org.gtk.Property.set=adw_squeezer_set_transition_type)
+   * AdwSqueezer:transition-type:
    *
    * The type of animation used for transitions between children.
    *
@@ -1131,7 +1121,7 @@ adw_squeezer_class_init (AdwSqueezerClass *klass)
                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY | G_PARAM_DEPRECATED);
 
   /**
-   * AdwSqueezer:transition-running: (attributes org.gtk.Property.get=adw_squeezer_get_transition_running)
+   * AdwSqueezer:transition-running:
    *
    * Whether a transition is currently running.
    *
@@ -1147,7 +1137,7 @@ adw_squeezer_class_init (AdwSqueezerClass *klass)
                           G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_DEPRECATED);
 
   /**
-   * AdwSqueezer:interpolate-size: (attributes org.gtk.Property.get=adw_squeezer_get_interpolate_size org.gtk.Property.set=adw_squeezer_set_interpolate_size)
+   * AdwSqueezer:interpolate-size:
    *
    * Whether the squeezer interpolates its size when changing the visible child.
    *
@@ -1164,7 +1154,7 @@ adw_squeezer_class_init (AdwSqueezerClass *klass)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY | G_PARAM_DEPRECATED);
 
   /**
-   * AdwSqueezer:xalign: (attributes org.gtk.Property.get=adw_squeezer_get_xalign org.gtk.Property.set=adw_squeezer_set_xalign)
+   * AdwSqueezer:xalign:
    *
    * The horizontal alignment, from 0 (start) to 1 (end).
    *
@@ -1183,7 +1173,7 @@ adw_squeezer_class_init (AdwSqueezerClass *klass)
                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY | G_PARAM_DEPRECATED);
 
   /**
-   * AdwSqueezer:yalign: (attributes org.gtk.Property.get=adw_squeezer_get_yalign org.gtk.Property.set=adw_squeezer_set_yalign)
+   * AdwSqueezer:yalign:
    *
    * The vertical alignment, from 0 (top) to 1 (bottom).
    *
@@ -1202,7 +1192,7 @@ adw_squeezer_class_init (AdwSqueezerClass *klass)
                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY | G_PARAM_DEPRECATED);
 
   /**
-   * AdwSqueezer:pages: (attributes org.gtk.Property.get=adw_squeezer_get_pages)
+   * AdwSqueezer:pages:
    *
    * A selection model with the squeezer's pages.
    *
@@ -1266,7 +1256,7 @@ adw_squeezer_buildable_init (GtkBuildableIface *iface)
 }
 
 /**
- * adw_squeezer_page_get_child: (attributes org.gtk.Method.get_property=child)
+ * adw_squeezer_page_get_child:
  * @self: a squeezer page
  *
  * Returns the squeezer child to which @self belongs.
@@ -1284,7 +1274,7 @@ adw_squeezer_page_get_child (AdwSqueezerPage *self)
 }
 
 /**
- * adw_squeezer_page_get_enabled: (attributes org.gtk.Method.get_property=enabled)
+ * adw_squeezer_page_get_enabled:
  * @self: a squeezer page
  *
  * Gets whether @self is enabled.
@@ -1302,7 +1292,7 @@ adw_squeezer_page_get_enabled (AdwSqueezerPage *self)
 }
 
 /**
- * adw_squeezer_page_set_enabled: (attributes org.gtk.Method.set_property=enabled)
+ * adw_squeezer_page_set_enabled:
  * @self: a squeezer page
  * @enabled: whether @self is enabled
  *
@@ -1442,7 +1432,7 @@ adw_squeezer_get_page (AdwSqueezer *self,
 }
 
 /**
- * adw_squeezer_get_visible_child: (attributes org.gtk.Method.get_property=visible-child)
+ * adw_squeezer_get_visible_child:
  * @self: a squeezer
  *
  * Gets the currently visible child of @self.
@@ -1460,7 +1450,7 @@ adw_squeezer_get_visible_child (AdwSqueezer *self)
 }
 
 /**
- * adw_squeezer_get_homogeneous: (attributes org.gtk.Method.get_property=homogeneous)
+ * adw_squeezer_get_homogeneous:
  * @self: a squeezer
  *
  * Gets whether all children have the same size for the opposite orientation.
@@ -1478,7 +1468,7 @@ adw_squeezer_get_homogeneous (AdwSqueezer *self)
 }
 
 /**
- * adw_squeezer_set_homogeneous: (attributes org.gtk.Method.set_property=homogeneous)
+ * adw_squeezer_set_homogeneous:
  * @self: a squeezer
  * @homogeneous: whether @self is homogeneous
  *
@@ -1510,10 +1500,12 @@ adw_squeezer_set_homogeneous (AdwSqueezer *self,
 }
 
 /**
- * adw_squeezer_get_switch_threshold_policy: (attributes org.gtk.Method.get_property=switch-threshold-policy)
+ * adw_squeezer_get_switch_threshold_policy:
  * @self: a squeezer
  *
  * Gets the switch threshold policy for @self.
+ *
+ * Returns: the fold threshold policy
  *
  * Deprecated: 1.4: See [the migration guide](migrating-to-breakpoints.html#replace-adwsqueezer)
  */
@@ -1527,7 +1519,7 @@ adw_squeezer_get_switch_threshold_policy (AdwSqueezer *self)
 
 
 /**
- * adw_squeezer_set_switch_threshold_policy: (attributes org.gtk.Method.set_property=switch-threshold-policy)
+ * adw_squeezer_set_switch_threshold_policy:
  * @self: a squeezer
  * @policy: the policy to use
  *
@@ -1535,8 +1527,8 @@ adw_squeezer_get_switch_threshold_policy (AdwSqueezer *self)
  *
  * Determines when the squeezer will switch children.
  *
- * If set to `ADW_FOLD_THRESHOLD_POLICY_MINIMUM`, it will only switch when the
- * visible child cannot fit anymore. With `ADW_FOLD_THRESHOLD_POLICY_NATURAL`,
+ * If set to [enum@Adw.FoldThresholdPolicy.minimum], it will only switch when
+ * the visible child cannot fit anymore. With [enum@Adw.FoldThresholdPolicy.natural],
  * it will switch as soon as the visible child doesn't get their natural size.
  *
  * This can be useful if you have a long ellipsizing label and want to let it
@@ -1562,7 +1554,7 @@ adw_squeezer_set_switch_threshold_policy (AdwSqueezer            *self,
 }
 
 /**
- * adw_squeezer_get_allow_none: (attributes org.gtk.Method.get_property=allow-none)
+ * adw_squeezer_get_allow_none:
  * @self: a squeezer
  *
  * Gets whether to allow squeezing beyond the last child's minimum size.
@@ -1580,7 +1572,7 @@ adw_squeezer_get_allow_none (AdwSqueezer *self)
 }
 
 /**
- * adw_squeezer_set_allow_none: (attributes org.gtk.Method.set_property=allow-none)
+ * adw_squeezer_set_allow_none:
  * @self: a squeezer
  * @allow_none: whether @self allows squeezing beyond the last child
  *
@@ -1611,7 +1603,7 @@ adw_squeezer_set_allow_none (AdwSqueezer *self,
 }
 
 /**
- * adw_squeezer_get_transition_duration: (attributes org.gtk.Method.get_property=transition-duration)
+ * adw_squeezer_get_transition_duration:
  * @self: a squeezer
  *
  * Gets the transition animation duration for @self.
@@ -1629,7 +1621,7 @@ adw_squeezer_get_transition_duration (AdwSqueezer *self)
 }
 
 /**
- * adw_squeezer_set_transition_duration: (attributes org.gtk.Method.set_property=transition-duration)
+ * adw_squeezer_set_transition_duration:
  * @self: a squeezer
  * @duration: the new duration, in milliseconds
  *
@@ -1652,7 +1644,7 @@ adw_squeezer_set_transition_duration (AdwSqueezer *self,
 }
 
 /**
- * adw_squeezer_get_transition_type: (attributes org.gtk.Method.get_property=transition-type)
+ * adw_squeezer_get_transition_type:
  * @self: a squeezer
  *
  * Gets the type of animation used for transitions between children in @self.
@@ -1670,7 +1662,7 @@ adw_squeezer_get_transition_type (AdwSqueezer *self)
 }
 
 /**
- * adw_squeezer_set_transition_type: (attributes org.gtk.Method.set_property=transition-type)
+ * adw_squeezer_set_transition_type:
  * @self: a squeezer
  * @transition: the new transition type
  *
@@ -1692,7 +1684,7 @@ adw_squeezer_set_transition_type (AdwSqueezer               *self,
 }
 
 /**
- * adw_squeezer_get_transition_running: (attributes org.gtk.Method.get_property=transition-running)
+ * adw_squeezer_get_transition_running:
  * @self: a squeezer
  *
  * Gets whether a transition is currently running for @self.
@@ -1714,7 +1706,7 @@ adw_squeezer_get_transition_running (AdwSqueezer *self)
 }
 
 /**
- * adw_squeezer_get_interpolate_size: (attributes org.gtk.Method.get_property=interpolate-size)
+ * adw_squeezer_get_interpolate_size:
  * @self: A squeezer
  *
  * Gets whether @self interpolates its size when changing the visible child.
@@ -1732,7 +1724,7 @@ adw_squeezer_get_interpolate_size (AdwSqueezer *self)
 }
 
 /**
- * adw_squeezer_set_interpolate_size: (attributes org.gtk.Method.set_property=interpolate-size)
+ * adw_squeezer_set_interpolate_size:
  * @self: A squeezer
  * @interpolate_size: whether to interpolate the size
  *
@@ -1761,7 +1753,7 @@ adw_squeezer_set_interpolate_size (AdwSqueezer *self,
 }
 
 /**
- * adw_squeezer_get_xalign: (attributes org.gtk.Method.get_property=xalign)
+ * adw_squeezer_get_xalign:
  * @self: a squeezer
  *
  * Gets the horizontal alignment, from 0 (start) to 1 (end).
@@ -1779,7 +1771,7 @@ adw_squeezer_get_xalign (AdwSqueezer *self)
 }
 
 /**
- * adw_squeezer_set_xalign: (attributes org.gtk.Method.set_property=xalign)
+ * adw_squeezer_set_xalign:
  * @self: a squeezer
  * @xalign: the new alignment value
  *
@@ -1810,7 +1802,7 @@ adw_squeezer_set_xalign (AdwSqueezer *self,
 }
 
 /**
- * adw_squeezer_get_yalign: (attributes org.gtk.Method.get_property=yalign)
+ * adw_squeezer_get_yalign:
  * @self: a squeezer
  *
  * Gets the vertical alignment, from 0 (top) to 1 (bottom).
@@ -1828,7 +1820,7 @@ adw_squeezer_get_yalign (AdwSqueezer *self)
 }
 
 /**
- * adw_squeezer_set_yalign: (attributes org.gtk.Method.set_property=yalign)
+ * adw_squeezer_set_yalign:
  * @self: a squeezer
  * @yalign: the new alignment value
  *
@@ -1859,7 +1851,7 @@ adw_squeezer_set_yalign (AdwSqueezer *self,
 }
 
 /**
- * adw_squeezer_get_pages: (attributes org.gtk.Method.get_property=pages)
+ * adw_squeezer_get_pages:
  * @self: a squeezer
  *
  * Returns a [iface@Gio.ListModel] that contains the pages of @self.
@@ -1879,8 +1871,8 @@ adw_squeezer_get_pages (AdwSqueezer *self)
   if (self->pages)
     return g_object_ref (self->pages);
 
-  self->pages = GTK_SELECTION_MODEL (adw_squeezer_pages_new (self));
-  g_object_add_weak_pointer (G_OBJECT (self->pages), (gpointer *) &self->pages);
+  g_set_weak_pointer (&self->pages,
+                      GTK_SELECTION_MODEL (adw_squeezer_pages_new (self)));
 
   return self->pages;
 }

@@ -113,7 +113,7 @@ adw_window_title_class_init (AdwWindowTitleClass *klass)
   object_class->dispose = adw_window_title_dispose;
 
   /**
-   * AdwWindowTitle:title: (attributes org.gtk.Property.get=adw_window_title_get_title org.gtk.Property.set=adw_window_title_set_title)
+   * AdwWindowTitle:title:
    *
    * The title to display.
    *
@@ -126,7 +126,7 @@ adw_window_title_class_init (AdwWindowTitleClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwWindowTitle:subtitle: (attributes org.gtk.Property.get=adw_window_title_get_subtitle org.gtk.Property.set=adw_window_title_set_subtitle)
+   * AdwWindowTitle:subtitle:
    *
    * The subtitle to display.
    *
@@ -169,7 +169,7 @@ adw_window_title_new (const char *title,
 }
 
 /**
- * adw_window_title_get_title: (attributes org.gtk.Method.get_property=title)
+ * adw_window_title_get_title:
  * @self: a window title
  *
  * Gets the title of @self.
@@ -185,7 +185,7 @@ adw_window_title_get_title (AdwWindowTitle *self)
 }
 
 /**
- * adw_window_title_set_title: (attributes org.gtk.Method.set_property=title)
+ * adw_window_title_set_title:
  * @self: a window title
  * @title: a title
  *
@@ -203,7 +203,7 @@ adw_window_title_set_title (AdwWindowTitle *self,
   if (g_strcmp0 (gtk_label_get_label (self->title_label), title) == 0)
     return;
 
-  gtk_label_set_label (self->title_label, title);
+  gtk_label_set_label (self->title_label, title ? title : "");
   gtk_widget_set_visible (GTK_WIDGET (self->title_label),
                           title && title[0]);
 
@@ -211,7 +211,7 @@ adw_window_title_set_title (AdwWindowTitle *self,
 }
 
 /**
- * adw_window_title_get_subtitle: (attributes org.gtk.Method.get_property=subtitle)
+ * adw_window_title_get_subtitle:
  * @self: a window title
  *
  * Gets the subtitle of @self.
@@ -227,7 +227,7 @@ adw_window_title_get_subtitle (AdwWindowTitle *self)
 }
 
 /**
- * adw_window_title_set_subtitle: (attributes org.gtk.Method.set_property=subtitle)
+ * adw_window_title_set_subtitle:
  * @self: a window title
  * @subtitle: a subtitle
  *
@@ -244,7 +244,7 @@ adw_window_title_set_subtitle (AdwWindowTitle *self,
   if (g_strcmp0 (gtk_label_get_label (self->subtitle_label), subtitle) == 0)
     return;
 
-  gtk_label_set_label (self->subtitle_label, subtitle);
+  gtk_label_set_label (self->subtitle_label, subtitle ? subtitle : "");
   gtk_widget_set_visible (GTK_WIDGET (self->subtitle_label),
                           subtitle && subtitle[0]);
 

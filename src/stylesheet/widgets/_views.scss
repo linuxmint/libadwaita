@@ -1,11 +1,11 @@
 .view,
 %view {
-  color: $view_fg_color;
-  background-color: $view_bg_color;
+  color: var(--view-fg-color);
+  background-color: var(--view-bg-color);
 
   &:disabled {
-    color: gtkalpha(currentColor, .5);
-    background-color: gtkmix($window_bg_color, $view_bg_color, 60%);
+    color: color-mix(in srgb, var(--view-fg-color) var(--disabled-opacity), transparent);
+    background-color: color-mix(in srgb, var(--window-bg-color) 60%, var(--view-bg-color));
   }
 
   &:selected {
@@ -23,11 +23,20 @@ textview {
   > text {
     @extend %view;
 
-    background-color: transparent;
+    &, &:disabled {
+      background-color: transparent;
+    }
+  }
+
+  &.inline {
+    &, &:disabled, > text {
+      background-color: transparent;
+      color: inherit;
+    }
   }
 
   > border {
-    background-color: gtkmix($window_bg_color, $view_bg_color, 50%);
+    background-color: color-mix(in srgb, var(--window-bg-color), var(--view-bg-color) 50%);
   }
 
   &:drop(active) {
@@ -36,8 +45,8 @@ textview {
 }
 
 rubberband {
-  border: 1px solid $accent_color;
-  background-color: gtkalpha($accent_color, 0.2);
+  border: 1px solid var(--accent-color);
+  background-color: color-mix(in srgb, var(--accent-color) 20%, transparent);
 }
 
 flowbox > flowboxchild,
@@ -50,12 +59,13 @@ gridview > child {
   &:selected {
     background-color: $view_selected_color;
 
-    @if $contrast == 'high' {
+    @media (prefers-contrast: more) {
       box-shadow: inset 0 0 0 1px $border_color;
     }
   }
 }
 
+flowbox > flowboxchild,
 gridview > child.activatable {
   &:hover { background-color: $view_hover_color; }
 
@@ -67,9 +77,15 @@ gridview > child.activatable {
     &:active { background-color: $view_selected_active_color; }
   }
 
-  @if $contrast == 'high' {
+  @media (prefers-contrast: more) {
     &:hover, &:active {
       box-shadow: inset 0 0 0 1px $border_color;
     }
+  }
+}
+
+flowbox, gridview {
+  &.view:disabled {
+    color: var(--view-fg-color);
   }
 }

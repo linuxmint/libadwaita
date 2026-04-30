@@ -58,6 +58,12 @@ ADW_AVAILABLE_IN_ALL
 void                adw_combo_row_set_factory (AdwComboRow        *self,
                                                GtkListItemFactory *factory);
 
+ADW_AVAILABLE_IN_1_6
+GtkListItemFactory *adw_combo_row_get_header_factory (AdwComboRow        *self);
+ADW_AVAILABLE_IN_1_6
+void                adw_combo_row_set_header_factory (AdwComboRow        *self,
+                                                      GtkListItemFactory *factory);
+
 ADW_AVAILABLE_IN_ALL
 GtkListItemFactory *adw_combo_row_get_list_factory (AdwComboRow        *self);
 ADW_AVAILABLE_IN_ALL
@@ -81,5 +87,11 @@ gboolean adw_combo_row_get_enable_search (AdwComboRow *self);
 ADW_AVAILABLE_IN_1_4
 void     adw_combo_row_set_enable_search (AdwComboRow *self,
                                           gboolean     enable_search);
+
+ADW_AVAILABLE_IN_1_6
+void                     adw_combo_row_set_search_match_mode (AdwComboRow              *self,
+                                                              GtkStringFilterMatchMode  search_match_mode);
+ADW_AVAILABLE_IN_1_6
+GtkStringFilterMatchMode adw_combo_row_get_search_match_mode (AdwComboRow              *self);
 
 G_END_DECLS

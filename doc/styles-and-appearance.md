@@ -10,14 +10,14 @@ to request a darker UI, or to support a system-wide dark style preference if one
 exists.
 
 By default, applications use light appearance unless the system prefers dark
-appearance, matching the `ADW_COLOR_SCHEME_PREFER_LIGHT` color scheme. The
+appearance, matching the [enum@Adw.ColorScheme.prefer-light] color scheme. The
 [property@StyleManager:color-scheme] property allows to change this behavior
 when set to:
 
-* `ADW_COLOR_SCHEME_PREFER_DARK`: Use dark appearance unless the system prefers
+* [enum@Adw.ColorScheme.prefer-dark]: Use dark appearance unless the system prefers
   light appearance.
-* `ADW_COLOR_SCHEME_FORCE_DARK`: Always use dark appearance.
-* `ADW_COLOR_SCHEME_FORCE_LIGHT`: Always use light appearance.
+* [enum@Adw.ColorScheme.force-dark]: Always use dark appearance.
+* [enum@Adw.ColorScheme.force-light]: Always use light appearance.
 
 <table>
   <tr>
@@ -54,15 +54,15 @@ when set to:
 
 Common use cases:
 
-1. An application wants to use dark UI. Use the `ADW_COLOR_SCHEME_PREFER_DARK`
+1. An application wants to use dark UI. Use the [enum@Adw.ColorScheme.prefer-dark]
    color scheme.
 
 2. An application has a style switcher with the system, light and
 dark states. Use the following color scheme values:
 
-    * System: `ADW_COLOR_SCHEME_PREFER_LIGHT`
-    * Light: `ADW_COLOR_SCHEME_FORCE_LIGHT`
-    * Dark: `ADW_COLOR_SCHEME_FORCE_DARK`
+    * System: [enum@Adw.ColorScheme.prefer-light]
+    * Light: [enum@Adw.ColorScheme.force-light]
+    * Dark: [enum@Adw.ColorScheme.force-dark]
 
 If the system does not provide a style preference, the
 [property@StyleManager:system-supports-color-schemes] property can be used to
@@ -73,7 +73,7 @@ All standard GTK and Libadwaita widgets automatically support both styles.
 Applications that use custom drawing or styles may need to ensure the UI
 remains legible in both appearances:
 
-* When possible, use [named colors](named-colors.html) instead of hardcoded
+* When possible, use [CSS variables](css-variables.html) instead of hardcoded
   colors. For custom drawing, use [method@Gtk.StyleContext.get_color] to get the
   current text color for your widget, or [method@Gtk.StyleContext.lookup_color]
   to look up other colors.
@@ -81,8 +81,59 @@ remains legible in both appearances:
 * If that's not possible, use the [property@StyleManager:dark] property to check
   the current appearance and vary the drawing accordingly.
 
-* [class@Application] allows loading additional styles for dark appearance via
-  the `style-dark.css` resource.
+* The `prefers-color-scheme: dark` CSS media query can be used to add custom
+  styles specific to dark appearance.
+
+* Alternatively, [class@Application] allows loading additional styles for dark
+  appearance via the `style-dark.css` resource.
+
+## Accent Color
+
+Libadwaita applications follow the system accent color by default. Applications
+with custom drawing or styles may need to ensure that they use the actual accent
+color instead of hardcoding blue:
+
+* Use [accent color variables](css-variables.html#accent-colors) and the
+  [`.accent`](style-classes.html#colors) style class in CSS.
+
+* Use [property@StyleManager:accent-color-rgba] to get the background accent
+  color programmatically.
+
+* Use [property@StyleManager:accent-color] and 
+  [func@AccentColor.to_standalone_rgba] to get the standalone accent color
+  programmatically.
+
+Applications can override the accent color using CSS, as follows:
+
+```css
+:root {
+  --accent-bg-color: var(--accent-green); /* Always use the green color */
+}
+```
+
+Accent can also be overridden for an individual widget. In this case
+`--accent-color` must be manually overridden as well:
+
+```css
+my-widget {
+  --accent-bg-color: var(--accent-purple); /* Always use the purple color */
+  --accent-color: oklab(from var(--accent-bg-color) var(--standalone-color-oklab));
+}
+```
+
+All of the default accent colors use white text as the foreground color. If the
+custom accent color is too bright, use a dark foreground color instead:
+
+```css
+:root {
+  --accent-bg-color: var(--yellow-3);
+  --accent-fg-color: rgb(0 0 0 / 80%);
+}
+```
+
+::: note
+    When accent color is overridden, [class@StyleManager] API will still return
+    the system color.
 
 ## High Contrast
 
@@ -96,35 +147,35 @@ All standard GTK and Libadwaita widgets automatically support the high contrast
 appearance. Applications that use custom drawing or styles may need to support
 it manually.
 
-* Use style classes such as [`.dim-label`](style-classes.html#dim-label) instead
+* Use style classes such as [`.dimmed`](style-classes.html#dimmed) instead
   of changing widget opacity manually.
 
-* Use the [<code>&#64;borders</code>](named-colors.html#helper-colors) color for
-  borders instead of hardcoded colors.
+* Use the [helper variables](css-variables.html#helpers) when possible, instead
+  of hardcoding colors and opacities.
 
 * The [property@StyleManager:high-contrast] property can be used to check the
   current appearance.
 
-* [class@Application] allows loading additional styles for high contrast
-  appearance via the `style-hc.css` and `style-hc-dark.css` resources.
+* The `prefers-contrast: more` CSS media query can be used to add custom styles
+  specific to high contrast.
+
+* Alternatively, [class@Application] allows loading additional styles for high
+  contrast appearance via the `style-hc.css` and `style-hc-dark.css` resources.
 
 ## Custom Styles
 
-[class@Application] provides a simple way to load additional styles from
-[struct@Gio.Resource], relative to the application's base path (see
+[class@Application] provides a simple way to load additional styles from a
+resource named `style.css`, relative to the application's base path (see
 [method@Gio.Application.set_resource_base_path]).
 
-The following resources will automatically be loaded if present:
+To add styles conditionally only for certain color schemes or high contrast, use
+the following media queries:
 
-- `style.css` contains styles that are always used.
-- `style-dark.css` contains styles only used with the dark appearance.
-- `style-hc.css` contains styles used with the high contrast appearance.
-- `style-hc-dark.css` contains styles used when both dark and high contrast
-
-Styles are stacked on top of each other: when using dark appearance, both
-`style.css` and `style-dark.css` are loaded, and so on.
+ - `prefers-color-scheme: dark` for styles used only for dark appearance.
+ - `prefers-contrast: more` for styles used only when the system high contrast
+    preference is enabled.
 
 ## See Also
 
 - [Style Classes](style-classes.html)
-- [Named Colors](named-colors.html)
+- [CSS Variables](css-variables.html)

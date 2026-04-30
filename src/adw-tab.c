@@ -12,6 +12,7 @@
 #include "adw-bidi-private.h"
 #include "adw-fading-label-private.h"
 #include "adw-gizmo-private.h"
+#include "adw-spinner-paintable.h"
 #include "adw-timed-animation.h"
 
 #define FADE_WIDTH 18.0f
@@ -31,9 +32,7 @@ struct _AdwTab
   GtkWidget parent_instance;
 
   GtkWidget *title;
-  GtkWidget *icon_stack;
-  GtkImage *icon;
-  GtkSpinner *spinner;
+  GtkWidget *icon;
   GtkImage *indicator_icon;
   GtkWidget *indicator_btn;
   GtkWidget *close_btn;
@@ -53,6 +52,7 @@ struct _AdwTab
   gboolean close_overlap;
   gboolean show_close;
   gboolean fully_visible;
+  gboolean loading;
 
   AdwAnimation *close_btn_animation;
   AdwAnimation *needs_attention_animation;
@@ -170,31 +170,30 @@ update_title (AdwTab *self)
 }
 
 static void
-update_spinner (AdwTab *self)
-{
-  gboolean loading = self->page && adw_tab_page_get_loading (self->page);
-  gboolean mapped = gtk_widget_get_mapped (GTK_WIDGET (self));
-
-  /* Don't use CPU when not needed */
-  gtk_spinner_set_spinning (self->spinner, loading && mapped);
-}
-
-static void
 update_icons (AdwTab *self)
 {
   GIcon *gicon = adw_tab_page_get_icon (self->page);
   gboolean loading = adw_tab_page_get_loading (self->page);
   GIcon *indicator = adw_tab_page_get_indicator_icon (self->page);
-  const char *name = loading ? "spinner" : "icon";
 
-  if (self->pinned && !gicon)
-    gicon = adw_tab_view_get_default_icon (self->view);
+  if (loading && !self->loading) {
+    AdwSpinnerPaintable *paintable = adw_spinner_paintable_new (self->icon);
 
-  gtk_image_set_from_gicon (self->icon, gicon);
-  gtk_widget_set_visible (self->icon_stack,
+    gtk_image_set_from_paintable (GTK_IMAGE (self->icon), GDK_PAINTABLE (paintable));
+
+    g_object_unref (paintable);
+  } else if (!loading) {
+    if (self->pinned && !gicon)
+      gicon = adw_tab_view_get_default_icon (self->view);
+
+    gtk_image_set_from_gicon (GTK_IMAGE (self->icon), gicon);
+  }
+
+  self->loading = loading;
+
+  gtk_widget_set_visible (self->icon,
                           (gicon != NULL || loading) &&
                           (!self->pinned || indicator == NULL));
-  gtk_stack_set_visible_child_name (GTK_STACK (self->icon_stack), name);
 
   gtk_widget_set_visible (self->indicator_btn, indicator != NULL);
 }
@@ -226,7 +225,6 @@ static void
 update_loading (AdwTab *self)
 {
   update_icons (self);
-  update_spinner (self);
   set_style_class (GTK_WIDGET (self), "loading",
                    adw_tab_page_get_loading (self->page));
 }
@@ -244,9 +242,23 @@ update_selected (AdwTab *self)
 }
 
 static void
+update_has_popup (AdwTab *self)
+{
+  if (adw_tab_view_get_menu_model (self->view)) {
+    gtk_accessible_update_property (GTK_ACCESSIBLE (self),
+                                    GTK_ACCESSIBLE_PROPERTY_HAS_POPUP, TRUE,
+                                    -1);
+  } else {
+    gtk_accessible_reset_property (GTK_ACCESSIBLE (self),
+                                   GTK_ACCESSIBLE_PROPERTY_HAS_POPUP);
+  }
+}
+
+static void
 close_idle_cb (AdwTab *self)
 {
   adw_tab_view_close_page (self->view, self->page);
+  g_object_unref (self);
 }
 
 static void
@@ -258,7 +270,7 @@ close_clicked_cb (AdwTab *self)
   /* When animations are disabled, we don't want to immediately remove the
    * whole tab mid-click. Instead, defer it until the click has happened.
    */
-  g_idle_add_once ((GSourceOnceFunc) close_idle_cb, self);
+  g_idle_add_once ((GSourceOnceFunc) close_idle_cb, g_object_ref (self));
 }
 
 static void
@@ -397,7 +409,7 @@ adw_tab_measure (GtkWidget      *widget,
   } else {
     int child_min, child_nat;
 
-    gtk_widget_measure (self->icon_stack, orientation, for_size,
+    gtk_widget_measure (self->icon, orientation, for_size,
                         &child_min, &child_nat, NULL, NULL);
     min = MAX (min, child_min);
     nat = MAX (nat, child_nat);
@@ -494,7 +506,7 @@ adw_tab_size_allocate (GtkWidget *widget,
   int start_width = 0, end_width = 0;
   int needs_attention_x;
 
-  measure_child (self->icon_stack, height, &icon_width);
+  measure_child (self->icon, height, &icon_width);
   measure_child (self->title, height, &title_width);
   measure_child (self->indicator_btn, height, &indicator_width);
   measure_child (self->close_btn, height, &close_width);
@@ -554,8 +566,8 @@ adw_tab_size_allocate (GtkWidget *widget,
   allocate_child (self->needs_attention_indicator, width, height,
                   needs_attention_x, needs_attention_width, baseline);
 
-  if (gtk_widget_get_visible (self->icon_stack)) {
-    allocate_child (self->icon_stack, width, height,
+  if (gtk_widget_get_visible (self->icon)) {
+    allocate_child (self->icon, width, height,
                     center_x, icon_width, baseline);
 
     center_x += icon_width;
@@ -568,26 +580,6 @@ adw_tab_size_allocate (GtkWidget *widget,
 }
 
 static void
-adw_tab_map (GtkWidget *widget)
-{
-  AdwTab *self = ADW_TAB (widget);
-
-  GTK_WIDGET_CLASS (adw_tab_parent_class)->map (widget);
-
-  update_spinner (self);
-}
-
-static void
-adw_tab_unmap (GtkWidget *widget)
-{
-  AdwTab *self = ADW_TAB (widget);
-
-  GTK_WIDGET_CLASS (adw_tab_parent_class)->unmap (widget);
-
-  update_spinner (self);
-}
-
-static void
 adw_tab_snapshot (GtkWidget   *widget,
                   GtkSnapshot *snapshot)
 {
@@ -597,7 +589,7 @@ adw_tab_snapshot (GtkWidget   *widget,
 
   gtk_widget_snapshot_child (widget, self->needs_attention_indicator, snapshot);
   gtk_widget_snapshot_child (widget, self->indicator_btn, snapshot);
-  gtk_widget_snapshot_child (widget, self->icon_stack, snapshot);
+  gtk_widget_snapshot_child (widget, self->icon, snapshot);
 
   if (draw_fade) {
     gboolean is_rtl = gtk_widget_get_direction (widget) == GTK_TEXT_DIR_RTL;
@@ -656,13 +648,19 @@ adw_tab_constructed (GObject *object)
     gtk_widget_add_css_class (GTK_WIDGET (self), "pinned");
     gtk_widget_set_visible (self->title, FALSE);
     gtk_widget_set_visible (self->close_btn, FALSE);
-    gtk_widget_set_margin_start (self->icon_stack, 0);
-    gtk_widget_set_margin_end (self->icon_stack, 0);
+    gtk_widget_set_margin_start (self->icon, 0);
+    gtk_widget_set_margin_end (self->icon, 0);
   }
 
   g_signal_connect_object (self->view, "notify::default-icon",
                            G_CALLBACK (update_icons), self,
                            G_CONNECT_SWAPPED);
+
+  g_signal_connect_object (self->view, "notify::menu-model",
+                           G_CALLBACK (update_has_popup), self,
+                           G_CONNECT_SWAPPED);
+
+  update_has_popup (self);
 }
 
 static void
@@ -761,8 +759,6 @@ adw_tab_class_init (AdwTabClass *klass)
 
   widget_class->measure = adw_tab_measure;
   widget_class->size_allocate = adw_tab_size_allocate;
-  widget_class->map = adw_tab_map;
-  widget_class->unmap = adw_tab_unmap;
   widget_class->snapshot = adw_tab_snapshot;
   widget_class->direction_changed = adw_tab_direction_changed;
 
@@ -819,9 +815,7 @@ adw_tab_class_init (AdwTabClass *klass)
   gtk_widget_class_set_template_from_resource (widget_class,
                                                "/org/gnome/Adwaita/ui/adw-tab.ui");
   gtk_widget_class_bind_template_child (widget_class, AdwTab, title);
-  gtk_widget_class_bind_template_child (widget_class, AdwTab, icon_stack);
   gtk_widget_class_bind_template_child (widget_class, AdwTab, icon);
-  gtk_widget_class_bind_template_child (widget_class, AdwTab, spinner);
   gtk_widget_class_bind_template_child (widget_class, AdwTab, indicator_icon);
   gtk_widget_class_bind_template_child (widget_class, AdwTab, indicator_btn);
   gtk_widget_class_bind_template_child (widget_class, AdwTab, close_btn);
@@ -865,7 +859,7 @@ adw_tab_init (AdwTab *self)
                              CLOSE_BTN_ANIMATION_DURATION, target);
 
   adw_timed_animation_set_easing (ADW_TIMED_ANIMATION (self->close_btn_animation),
-                                  ADW_EASE_IN_OUT_CUBIC);
+                                  ADW_EASE_IN_OUT);
 
   target = adw_callback_animation_target_new ((AdwAnimationTargetFunc)
                                               attention_indicator_animation_value_cb,
@@ -875,7 +869,7 @@ adw_tab_init (AdwTab *self)
                              ATTENTION_INDICATOR_ANIMATION_DURATION, target);
 
   adw_timed_animation_set_easing (ADW_TIMED_ANIMATION (self->needs_attention_animation),
-                                  ADW_EASE_IN_OUT_CUBIC);
+                                  ADW_EASE_IN_OUT);
 }
 
 AdwTab *
@@ -925,7 +919,6 @@ adw_tab_set_page (AdwTab     *self,
     update_state (self);
     update_title (self);
     update_tooltip (self);
-    update_spinner (self);
     update_icons (self);
     update_indicator (self);
     update_needs_attention (self);
@@ -1052,4 +1045,27 @@ adw_tab_set_extra_drag_preload (AdwTab   *self,
   g_return_if_fail (ADW_IS_TAB (self));
 
   gtk_drop_target_set_preload (self->drop_target, preload);
+}
+
+gboolean
+adw_tab_can_click_at (AdwTab *self,
+                      float   x,
+                      float   y)
+{
+  GtkWidget *picked;
+
+  g_return_val_if_fail (ADW_IS_TAB (self), FALSE);
+
+  picked = gtk_widget_pick (GTK_WIDGET (self), x, y, GTK_PICK_DEFAULT);
+
+  if (picked == NULL)
+    return TRUE;
+
+  if (picked == self->close_btn || gtk_widget_is_ancestor (picked, self->close_btn))
+    return FALSE;
+
+  if (picked == self->indicator_btn || gtk_widget_is_ancestor (picked, self->indicator_btn))
+    return FALSE;
+
+  return TRUE;
 }

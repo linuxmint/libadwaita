@@ -32,5 +32,5 @@ EOF
 ${CROSS_COMPILE}gcc -o adwtest adwtest.c $(${CROSS_COMPILE}pkg-config --cflags --libs libadwaita-1)
 echo "build ok"
 [ -x adwtest ]
-xvfb-run -a -s "-screen 0 1024x768x24" ./adwtest
+xvfb-run -a -s "-screen 0 1024x768x24 -noreset" -e /proc/self/fd/2 ./adwtest
 echo "starts ok"

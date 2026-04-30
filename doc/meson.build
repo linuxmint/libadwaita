@@ -1,4 +1,4 @@
-if get_option('gtk_doc')
+if get_option('documentation')
 
 subdir('tools')
 
@@ -6,11 +6,11 @@ expand_content_md_files = [
   'adaptive-layouts.md',
   'boxed-lists.md',
   'build-howto.md',
+  'css-variables.md',
   'initialization.md',
   'migrating-libhandy-1-4-to-libadwaita.md',
   'migrating-to-adaptive-dialogs.md',
   'migrating-to-breakpoints.md',
-  'named-colors.md',
   'styles-and-appearance.md',
   'style-classes.md',
   'widget-gallery.md',
@@ -28,7 +28,7 @@ libadwaita_toml = configure_file(
 dependency('gi-docgen', version: '>= 2021.1',
            fallback: ['gi-docgen', 'dummy_dep'],
            native: true,
-           required: get_option('gtk_doc'))
+           required: get_option('documentation'))
 
 gidocgen = find_program('gi-docgen')
 
@@ -51,6 +51,18 @@ custom_target('libadwaita-doc',
   build_by_default: true,
   install: true,
   install_dir: docs_dir,
+)
+
+test('Validate docs',
+  gidocgen,
+  args: [
+    'check',
+    '--config', libadwaita_toml,
+    '--add-include-path=@0@'.format(meson.current_build_dir() / '../src'),
+    libadwaita_gir[0],
+  ],
+  depends: libadwaita_gir[0],
+  suite: ['doc'],
 )
 
 endif

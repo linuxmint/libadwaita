@@ -25,7 +25,6 @@ struct _AdwSettingsImplPortal
 
   GDBusProxy *settings_portal;
 
-  gboolean found_theme_name;
   gboolean found_color_scheme;
 
   enum {
@@ -33,6 +32,11 @@ struct _AdwSettingsImplPortal
     HIGH_CONTRAST_STATE_FDO,
     HIGH_CONTRAST_STATE_GNOME,
   } high_contrast_portal_state;
+
+  gboolean found_accent_colors;
+
+  gboolean found_document_font_name;
+  gboolean found_monospace_font_name;
 };
 
 G_DEFINE_FINAL_TYPE (AdwSettingsImplPortal, adw_settings_impl_portal, ADW_TYPE_SETTINGS_IMPL)
@@ -117,6 +121,25 @@ get_fdo_color_scheme (GVariant *variant)
   return color_scheme;
 }
 
+static AdwAccentColor
+get_fdo_accent_color (GVariant *variant)
+{
+  double r = -1, g = -1, b = -1;
+  GdkRGBA rgba;
+
+  g_variant_get (variant, "(ddd)", &r, &g, &b);
+
+  if (r < 0 || g < 0 || b < 0 || r > 1 || g > 1 || b > 1)
+    return ADW_ACCENT_COLOR_BLUE;
+
+  rgba.red = r;
+  rgba.green = g;
+  rgba.blue = b;
+  rgba.alpha = 1.0;
+
+  return adw_accent_color_nearest_from_rgba (&rgba);
+}
+
 static void
 changed_cb (GDBusProxy            *proxy,
             const char            *sender_name,
@@ -132,17 +155,6 @@ changed_cb (GDBusProxy            *proxy,
     return;
 
   g_variant_get (parameters, "(&s&sv)", &namespace, &name, &value);
-
-  if (!g_strcmp0 (namespace, "org.gnome.desktop.interface")) {
-    if (!g_strcmp0 (name, "gtk-theme") && self->found_theme_name) {
-      adw_settings_impl_set_theme_name (ADW_SETTINGS_IMPL (self),
-                                        g_variant_get_string (value, NULL));
-
-      g_variant_unref (value);
-
-      return;
-    }
-  }
 
   if (!g_strcmp0 (namespace, "org.freedesktop.appearance")) {
     if (!g_strcmp0 (name, "color-scheme") && self->found_color_scheme) {
@@ -163,13 +175,41 @@ changed_cb (GDBusProxy            *proxy,
 
       return;
     }
+
+    if (!g_strcmp0 (name, "accent-color") && self->found_accent_colors) {
+      adw_settings_impl_set_accent_color (ADW_SETTINGS_IMPL (self),
+                                          get_fdo_accent_color (value));
+
+      g_variant_unref (value);
+
+      return;
+    }
   }
 
   if (!g_strcmp0 (namespace, "org.gnome.desktop.a11y.interface") &&
       !g_strcmp0 (name, "high-contrast") &&
-      self->high_contrast_portal_state == HIGH_CONTRAST_STATE_GNOME ) {
+      self->high_contrast_portal_state == HIGH_CONTRAST_STATE_GNOME) {
     adw_settings_impl_set_high_contrast (ADW_SETTINGS_IMPL (self),
                                          g_variant_get_boolean (value));
+
+    g_variant_unref (value);
+    return;
+  }
+
+  if (!g_strcmp0 (namespace, "org.gnome.desktop.interface")) {
+    if (!g_strcmp0 (name, "document-font-name")) {
+      adw_settings_impl_set_document_font_name (ADW_SETTINGS_IMPL (self),
+                                                g_variant_get_string (value, NULL));
+      g_variant_unref (value);
+      return;
+    }
+
+    if (!g_strcmp0 (name, "monospace-font-name")) {
+      adw_settings_impl_set_monospace_font_name (ADW_SETTINGS_IMPL (self),
+                                                 g_variant_get_string (value, NULL));
+      g_variant_unref (value);
+      return;
+    }
   }
 
   g_variant_unref (value);
@@ -198,10 +238,22 @@ adw_settings_impl_portal_init (AdwSettingsImplPortal *self)
 {
 }
 
+static gboolean
+is_running_in_flatpak (void)
+{
+#ifndef G_OS_WIN32
+  return g_file_test ("/.flatpak-info", G_FILE_TEST_EXISTS);
+#else
+  return FALSE;
+#endif
+}
+
 AdwSettingsImpl *
-adw_settings_impl_portal_new (gboolean get_theme_name,
-                              gboolean enable_color_scheme,
-                              gboolean enable_high_contrast)
+adw_settings_impl_portal_new (gboolean enable_color_scheme,
+                              gboolean enable_high_contrast,
+                              gboolean enable_accent_colors,
+                              gboolean enable_document_font_name,
+                              gboolean enable_monospace_font_name)
 {
   AdwSettingsImplPortal *self = g_object_new (ADW_TYPE_SETTINGS_IMPL_PORTAL, NULL);
   GError *error = NULL;
@@ -226,16 +278,6 @@ adw_settings_impl_portal_new (gboolean get_theme_name,
     return ADW_SETTINGS_IMPL (self);
   }
 
-  if (get_theme_name &&
-      read_setting (self, "org.gnome.desktop.interface",
-                    "gtk-theme", "s", &variant)) {
-
-    adw_settings_impl_set_theme_name (ADW_SETTINGS_IMPL (self),
-                                      g_variant_get_string (variant, NULL));
-
-    g_variant_unref (variant);
-  }
-
   if (enable_color_scheme &&
       read_setting (self, "org.freedesktop.appearance",
                     "color-scheme", "u", &variant)) {
@@ -249,7 +291,7 @@ adw_settings_impl_portal_new (gboolean get_theme_name,
 
   if (enable_high_contrast) {
     if (read_setting (self, "org.freedesktop.appearance",
-                    "contrast", "u", &variant)) {
+                      "contrast", "u", &variant)) {
       self->high_contrast_portal_state = HIGH_CONTRAST_STATE_FDO;
 
       adw_settings_impl_set_high_contrast (ADW_SETTINGS_IMPL (self),
@@ -257,7 +299,7 @@ adw_settings_impl_portal_new (gboolean get_theme_name,
 
       g_variant_unref (variant);
     } else if (read_setting (self, "org.gnome.desktop.a11y.interface",
-                    "high-contrast", "b", &variant)) {
+               "high-contrast", "b", &variant)) {
       self->high_contrast_portal_state = HIGH_CONTRAST_STATE_GNOME;
 
       adw_settings_impl_set_high_contrast (ADW_SETTINGS_IMPL (self),
@@ -266,14 +308,56 @@ adw_settings_impl_portal_new (gboolean get_theme_name,
     }
   }
 
-  adw_settings_impl_set_features (ADW_SETTINGS_IMPL (self),
-                                  self->found_theme_name,
-                                  self->found_color_scheme,
-                                  self->high_contrast_portal_state != HIGH_CONTRAST_STATE_NONE);
+  if (enable_accent_colors &&
+      read_setting (self, "org.freedesktop.appearance",
+                    "accent-color", "(ddd)", &variant)) {
+    self->found_accent_colors = TRUE;
 
-  if (self->found_theme_name || self->found_color_scheme || self->high_contrast_portal_state != HIGH_CONTRAST_STATE_NONE)
+    adw_settings_impl_set_accent_color (ADW_SETTINGS_IMPL (self),
+                                        get_fdo_accent_color (variant));
+
+    g_variant_unref (variant);
+  }
+
+  if (is_running_in_flatpak ()) {
+    if (enable_document_font_name &&
+        read_setting (self, "org.gnome.desktop.interface",
+                      "document-font-name", "s", &variant)) {
+      self->found_document_font_name = TRUE;
+
+      adw_settings_impl_set_document_font_name (ADW_SETTINGS_IMPL (self),
+                                                g_variant_get_string (variant, NULL));
+
+      g_variant_unref (variant);
+    }
+
+    if (enable_monospace_font_name &&
+        read_setting (self, "org.gnome.desktop.interface",
+                      "monospace-font-name", "s", &variant)) {
+      self->found_monospace_font_name = TRUE;
+
+      adw_settings_impl_set_monospace_font_name (ADW_SETTINGS_IMPL (self),
+                                                 g_variant_get_string (variant, NULL));
+
+      g_variant_unref (variant);
+    }
+  }
+
+  adw_settings_impl_set_features (ADW_SETTINGS_IMPL (self),
+                                  self->found_color_scheme,
+                                  self->high_contrast_portal_state != HIGH_CONTRAST_STATE_NONE,
+                                  self->found_accent_colors,
+                                  self->found_document_font_name,
+                                  self->found_monospace_font_name);
+
+  if (self->found_color_scheme ||
+      self->high_contrast_portal_state != HIGH_CONTRAST_STATE_NONE ||
+      self->found_accent_colors ||
+      self->found_document_font_name ||
+      self->found_monospace_font_name) {
     g_signal_connect (self->settings_portal, "g-signal",
                       G_CALLBACK (changed_cb), self);
+  }
 
   return ADW_SETTINGS_IMPL (self);
 }

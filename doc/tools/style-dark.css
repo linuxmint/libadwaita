@@ -1,4 +1,0 @@
-.overview-tab-page {
-  background: image(alpha(black, .25)),
-              linear-gradient(to bottom right, @blue_5, @green_5 80%);
-}

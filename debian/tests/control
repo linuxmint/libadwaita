@@ -1,15 +1,17 @@
 Tests: build-test
 Depends: build-essential,
          libadwaita-1-dev,
-         pkg-config,
+         pkgconf,
          xauth,
          xvfb
-Restrictions: superficial
+Restrictions: allow-stderr,
+              superficial
 
-Test-Command: LIBGL_ALWAYS_SOFTWARE=true xvfb-run -a ./debian/tests/python-gi-test
+Test-Command: LIBGL_ALWAYS_SOFTWARE=true xvfb-run -a -s "-screen 0 1024x768x24 -noreset" -e /proc/self/fd/2 ./debian/tests/python-gi-test
 Depends: gir1.2-adw-1,
          python3,
          python3-gi,
          xauth,
          xvfb
-Restrictions: superficial
+Restrictions: allow-stderr,
+              superficial

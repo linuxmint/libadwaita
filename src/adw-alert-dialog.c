@@ -11,9 +11,11 @@
 
 #include "adw-alert-dialog.h"
 
+#include "adw-bin.h"
 #include "adw-dialog-private.h"
 #include "adw-gizmo-private.h"
 #include "adw-gtkbuilder-utils-private.h"
+#include "adw-length-unit.h"
 #include "adw-marshalers.h"
 #include "adw-widget-utils-private.h"
 
@@ -77,8 +79,7 @@
  * ## Async API
  *
  * `AdwAlertDialog` can also be used via the [method@AlertDialog.choose] method.
- * This API follows the GIO async pattern, and the result can be obtained by
- * calling [method@AlertDialog.choose_finish], for example:
+ * This API follows the GIO async pattern, for example:
  *
  * ```c
  * static void
@@ -123,7 +124,7 @@
  *
  * `AdwAlertDialog` supports adding responses in UI definitions by via the
  * `<responses>` element that may contain multiple `<response>` elements, each
- * respresenting a response.
+ * representing a response.
  *
  * Each of the `<response>` elements must have the `id` attribute specifying the
  * response ID. The contents of the element are used as the response label.
@@ -171,8 +172,13 @@
  * Since: 1.2
  */
 
-#define DIALOG_MAX_WIDTH 550
+#define DIALOG_MAX_WIDTH 372 /* sp, not px */
+#define DIALOG_MAX_WIDE_WIDTH 600 /* sp, not px */
+#define DIALOG_PREFERRED_WIDTH 300 /* sp, not px */
 #define DIALOG_MIN_WIDTH 300
+#define BUTTON_SPACING 12
+#define RESPONSE_HORZ_PADDING 48
+#define RESPONSE_HORZ_PADDING_SHORT 36
 
 typedef struct {
   AdwAlertDialog *dialog;
@@ -182,15 +188,18 @@ typedef struct {
   gboolean enabled;
 
   GtkWidget *button;
-  GtkWidget *separator;
 } ResponseInfo;
 
 typedef struct
 {
   GtkWidget *contents;
   GtkWidget *window_handle;
+  GtkWidget *scrolled_window;
+  GtkWidget *heading_bin;
   GtkWidget *heading_label;
+  GtkWidget *heading_label_small;
   GtkWidget *body_label;
+  GtkWidget *child_bin;
   GtkBox *message_area;
   GtkWidget *response_area;
 
@@ -199,13 +208,17 @@ typedef struct
   char *body;
   gboolean body_use_markup;
   GtkWidget *child;
+  gboolean prefer_wide_layout;
 
-  GList *responses;
+  GPtrArray *responses;
   GHashTable *id_to_response;
   GQuark default_response;
   GQuark close_response;
 
   gboolean block_close_response;
+  gboolean is_short;
+
+  GBinding *child_visible_binding;
 } AdwAlertDialogPrivate;
 
 static void adw_alert_dialog_buildable_init (GtkBuildableIface *iface);
@@ -223,6 +236,7 @@ enum {
   PROP_BODY,
   PROP_BODY_USE_MARKUP,
   PROP_EXTRA_CHILD,
+  PROP_PREFER_WIDE_LAYOUT,
   PROP_DEFAULT_RESPONSE,
   PROP_CLOSE_RESPONSE,
   LAST_PROP,
@@ -252,20 +266,27 @@ find_response (AdwAlertDialog *self,
   return g_hash_table_lookup (priv->id_to_response, id);
 }
 
-static void
-button_clicked_cb (ResponseInfo *info)
+
+static inline void
+emit_response (AdwAlertDialog *self, GQuark response)
 {
-  AdwAlertDialog *self = info->dialog;
   AdwAlertDialogPrivate *priv = adw_alert_dialog_get_instance_private (self);
 
   g_object_ref (self);
   priv->block_close_response = TRUE;
 
   adw_dialog_close (ADW_DIALOG (self));
-  g_signal_emit (self, signals[SIGNAL_RESPONSE], info->id, g_quark_to_string (info->id));
+  g_signal_emit (self, signals[SIGNAL_RESPONSE], response, g_quark_to_string (response));
 
   priv->block_close_response = FALSE;
   g_object_unref (self);
+}
+
+
+static void
+button_clicked_cb (ResponseInfo *info)
+{
+  emit_response (info->dialog, info->id);
 }
 
 static GtkWidget *
@@ -274,15 +295,14 @@ create_response_button (AdwAlertDialog *self,
 {
   GtkWidget *button = gtk_button_new_with_mnemonic (info->label);
 
-  gtk_widget_add_css_class (button, "flat");
   gtk_button_set_can_shrink (GTK_BUTTON (button), TRUE);
 
   switch (info->appearance) {
   case ADW_RESPONSE_SUGGESTED:
-    gtk_widget_add_css_class (button, "suggested");
+    gtk_widget_add_css_class (button, "suggested-action");
     break;
   case ADW_RESPONSE_DESTRUCTIVE:
-    gtk_widget_add_css_class (button, "destructive");
+    gtk_widget_add_css_class (button, "destructive-action");
     break;
   case ADW_RESPONSE_DEFAULT:
   default:
@@ -340,56 +360,164 @@ static void
 adw_alert_dialog_map (GtkWidget *widget)
 {
   AdwAlertDialog *self = ADW_ALERT_DIALOG (widget);
-  AdwAlertDialogPrivate *priv = adw_alert_dialog_get_instance_private (self);
-  GtkWidget *focus, *default_widget;
   GtkWidget *window;
 
   GTK_WIDGET_CLASS (adw_alert_dialog_parent_class)->map (widget);
 
   window = adw_dialog_get_window (ADW_DIALOG (self));
 
-  if (window)
+  if (window) {
     gtk_widget_add_css_class (window, "alert");
+    gtk_widget_grab_focus (widget);
+  }
+}
 
-  /* The rest of the function was copied from gtkdialog.c */
+static gboolean
+adw_alert_dialog_grab_focus (GtkWidget *widget)
+{
+  AdwAlertDialog *self = ADW_ALERT_DIALOG (widget);
+  AdwAlertDialogPrivate *priv = adw_alert_dialog_get_instance_private (self);
+  GtkWidget *focus;
+  gboolean ret;
+
   focus = adw_dialog_get_focus (ADW_DIALOG (self));
+
+  ret = GTK_WIDGET_CLASS (adw_alert_dialog_parent_class)->grab_focus (widget);
+
   if (!focus) {
-    GtkWidget *extra_child = adw_alert_dialog_get_extra_child (self);
-    GtkWidget *first_focus = NULL;
-    GList *l;
+    GtkWidget *default_widget;
+    guint i;
 
-    if (extra_child) {
-      do {
-        g_signal_emit_by_name (extra_child, "move-focus", GTK_DIR_TAB_FORWARD);
+    if (adw_widget_grab_focus_child (priv->scrolled_window)) {
+      focus = adw_dialog_get_focus (ADW_DIALOG (self));
 
-        focus = adw_dialog_get_focus (ADW_DIALOG (self));
+      if (GTK_IS_LABEL (focus) && !gtk_label_get_current_uri (GTK_LABEL (focus)))
+        gtk_label_select_region (GTK_LABEL (focus), 0, 0);
 
-        if (GTK_IS_LABEL (focus) &&
-            !gtk_label_get_current_uri (GTK_LABEL (focus)))
-          gtk_label_select_region (GTK_LABEL (focus), 0, 0);
-
-        if (first_focus == NULL)
-          first_focus = focus;
-        else if (first_focus == focus)
-          break;
-
-        if (!GTK_IS_LABEL (focus))
-          break;
-      } while (TRUE);
+      return TRUE;
     }
 
     default_widget = adw_dialog_get_default_widget (ADW_DIALOG (self));
-    for (l = priv->responses; l; l = l->next) {
-      ResponseInfo *response = l->data;
+    if (default_widget)
+      return gtk_widget_grab_focus (default_widget);
 
-      if ((focus == NULL || response->button == focus) &&
-           response->button != default_widget &&
-           default_widget) {
-        gtk_widget_grab_focus (default_widget);
-        break;
-      }
+    for (i = 0; i < priv->responses->len; i++) {
+      ResponseInfo *response = g_ptr_array_index (priv->responses, i);
+
+      if (!response->enabled)
+        continue;
+
+      return gtk_widget_grab_focus (response->button);
     }
   }
+
+  return ret;
+}
+
+static GtkSizeRequestMode
+get_heading_request_mode (GtkWidget *widget)
+{
+  return GTK_SIZE_REQUEST_HEIGHT_FOR_WIDTH;
+}
+
+static void
+measure_heading (GtkWidget      *widget,
+                 GtkOrientation  orientation,
+                 int             for_size,
+                 int            *minimum,
+                 int            *natural,
+                 int            *minimum_baseline,
+                 int            *natural_baseline)
+{
+  AdwAlertDialog *self = g_object_get_data (G_OBJECT (widget), "-adw-alert-dialog");
+  AdwAlertDialogPrivate *priv = adw_alert_dialog_get_instance_private (self);
+  int large_min, large_nat, small_min, small_nat, for_size_large_label;
+
+  if (priv->is_short) {
+    gtk_widget_measure (priv->heading_label_small, orientation, for_size,
+                        minimum, natural, NULL, NULL);
+
+    if (minimum_baseline)
+      *minimum_baseline = -1;
+    if (natural_baseline)
+      *natural_baseline = -1;
+
+    return;
+  }
+
+  if (orientation == GTK_ORIENTATION_HORIZONTAL) {
+    gtk_widget_measure (priv->heading_label, GTK_ORIENTATION_HORIZONTAL, -1,
+                        &for_size_large_label, NULL, NULL, NULL);
+  } else {
+    for_size_large_label = -1;
+  }
+
+  gtk_widget_measure (priv->heading_label, orientation, for_size_large_label,
+                      &large_min, &large_nat, NULL, NULL);
+  gtk_widget_measure (priv->heading_label_small, orientation, for_size,
+                      &small_min, &small_nat, NULL, NULL);
+
+  if (orientation == GTK_ORIENTATION_HORIZONTAL) {
+    if (minimum)
+      *minimum = MIN (large_min, small_min);
+    if (natural)
+      *natural = MAX (large_nat, small_nat);
+  } else {
+    if (for_size < 0) {
+      if (minimum)
+        *minimum = MAX (large_min, small_min);
+      if (natural)
+        *natural = MAX (large_nat, small_nat);
+    } else {
+      int large_width;
+
+      gtk_widget_measure (priv->heading_label, GTK_ORIENTATION_HORIZONTAL, -1,
+                          NULL, &large_width, NULL, NULL);
+
+      if (minimum)
+        *minimum = (large_width > for_size) ? small_min : large_min;
+      if (natural)
+        *natural = (large_width > for_size) ? small_nat : large_nat;
+    }
+  }
+
+  if (minimum_baseline)
+    *minimum_baseline = -1;
+  if (natural_baseline)
+    *natural_baseline = -1;
+}
+
+static void
+allocate_heading (GtkWidget *widget,
+                  int        width,
+                  int        height,
+                  int        baseline)
+{
+  AdwAlertDialog *self = g_object_get_data (G_OBJECT (widget), "-adw-alert-dialog");
+  AdwAlertDialogPrivate *priv = adw_alert_dialog_get_instance_private (self);
+  gboolean small_label;
+
+  if (priv->is_short) {
+    small_label = TRUE;
+  } else {
+    int large_nat;
+
+    gtk_widget_measure (priv->heading_label, GTK_ORIENTATION_HORIZONTAL, -1,
+                        NULL, &large_nat, NULL, NULL);
+
+    small_label = large_nat > width;
+  }
+
+  if (gtk_widget_get_child_visible (priv->heading_label) == small_label)
+    gtk_widget_set_child_visible (priv->heading_label, !small_label);
+
+  if (gtk_widget_get_child_visible (priv->heading_label_small) != small_label)
+    gtk_widget_set_child_visible (priv->heading_label_small, small_label);
+
+  if (small_label)
+    gtk_widget_allocate (priv->heading_label_small, width, height, baseline, NULL);
+  else
+    gtk_widget_allocate (priv->heading_label, width, height, baseline, NULL);
 }
 
 static void
@@ -400,14 +528,14 @@ measure_responses_do (AdwAlertDialog *self,
                       int            *natural)
 {
   AdwAlertDialogPrivate *priv = adw_alert_dialog_get_instance_private (self);
-  GList *l;
+  guint i;
   int min = 0, nat = 0;
   int button_min = 0, button_nat = 0;
   int n_buttons = 0;
   gboolean horiz = (orientation == GTK_ORIENTATION_HORIZONTAL);
 
-  for (l = priv->responses; l; l = l->next) {
-    ResponseInfo *response = l->data;
+  for (i = 0; i < priv->responses->len; i++) {
+    ResponseInfo *response = g_ptr_array_index (priv->responses, i);
     int child_min, child_nat;
 
     gtk_widget_measure (response->button, orientation, -1,
@@ -425,17 +553,9 @@ measure_responses_do (AdwAlertDialog *self,
       nat += child_nat;
     }
 
-    if (response->separator) {
-      gtk_widget_measure (response->separator, orientation, -1,
-                          &child_min, &child_nat, NULL, NULL);
-
-      if (horiz == compact) {
-        min = MAX (min, child_min);
-        nat = MAX (nat, child_nat);
-      } else {
-        min += child_min;
-        nat += child_nat;
-      }
+    if (horiz != compact && i + 1 < priv->responses->len) {
+      min += BUTTON_SPACING;
+      nat += BUTTON_SPACING;
     }
   }
 
@@ -465,19 +585,21 @@ measure_responses (GtkWidget      *widget,
                    int            *minimum_baseline,
                    int            *natural_baseline)
 {
-  AdwAlertDialog *self = ADW_ALERT_DIALOG (gtk_widget_get_ancestor (widget, ADW_TYPE_ALERT_DIALOG));
+  AdwAlertDialog *self = g_object_get_data (G_OBJECT (widget), "-adw-alert-dialog");
+  AdwAlertDialogPrivate *priv = adw_alert_dialog_get_instance_private (self);
 
   if (orientation == GTK_ORIENTATION_HORIZONTAL) {
     measure_responses_do (self, TRUE, orientation, minimum, NULL);
     measure_responses_do (self, FALSE, orientation, NULL, natural);
   } else {
     int wide_nat = 0;
+    gboolean use_compact_layout;
 
     if (for_size >= 0)
       measure_responses_do (self, FALSE, GTK_ORIENTATION_HORIZONTAL, NULL, &wide_nat);
 
-    measure_responses_do (self, for_size >= 0 && for_size < wide_nat,
-                          orientation, minimum, natural);
+    use_compact_layout = for_size >= 0 && wide_nat > for_size && !priv->is_short;
+    measure_responses_do (self, use_compact_layout, orientation, minimum, natural);
   }
 
   if (minimum_baseline)
@@ -494,35 +616,25 @@ allocate_responses (GtkWidget *widget,
 {
   AdwAlertDialog *self = ADW_ALERT_DIALOG (gtk_widget_get_ancestor (widget, ADW_TYPE_ALERT_DIALOG));
   AdwAlertDialogPrivate *priv = adw_alert_dialog_get_instance_private (self);
-  gboolean compact;
+  gboolean vertical;
   int wide_nat;
 
   measure_responses_do (self, FALSE, GTK_ORIENTATION_HORIZONTAL, NULL, &wide_nat);
 
-  compact = wide_nat > width;
+  vertical = wide_nat > width && !priv->is_short;
 
-  if (compact)
+  if (vertical)
     gtk_widget_add_css_class (widget, "compact");
   else
     gtk_widget_remove_css_class (widget, "compact");
 
-  if (compact) {
+  if (vertical) {
     int pos = height;
-    GList *l;
+    guint i;
 
-    for (l = priv->responses; l; l = l->next) {
-      ResponseInfo *response = l->data;
+    for (i = 0; i < priv->responses->len; i++) {
+      ResponseInfo *response = g_ptr_array_index (priv->responses, i);
       int child_height;
-
-      if (response->separator) {
-        gtk_widget_measure (response->separator, GTK_ORIENTATION_VERTICAL, -1,
-                            &child_height, NULL, NULL, NULL);
-
-        pos -= child_height;
-
-        gtk_widget_allocate (response->separator, width, child_height, -1,
-                             gsk_transform_translate (NULL, &GRAPHENE_POINT_INIT (0, pos)));
-      }
 
       gtk_widget_measure (response->button, GTK_ORIENTATION_VERTICAL, -1,
                           &child_height, NULL, NULL, NULL);
@@ -531,48 +643,19 @@ allocate_responses (GtkWidget *widget,
 
       gtk_widget_allocate (response->button, width, child_height, -1,
                            gsk_transform_translate (NULL, &GRAPHENE_POINT_INIT (0, pos)));
+
+      pos -= BUTTON_SPACING;
     }
   } else {
     gboolean is_rtl = gtk_widget_get_direction (widget) == GTK_TEXT_DIR_RTL;
     int pos = is_rtl ? width : 0;
-    int n_buttons = g_list_length (priv->responses);
-    int total_width = width;
-    int button_width;
-    GList *l;
+    int n_buttons = priv->responses->len;
+    int total_width = width - BUTTON_SPACING * MAX (0, (n_buttons - 1));
+    int button_width = (int) ceil ((double) total_width / n_buttons);
+    guint i;
 
-    for (l = priv->responses; l; l = l->next) {
-      ResponseInfo *response = l->data;
-      int separator_width;
-
-      if (!response->separator)
-        continue;
-
-      gtk_widget_measure (response->separator, GTK_ORIENTATION_HORIZONTAL, -1,
-                          &separator_width, NULL, NULL, NULL);
-
-      total_width -= separator_width;
-    }
-
-    button_width = (int) ceil ((double) total_width / n_buttons);
-
-    for (l = priv->responses; l; l = l->next) {
-      ResponseInfo *response = l->data;
-
-      if (response->separator) {
-        int separator_width;
-
-        gtk_widget_measure (response->separator, GTK_ORIENTATION_HORIZONTAL, -1,
-                            &separator_width, NULL, NULL, NULL);
-
-        if (is_rtl)
-          pos -= separator_width;
-
-        gtk_widget_allocate (response->separator, separator_width, height, -1,
-                             gsk_transform_translate (NULL, &GRAPHENE_POINT_INIT (pos, 0)));
-
-        if (!is_rtl)
-          pos += separator_width;
-      }
+    for (i = 0; i < priv->responses->len; i++) {
+      ResponseInfo *response = g_ptr_array_index (priv->responses, i);
 
       button_width = MIN (button_width, total_width);
 
@@ -585,7 +668,9 @@ allocate_responses (GtkWidget *widget,
                            gsk_transform_translate (NULL, &GRAPHENE_POINT_INIT (pos, 0)));
 
       if (!is_rtl)
-        pos += button_width;
+        pos += button_width + BUTTON_SPACING;
+      else
+        pos -= BUTTON_SPACING;
     }
   }
 }
@@ -599,7 +684,7 @@ measure_child (GtkWidget      *widget,
                int            *min_baseline,
                int            *nat_baseline)
 {
-  AdwAlertDialog *self = ADW_ALERT_DIALOG (gtk_widget_get_ancestor (widget, ADW_TYPE_ALERT_DIALOG));
+  AdwAlertDialog *self = g_object_get_data (G_OBJECT (widget), "-adw-alert-dialog");
   AdwAlertDialogPrivate *priv = adw_alert_dialog_get_instance_private (self);
   int max_size, min_size, base_nat;
 
@@ -607,18 +692,68 @@ measure_child (GtkWidget      *widget,
                       &min_size, &base_nat, NULL, NULL);
 
   if (orientation == GTK_ORIENTATION_HORIZONTAL) {
-    int wide_nat, narrow_nat;
+    int pref_width, wide_nat, narrow_nat, heading_nat;
+    int regular_max_size;
 
     min_size = MAX (min_size, DIALOG_MIN_WIDTH);
-    max_size = DIALOG_MAX_WIDTH;
 
-    measure_responses_do (self, FALSE, GTK_ORIENTATION_HORIZONTAL, NULL, &wide_nat);
-    measure_responses_do (self, TRUE, GTK_ORIENTATION_HORIZONTAL, NULL, &narrow_nat);
+    pref_width = adw_length_unit_to_px (ADW_LENGTH_UNIT_SP,
+                                        DIALOG_PREFERRED_WIDTH,
+                                        gtk_widget_get_settings (widget));
 
-    narrow_nat = MAX (narrow_nat, DIALOG_MIN_WIDTH);
+    if (gtk_widget_get_visible (priv->heading_bin)) {
+      gtk_widget_measure (priv->heading_bin, orientation, -1,
+                          NULL, &heading_nat, NULL, NULL);
+    } else {
+      heading_nat = 0;
+    }
 
-    if (max_size < wide_nat)
-      max_size = MIN (max_size, narrow_nat);
+    measure_responses_do (self, FALSE, orientation, NULL, &wide_nat);
+    measure_responses_do (self, TRUE, orientation, NULL, &narrow_nat);
+
+    if (priv->is_short) {
+      wide_nat += RESPONSE_HORZ_PADDING_SHORT;
+      narrow_nat += RESPONSE_HORZ_PADDING_SHORT;
+    } else {
+      wide_nat += RESPONSE_HORZ_PADDING;
+      narrow_nat += RESPONSE_HORZ_PADDING;
+    }
+
+    narrow_nat = MAX (narrow_nat, pref_width);
+    heading_nat = CLAMP (heading_nat, narrow_nat, wide_nat);
+
+    regular_max_size = adw_length_unit_to_px (ADW_LENGTH_UNIT_SP,
+                                              DIALOG_MAX_WIDTH,
+                                              gtk_widget_get_settings (widget));
+
+    if (priv->responses->len > 1 && wide_nat > min_size) {
+      /* The dialog would be too wide, prefer vertical layout */
+
+      if (priv->prefer_wide_layout || priv->is_short) {
+        int wide_max_size = adw_length_unit_to_px (ADW_LENGTH_UNIT_SP,
+                                                   DIALOG_MAX_WIDE_WIDTH,
+                                                   gtk_widget_get_settings (widget));
+
+        /* Can we fit horizontal buttons into a larger max width? */
+        if (wide_nat > wide_max_size) {
+          /* Nope, too wide - just use vertical layout even with
+           * prefer-wide-layout=true. However, if we're short on vertical space,
+           * make buttons horizontal and give them as much space as needed, so
+           * they don't ellipsize */
+          max_size = priv->is_short ? wide_nat : regular_max_size;
+        } else {
+          /* They fit, so use horizontal buttons */
+          max_size = MIN (wide_nat, wide_max_size);
+        }
+      } else {
+        /* We have vertical room and prefer-wide-layout is off -> vertical layout.
+         * Since it's taller, try to make it narrower instead */
+        max_size = MIN (regular_max_size, heading_nat);
+      }
+    } else {
+      /* Just use horizontal layout */
+      max_size = regular_max_size;
+    }
   } else {
     max_size = G_MAXINT;
   }
@@ -641,10 +776,24 @@ allocate_child (GtkWidget *widget,
                 int        height,
                 int        baseline)
 {
-  AdwAlertDialog *self = ADW_ALERT_DIALOG (gtk_widget_get_ancestor (widget, ADW_TYPE_ALERT_DIALOG));
+  AdwAlertDialog *self = g_object_get_data (G_OBJECT (widget), "-adw-alert-dialog");
   AdwAlertDialogPrivate *priv = adw_alert_dialog_get_instance_private (self);
 
   gtk_widget_allocate (priv->window_handle, width, height, baseline, NULL);
+}
+
+static void
+css_classes_changed_cb (AdwAlertDialog *self)
+{
+  AdwAlertDialogPrivate *priv = adw_alert_dialog_get_instance_private (self);
+  gboolean is_short = gtk_widget_has_css_class (GTK_WIDGET (self), "short");
+
+  if (is_short == priv->is_short)
+    return;
+
+  priv->is_short = is_short;
+
+  gtk_widget_queue_resize (priv->contents);
 }
 
 static void
@@ -670,6 +819,9 @@ adw_alert_dialog_get_property (GObject    *object,
     break;
   case PROP_EXTRA_CHILD:
     g_value_set_object (value, adw_alert_dialog_get_extra_child (self));
+    break;
+  case PROP_PREFER_WIDE_LAYOUT:
+    g_value_set_boolean (value, adw_alert_dialog_get_prefer_wide_layout (self));
     break;
   case PROP_DEFAULT_RESPONSE:
     g_value_set_string (value, adw_alert_dialog_get_default_response (self));
@@ -706,6 +858,9 @@ adw_alert_dialog_set_property (GObject      *object,
   case PROP_EXTRA_CHILD:
     adw_alert_dialog_set_extra_child (self, g_value_get_object (value));
     break;
+  case PROP_PREFER_WIDE_LAYOUT:
+    adw_alert_dialog_set_prefer_wide_layout (self, g_value_get_boolean (value));
+    break;
   case PROP_DEFAULT_RESPONSE:
     adw_alert_dialog_set_default_response (self, g_value_get_string (value));
     break;
@@ -725,11 +880,7 @@ adw_alert_dialog_dispose (GObject *object)
 
   priv->child = NULL;
 
-  if (priv->responses) {
-    g_list_free_full (priv->responses, (GDestroyNotify) response_info_free);
-    priv->responses = NULL;
-  }
-
+  g_clear_pointer (&priv->responses, g_ptr_array_unref);
   g_clear_pointer (&priv->id_to_response, g_hash_table_unref);
 
   G_OBJECT_CLASS (adw_alert_dialog_parent_class)->dispose (object);
@@ -760,11 +911,12 @@ adw_alert_dialog_class_init (AdwAlertDialogClass *klass)
   object_class->finalize = adw_alert_dialog_finalize;
 
   widget_class->map = adw_alert_dialog_map;
+  widget_class->grab_focus = adw_alert_dialog_grab_focus;
 
   dialog_class->closed = adw_alert_dialog_closed;
 
   /**
-   * AdwAlertDialog:heading: (attributes org.gtk.Property.get=adw_alert_dialog_get_heading org.gtk.Property.set=adw_alert_dialog_set_heading)
+   * AdwAlertDialog:heading:
    *
    * The heading of the dialog.
    *
@@ -776,7 +928,7 @@ adw_alert_dialog_class_init (AdwAlertDialogClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwAlertDialog:heading-use-markup: (attributes org.gtk.Property.get=adw_alert_dialog_get_heading_use_markup org.gtk.Property.set=adw_alert_dialog_set_heading_use_markup)
+   * AdwAlertDialog:heading-use-markup:
    *
    * Whether the heading includes Pango markup.
    *
@@ -790,7 +942,7 @@ adw_alert_dialog_class_init (AdwAlertDialogClass *klass)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwAlertDialog:body: (attributes org.gtk.Property.get=adw_alert_dialog_get_body org.gtk.Property.set=adw_alert_dialog_set_body)
+   * AdwAlertDialog:body:
    *
    * The body text of the dialog.
    *
@@ -802,7 +954,7 @@ adw_alert_dialog_class_init (AdwAlertDialogClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwAlertDialog:body-use-markup: (attributes org.gtk.Property.get=adw_alert_dialog_get_body_use_markup org.gtk.Property.set=adw_alert_dialog_set_body_use_markup)
+   * AdwAlertDialog:body-use-markup:
    *
    * Whether the body text includes Pango markup.
    *
@@ -816,7 +968,7 @@ adw_alert_dialog_class_init (AdwAlertDialogClass *klass)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwAlertDialog:extra-child: (attributes org.gtk.Property.get=adw_alert_dialog_get_extra_child org.gtk.Property.set=adw_alert_dialog_set_extra_child)
+   * AdwAlertDialog:extra-child:
    *
    * The child widget.
    *
@@ -830,14 +982,43 @@ adw_alert_dialog_class_init (AdwAlertDialogClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwAlertDialog:default-response: (attributes org.gtk.Property.get=adw_alert_dialog_get_default_response org.gtk.Property.set=adw_alert_dialog_set_default_response)
+   * AdwAlertDialog:prefer-wide-layout:
+   *
+   * Whether to prefer horizontal button layout.
+   *
+   * `AdwAlertDialog` can present buttons horizontally or vertically depending
+   * on available space, how many buttons there are and how wide they are.
+   *
+   * By default it will prefer to stack buttons vertically at medium sizes.
+   *
+   * Set to `TRUE` to prefer horizontal layout in these cases instead. This will
+   * make the dialog slightly wider as well.
+   *
+   * Vertical layout may still be used if the dialog would get too wide
+   * otherwise.
+   *
+   * Does nothing with just one button, or when the buttons are already
+   * horizontal.
+   *
+   * Since: 1.6
+   */
+  props[PROP_PREFER_WIDE_LAYOUT] =
+    g_param_spec_boolean ("prefer-wide-layout", NULL, NULL,
+                          FALSE,
+                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
+
+  /**
+   * AdwAlertDialog:default-response:
    *
    * The response ID of the default response.
    *
-   * If set, pressing <kbd>Enter</kbd> will activate the corresponding button.
+   * The button corresponding to this response will be set as the default widget
+   * of the dialog.
    *
-   * If set to `NULL` or a non-existent response ID, pressing <kbd>Enter</kbd>
-   * will do nothing.
+   * If not set, the default widget will not be set, and the last added response
+   * will be focused by default.
+   *
+   * See [property@Dialog:default-widget].
    *
    * Since: 1.5
    */
@@ -847,7 +1028,7 @@ adw_alert_dialog_class_init (AdwAlertDialogClass *klass)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwAlertDialog:close-response: (attributes org.gtk.Property.get=adw_alert_dialog_get_close_response org.gtk.Property.set=adw_alert_dialog_set_close_response)
+   * AdwAlertDialog:close-response:
    *
    * The ID of the close response.
    *
@@ -902,12 +1083,16 @@ adw_alert_dialog_class_init (AdwAlertDialogClass *klass)
 
   gtk_widget_class_bind_template_child_private (widget_class, AdwAlertDialog, contents);
   gtk_widget_class_bind_template_child_private (widget_class, AdwAlertDialog, window_handle);
+  gtk_widget_class_bind_template_child_private (widget_class, AdwAlertDialog, scrolled_window);
+  gtk_widget_class_bind_template_child_private (widget_class, AdwAlertDialog, heading_bin);
   gtk_widget_class_bind_template_child_private (widget_class, AdwAlertDialog, heading_label);
+  gtk_widget_class_bind_template_child_private (widget_class, AdwAlertDialog, heading_label_small);
   gtk_widget_class_bind_template_child_private (widget_class, AdwAlertDialog, body_label);
+  gtk_widget_class_bind_template_child_private (widget_class, AdwAlertDialog, child_bin);
   gtk_widget_class_bind_template_child_private (widget_class, AdwAlertDialog, message_area);
   gtk_widget_class_bind_template_child_private (widget_class, AdwAlertDialog, response_area);
 
-  gtk_widget_class_set_accessible_role (widget_class, GTK_ACCESSIBLE_ROLE_DIALOG);
+  gtk_widget_class_set_accessible_role (widget_class, GTK_ACCESSIBLE_ROLE_ALERT_DIALOG);
 
   g_type_ensure (ADW_TYPE_GIZMO);
 }
@@ -921,14 +1106,24 @@ adw_alert_dialog_init (AdwAlertDialog *self)
 
   priv->heading = g_strdup ("");
   priv->body = g_strdup ("");
+  priv->responses = g_ptr_array_new_full (0, (GDestroyNotify) response_info_free);
   priv->id_to_response = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 
   gtk_widget_init_template (GTK_WIDGET (self));
+
+  g_object_set_data (G_OBJECT (priv->contents), "-adw-alert-dialog", self);
+  g_object_set_data (G_OBJECT (priv->heading_bin), "-adw-alert-dialog", self);
+  g_object_set_data (G_OBJECT (priv->response_area), "-adw-alert-dialog", self);
 
   gtk_widget_set_layout_manager (priv->contents,
                                  gtk_custom_layout_new (adw_widget_get_request_mode,
                                                         measure_child,
                                                         allocate_child));
+
+  gtk_widget_set_layout_manager (priv->heading_bin,
+                                 gtk_custom_layout_new (get_heading_request_mode,
+                                                        measure_heading,
+                                                        allocate_heading));
 
   gtk_widget_set_layout_manager (priv->response_area,
                                  gtk_custom_layout_new (get_responses_request_mode,
@@ -940,10 +1135,20 @@ adw_alert_dialog_init (AdwAlertDialog *self)
   adw_gizmo_set_grab_focus_func (ADW_GIZMO (priv->contents),
                             (AdwGizmoGrabFocusFunc) adw_widget_grab_focus_child);
 
+  adw_gizmo_set_focus_func (ADW_GIZMO (priv->heading_bin),
+                            (AdwGizmoFocusFunc) adw_widget_focus_child);
+  adw_gizmo_set_grab_focus_func (ADW_GIZMO (priv->heading_bin),
+                            (AdwGizmoGrabFocusFunc) adw_widget_grab_focus_child);
+
   adw_gizmo_set_focus_func (ADW_GIZMO (priv->response_area),
                             (AdwGizmoFocusFunc) adw_widget_focus_child);
   adw_gizmo_set_grab_focus_func (ADW_GIZMO (priv->response_area),
                             (AdwGizmoGrabFocusFunc) adw_widget_grab_focus_child);
+
+  g_signal_connect (self, "notify::css-classes",
+                    G_CALLBACK (css_classes_changed_cb), self);
+
+  css_classes_changed_cb (self);
 }
 
 /* Custom tag handling was copied and modified
@@ -1159,10 +1364,12 @@ adw_alert_dialog_buildable_add_child (GtkBuildable *buildable,
 {
   AdwAlertDialog *self = ADW_ALERT_DIALOG (buildable);
 
-  if (GTK_IS_WIDGET (child))
+  if (GTK_IS_WIDGET (child)) {
+    gtk_buildable_child_deprecation_warning (buildable, builder, NULL, "extra-child");
     adw_alert_dialog_set_extra_child (self, GTK_WIDGET (child));
-  else
+  } else {
     parent_buildable_iface->add_child (buildable, builder, child, type);
+  }
 }
 
 static void
@@ -1217,7 +1424,7 @@ adw_alert_dialog_new (const char *heading,
 }
 
 /**
- * adw_alert_dialog_get_heading: (attributes org.gtk.Method.get_property=heading)
+ * adw_alert_dialog_get_heading:
  * @self: an alert dialog
  *
  * Gets the heading of @self.
@@ -1239,7 +1446,7 @@ adw_alert_dialog_get_heading (AdwAlertDialog *self)
 }
 
 /**
- * adw_alert_dialog_set_heading: (attributes org.gtk.Method.set_property=heading)
+ * adw_alert_dialog_set_heading:
  * @self: an alert dialog
  * @heading: (nullable): the heading of @self
  *
@@ -1262,7 +1469,9 @@ adw_alert_dialog_set_heading (AdwAlertDialog *self,
     return;
 
   gtk_label_set_label (GTK_LABEL (priv->heading_label), heading);
-  gtk_widget_set_visible (priv->heading_label, heading && *heading);
+  gtk_label_set_label (GTK_LABEL (priv->heading_label_small), heading);
+
+  gtk_widget_set_visible (priv->heading_bin, heading && *heading);
 
   if (heading && *heading)
     gtk_widget_add_css_class (GTK_WIDGET (priv->message_area), "has-heading");
@@ -1275,7 +1484,7 @@ adw_alert_dialog_set_heading (AdwAlertDialog *self,
 }
 
 /**
- * adw_alert_dialog_get_heading_use_markup: (attributes org.gtk.Method.get_property=heading-use-markup)
+ * adw_alert_dialog_get_heading_use_markup:
  * @self: an alert dialog
  *
  * Gets whether the heading of @self includes Pango markup.
@@ -1297,7 +1506,7 @@ adw_alert_dialog_get_heading_use_markup (AdwAlertDialog *self)
 }
 
 /**
- * adw_alert_dialog_set_heading_use_markup: (attributes org.gtk.Method.set_property=heading-use-markup)
+ * adw_alert_dialog_set_heading_use_markup:
  * @self: an alert dialog
  * @use_markup: whether to use markup for heading
  *
@@ -1325,6 +1534,7 @@ adw_alert_dialog_set_heading_use_markup (AdwAlertDialog *self,
   priv->heading_use_markup = use_markup;
 
   gtk_label_set_use_markup (GTK_LABEL (priv->heading_label), use_markup);
+  gtk_label_set_use_markup (GTK_LABEL (priv->heading_label_small), use_markup);
 
   update_window_title (self);
 
@@ -1425,7 +1635,7 @@ adw_alert_dialog_format_heading_markup (AdwAlertDialog *self,
 }
 
 /**
- * adw_alert_dialog_get_body: (attributes org.gtk.Method.get_property=body)
+ * adw_alert_dialog_get_body:
  * @self: an alert dialog
  *
  * Gets the body text of @self.
@@ -1447,7 +1657,7 @@ adw_alert_dialog_get_body (AdwAlertDialog *self)
 }
 
 /**
- * adw_alert_dialog_set_body: (attributes org.gtk.Method.set_property=body)
+ * adw_alert_dialog_set_body:
  * @self: an alert dialog
  * @body: the body of @self
  *
@@ -1481,7 +1691,7 @@ adw_alert_dialog_set_body (AdwAlertDialog *self,
 }
 
 /**
- * adw_alert_dialog_get_body_use_markup: (attributes org.gtk.Method.get_property=body-use-markup)
+ * adw_alert_dialog_get_body_use_markup:
  * @self: an alert dialog
  *
  * Gets whether the body text of @self includes Pango markup.
@@ -1503,7 +1713,7 @@ adw_alert_dialog_get_body_use_markup (AdwAlertDialog *self)
 }
 
 /**
- * adw_alert_dialog_set_body_use_markup: (attributes org.gtk.Method.set_property=body-use-markup)
+ * adw_alert_dialog_set_body_use_markup:
  * @self: an alert dialog
  * @use_markup: whether to use markup for body text
  *
@@ -1628,7 +1838,7 @@ adw_alert_dialog_format_body_markup (AdwAlertDialog *self,
 }
 
 /**
- * adw_alert_dialog_get_extra_child: (attributes org.gtk.Method.get_property=extra-child)
+ * adw_alert_dialog_get_extra_child:
  * @self: an alert dialog
  *
  * Gets the child widget of @self.
@@ -1650,7 +1860,7 @@ adw_alert_dialog_get_extra_child (AdwAlertDialog *self)
 }
 
 /**
- * adw_alert_dialog_set_extra_child: (attributes org.gtk.Method.set_property=extra-child)
+ * adw_alert_dialog_set_extra_child:
  * @self: an alert dialog
  * @child: (nullable): the child widget
  *
@@ -1669,23 +1879,96 @@ adw_alert_dialog_set_extra_child (AdwAlertDialog *self,
   g_return_if_fail (ADW_IS_ALERT_DIALOG (self));
   g_return_if_fail (child == NULL || GTK_IS_WIDGET (child));
 
-  if (child)
-    g_return_if_fail (gtk_widget_get_parent (child) == NULL);
-
   priv = adw_alert_dialog_get_instance_private (self);
 
   if (child == priv->child)
     return;
 
-  if (priv->child)
-    gtk_box_remove (priv->message_area, priv->child);
+  if (child)
+    g_return_if_fail (gtk_widget_get_parent (child) == NULL);
+
+  g_clear_pointer (&priv->child_visible_binding, g_binding_unbind);
 
   priv->child = child;
+  adw_bin_set_child (ADW_BIN (priv->child_bin), child);
 
-  if (priv->child)
-    gtk_box_append (priv->message_area, priv->child);
+  if (child) {
+    priv->child_visible_binding =
+      g_object_bind_property (child, "visible",
+                              priv->child_bin, "visible",
+                              G_BINDING_SYNC_CREATE);
+  } else {
+    gtk_widget_set_visible (priv->child_bin, FALSE);
+  }
 
   g_object_notify_by_pspec (G_OBJECT (self), props[PROP_EXTRA_CHILD]);
+}
+
+/**
+ * adw_alert_dialog_get_prefer_wide_layout:
+ * @self: an alert dialog
+ *
+ * Gets whether @self prefers horizontal button layout.
+ *
+ * Returns: whether to prefer wide layout
+ *
+ * Since: 1.5
+ */
+gboolean
+adw_alert_dialog_get_prefer_wide_layout (AdwAlertDialog *self)
+{
+  AdwAlertDialogPrivate *priv;
+
+  g_return_val_if_fail (ADW_IS_ALERT_DIALOG (self), FALSE);
+
+  priv = adw_alert_dialog_get_instance_private (self);
+
+  return priv->prefer_wide_layout;
+}
+
+/**
+ * adw_alert_dialog_set_prefer_wide_layout:
+ * @self: an alert dialog
+ * @prefer_wide_layout: whether to prefer wide layout
+ *
+ * Whether to prefer horizontal button layout.
+ *
+ * `AdwAlertDialog` can present buttons horizontally or vertically depending
+ * on available space, how many buttons there are and how wide they are.
+ *
+ * By default it will prefer to stack buttons vertically at medium sizes.
+ *
+ * Set to `TRUE` to prefer horizontal layout in these cases instead. This will
+ * make the dialog slightly wider as well.
+ *
+ * Vertical layout may still be used if the dialog would get too wide
+ * otherwise.
+ *
+ * Does nothing with just one button, or when the buttons are already
+ * horizontal.
+ *
+ * Since: 1.6
+ */
+void
+adw_alert_dialog_set_prefer_wide_layout (AdwAlertDialog *self,
+                                         gboolean        prefer_wide_layout)
+{
+  AdwAlertDialogPrivate *priv;
+
+  g_return_if_fail (ADW_IS_ALERT_DIALOG (self));
+
+  priv = adw_alert_dialog_get_instance_private (self);
+
+  prefer_wide_layout = !!prefer_wide_layout;
+
+  if (prefer_wide_layout == priv->prefer_wide_layout)
+    return;
+
+  priv->prefer_wide_layout = prefer_wide_layout;
+
+  gtk_widget_queue_resize (priv->contents);
+
+  g_object_notify_by_pspec (G_OBJECT (self), props[PROP_PREFER_WIDE_LAYOUT]);
 }
 
 /**
@@ -1741,15 +2024,10 @@ adw_alert_dialog_add_response (AdwAlertDialog *self,
   info->appearance = ADW_RESPONSE_DEFAULT;
   info->enabled = TRUE;
 
-  if (priv->responses) {
-    info->separator = gtk_separator_new (GTK_ORIENTATION_VERTICAL);
-    gtk_widget_set_parent (info->separator, priv->response_area);
-  }
-
   info->button = create_response_button (self, info);
   gtk_widget_set_parent (info->button, priv->response_area);
 
-  priv->responses = g_list_append (priv->responses, info);
+  g_ptr_array_add (priv->responses, info);
   g_hash_table_insert (priv->id_to_response, g_strdup (id), info);
 
   if (priv->default_response == info->id)
@@ -1790,10 +2068,10 @@ adw_alert_dialog_add_responses (AdwAlertDialog *self,
 
   g_return_if_fail (ADW_IS_ALERT_DIALOG (self));
 
-  va_start (args, first_id);
-
   if (!first_id)
     return;
+
+  va_start (args, first_id);
 
   id = first_id;
   label = va_arg (args, const char *);
@@ -1841,21 +2119,12 @@ adw_alert_dialog_remove_response (AdwAlertDialog *self,
   }
 
   if (priv->default_response == info->id)
-    gtk_window_set_default_widget (GTK_WINDOW (self), NULL);
+    adw_dialog_set_default_widget (ADW_DIALOG (self), NULL);
 
   gtk_widget_unparent (info->button);
 
-  if (info == priv->responses->data && priv->responses->next) {
-    ResponseInfo *next_info = priv->responses->next->data;
-    g_clear_pointer (&next_info->separator, gtk_widget_unparent);
-  } else {
-    g_clear_pointer (&info->separator, gtk_widget_unparent);
-  }
-
-  priv->responses = g_list_remove (priv->responses, info);
+  g_ptr_array_remove (priv->responses, info);
   g_hash_table_remove (priv->id_to_response, id);
-
-  response_info_free (info);
 }
 
 /**
@@ -1959,14 +2228,15 @@ adw_alert_dialog_get_response_appearance (AdwAlertDialog *self,
  *   <img src="alert-dialog-appearance.png" alt="alert-dialog-appearance">
  * </picture>
  *
- * Use `ADW_RESPONSE_SUGGESTED` to mark important responses such as the
- * affirmative action, like the Save button in the example.
+ * Use [enum@Adw.ResponseAppearance.suggested] to mark important responses such
+ * as the affirmative action, like the Save button in the example.
  *
- * Use `ADW_RESPONSE_DESTRUCTIVE` to draw attention to the potentially damaging
- * consequences of using @response. This appearance acts as a warning to the
- * user. The Discard button in the example is using this appearance.
+ * Use [enum@Adw.ResponseAppearance.destructive] to draw attention to the
+ * potentially damaging consequences of using @response. This appearance acts as
+ * a warning to the user. The Discard button in the example is using this
+ * appearance.
  *
- * The default appearance is `ADW_RESPONSE_DEFAULT`.
+ * The default appearance is [enum@Adw.ResponseAppearance.default].
  *
  * Negative responses like Cancel or Close should use the default appearance.
  *
@@ -1993,14 +2263,14 @@ adw_alert_dialog_set_response_appearance (AdwAlertDialog        *self,
   info->appearance = appearance;
 
   if (info->appearance == ADW_RESPONSE_SUGGESTED)
-    gtk_widget_add_css_class (info->button, "suggested");
+    gtk_widget_add_css_class (info->button, "suggested-action");
   else
-    gtk_widget_remove_css_class (info->button, "suggested");
+    gtk_widget_remove_css_class (info->button, "suggested-action");
 
   if (info->appearance == ADW_RESPONSE_DESTRUCTIVE)
-    gtk_widget_add_css_class (info->button, "destructive");
+    gtk_widget_add_css_class (info->button, "destructive-action");
   else
-    gtk_widget_remove_css_class (info->button, "destructive");
+    gtk_widget_remove_css_class (info->button, "destructive-action");
 }
 
 /**
@@ -2074,7 +2344,7 @@ adw_alert_dialog_set_response_enabled (AdwAlertDialog *self,
 }
 
 /**
- * adw_alert_dialog_get_default_response: (attributes org.gtk.Method.get_property=default-response)
+ * adw_alert_dialog_get_default_response:
  * @self: an alert dialog
  *
  * Gets the ID of the default response of @self.
@@ -2099,16 +2369,19 @@ adw_alert_dialog_get_default_response (AdwAlertDialog *self)
 }
 
 /**
- * adw_alert_dialog_set_default_response: (attributes org.gtk.Method.set_property=default-response)
+ * adw_alert_dialog_set_default_response:
  * @self: an alert dialog
  * @response: (nullable): the default response ID
  *
  * Sets the ID of the default response of @self.
  *
- * If set, pressing <kbd>Enter</kbd> will activate the corresponding button.
+ * The button corresponding to this response will be set as the default widget
+ * of @self.
  *
- * If set to `NULL` or to a non-existent response ID, pressing <kbd>Enter</kbd>
- * will do nothing.
+ * If not set, the default widget will not be set, and the last added response
+ * will be focused by default.
+ *
+ * See [property@Dialog:default-widget].
  *
  * Since: 1.5
  */
@@ -2139,7 +2412,7 @@ adw_alert_dialog_set_default_response (AdwAlertDialog *self,
 }
 
 /**
- * adw_alert_dialog_get_close_response: (attributes org.gtk.Method.get_property=close-response)
+ * adw_alert_dialog_get_close_response:
  * @self: an alert dialog
  *
  * Gets the ID of the close response of @self.
@@ -2161,7 +2434,7 @@ adw_alert_dialog_get_close_response (AdwAlertDialog *self)
 }
 
 /**
- * adw_alert_dialog_set_close_response: (attributes org.gtk.Method.set_property=close-response)
+ * adw_alert_dialog_set_close_response:
  * @self: an alert dialog
  * @response: the close response ID
  *
@@ -2243,8 +2516,9 @@ choose_cancelled_cb (GCancellable *cancellable,
                      GTask        *task)
 {
   AdwAlertDialog *self = g_task_get_source_object (task);
+  AdwAlertDialogPrivate *priv = adw_alert_dialog_get_instance_private (self);
 
-  choose_response_cb (self, adw_alert_dialog_get_close_response (self), task);
+  emit_response (self, priv->close_response);
 }
 
 /**
@@ -2253,12 +2527,9 @@ choose_cancelled_cb (GCancellable *cancellable,
  * @parent: (nullable): the parent widget
  * @cancellable: (nullable): a `GCancellable` to cancel the operation
  * @callback: (scope async): a callback to call when the operation is complete
- * @user_data: (closure callback): data to pass to @callback
+ * @user_data: data to pass to @callback
  *
  * This function shows @self to the user.
- *
- * The @callback will be called when the alert is dismissed. It should call
- * [method@AlertDialog.choose_finish] to obtain the result.
  *
  * If the window is an [class@Window] or [class@ApplicationWindow], the dialog
  * will be shown within it. Otherwise, it will be a separate window.

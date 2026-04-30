@@ -18,6 +18,7 @@ test_adw_about_dialog_from_appdata (void)
 
   g_assert_nonnull (dialog);
 
+  g_assert_cmpstr (adw_about_dialog_get_appdata_resource_path (dialog), ==, "/org/gnome/Adwaita1/Test/org.gnome.Adwaita1.Test.metainfo.xml");
   g_assert_cmpstr (adw_about_dialog_get_release_notes (dialog), ==, "<p>Testing Build</p>\n");
   g_assert_cmpstr (adw_about_dialog_get_release_notes_version (dialog), ==, "1.0");
   g_assert_cmpstr (adw_about_dialog_get_version (dialog), ==, "1.0");
@@ -25,7 +26,7 @@ test_adw_about_dialog_from_appdata (void)
   g_assert_cmpstr (adw_about_dialog_get_application_name (dialog), ==, "Adwaita Test");
   g_assert_cmpstr (adw_about_dialog_get_developer_name (dialog), ==, "The GNOME Project");
   g_assert_cmpstr (adw_about_dialog_get_issue_url (dialog), ==, "https://gitlab.gnome.org/GNOME/libadwaita/issues");
-  g_assert_cmpstr (adw_about_dialog_get_support_url (dialog), ==, "http://www.gnome.org/friends/");
+  g_assert_cmpstr (adw_about_dialog_get_support_url (dialog), ==, "https://discourse.gnome.org");
   g_assert_cmpstr (adw_about_dialog_get_website (dialog), ==, "https://gitlab.gnome.org/GNOME/libadwaita");
   g_assert_cmpuint (adw_about_dialog_get_license_type (dialog), ==, GTK_LICENSE_LGPL_2_1);
 
@@ -35,6 +36,7 @@ test_adw_about_dialog_from_appdata (void)
 
   g_assert_nonnull (dialog);
 
+  g_assert_cmpstr (adw_about_dialog_get_appdata_resource_path (dialog), ==, "/org/gnome/Adwaita1/Test/org.gnome.Adwaita1.Test.metainfo.xml");
   g_assert_cmpstr (adw_about_dialog_get_release_notes (dialog), ==, "<p>Testing Build Older</p>\n");
   g_assert_cmpstr (adw_about_dialog_get_release_notes_version (dialog), ==, "0.1");
   g_assert_cmpstr (adw_about_dialog_get_version (dialog), ==, "1.0");
@@ -45,6 +47,7 @@ test_adw_about_dialog_from_appdata (void)
 
   g_assert_nonnull (dialog);
 
+  g_assert_cmpstr (adw_about_dialog_get_appdata_resource_path (dialog), ==, "/org/gnome/Adwaita1/Test/org.gnome.Adwaita1.Test.metainfo.xml");
   g_assert_cmpstr (adw_about_dialog_get_release_notes (dialog), ==, "");
   g_assert_cmpstr (adw_about_dialog_get_release_notes_version (dialog), ==, "");
   g_assert_cmpstr (adw_about_dialog_get_version (dialog), ==, "1.0");
@@ -111,6 +114,7 @@ test_adw_about_dialog_create (void)
                 "license-type", GTK_LICENSE_GPL_3_0,
                 NULL);
 
+  g_assert_null (adw_about_dialog_get_appdata_resource_path (dialog));
   g_assert_cmpstr (adw_about_dialog_get_application_name (dialog), ==, "Example");
   g_assert_cmpstr (adw_about_dialog_get_application_icon (dialog), ==, "org.gnome.Example");
   g_assert_cmpstr (adw_about_dialog_get_developer_name (dialog), ==, "Angela Avery");
@@ -136,6 +140,7 @@ test_adw_about_dialog_create (void)
   adw_about_dialog_add_acknowledgement_section (dialog, "Example", acknowledgements);
   adw_about_dialog_add_legal_section (dialog, "Example", "© 2022 Example", GTK_LICENSE_GPL_3_0, NULL);
   adw_about_dialog_add_legal_section (dialog, "Example", "© 2022 Example", GTK_LICENSE_CUSTOM, "License");
+  adw_about_dialog_add_other_app (dialog, "org.example.App", "Example App", "Example summary");
 
   g_assert_finalize_object (dialog);
 }

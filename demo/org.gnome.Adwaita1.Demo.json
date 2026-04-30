@@ -46,8 +46,8 @@
           "--socket=fallback-x11"
         ]
       },
-      "post-install" : [
-        "desktop-file-edit --remove-key=NoDisplay ${FLATPAK_DEST}/share/applications/org.gnome.Adwaita1.Demo.desktop"
+      "config-opts" : [
+        "--libdir=/app/lib"
       ],
       "sources": [
         {

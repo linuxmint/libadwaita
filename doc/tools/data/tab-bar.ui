@@ -6,11 +6,12 @@
     <property name="title">Tab Bar</property>
     <property name="default-width">600</property>
     <property name="default-height">150</property>
+    <property name="height-request">-1</property>
     <property name="content">
       <object class="AdwToolbarView">
         <property name="top-bar-style">raised</property>
         <child type="top">
-          <object class="GtkHeaderBar"/>
+          <object class="AdwHeaderBar"/>
         </child>
         <child type="top">
           <object class="AdwTabBar">

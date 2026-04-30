@@ -72,6 +72,18 @@ ADW_AVAILABLE_IN_ALL
 void     adw_view_stack_page_set_visible (AdwViewStackPage *self,
                                           gboolean          visible);
 
+ADW_AVAILABLE_IN_1_9
+gboolean adw_view_stack_page_get_starts_section (AdwViewStackPage *self);
+ADW_AVAILABLE_IN_1_9
+void     adw_view_stack_page_set_starts_section (AdwViewStackPage *self,
+                                                 gboolean          starts_section);
+
+ADW_AVAILABLE_IN_1_9
+const char *adw_view_stack_page_get_section_title (AdwViewStackPage *self);
+ADW_AVAILABLE_IN_1_9
+void        adw_view_stack_page_set_section_title (AdwViewStackPage *self,
+                                                   const char       *section_title);
+
 #define ADW_TYPE_VIEW_STACK (adw_view_stack_get_type())
 
 ADW_AVAILABLE_IN_ALL
@@ -134,6 +146,21 @@ gboolean adw_view_stack_get_vhomogeneous (AdwViewStack *self);
 ADW_AVAILABLE_IN_ALL
 void     adw_view_stack_set_vhomogeneous (AdwViewStack *self,
                                           gboolean      vhomogeneous);
+
+ADW_AVAILABLE_IN_1_7
+gboolean adw_view_stack_get_enable_transitions (AdwViewStack *self);
+ADW_AVAILABLE_IN_1_7
+void     adw_view_stack_set_enable_transitions (AdwViewStack *self,
+                                                gboolean      enable_transitions);
+
+ADW_AVAILABLE_IN_1_7
+guint adw_view_stack_get_transition_duration (AdwViewStack *self);
+ADW_AVAILABLE_IN_1_7
+void  adw_view_stack_set_transition_duration (AdwViewStack *self,
+                                              guint         duration);
+
+ADW_AVAILABLE_IN_1_7
+gboolean adw_view_stack_get_transition_running (AdwViewStack *self);
 
 ADW_AVAILABLE_IN_ALL
 GtkSelectionModel *adw_view_stack_get_pages (AdwViewStack *self);

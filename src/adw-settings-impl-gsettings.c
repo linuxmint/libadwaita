@@ -33,15 +33,6 @@ is_running_in_flatpak (void)
 }
 
 static void
-theme_name_changed_cb (AdwSettingsImplGSettings *self)
-{
-  gchar *theme_name = g_settings_get_string (self->interface_settings, "gtk-theme");
-
-  adw_settings_impl_set_theme_name (ADW_SETTINGS_IMPL (self), theme_name);
-  g_free (theme_name);
-}
-
-static void
 color_scheme_changed_cb (AdwSettingsImplGSettings *self)
 {
   AdwSystemColorScheme color_scheme =
@@ -57,6 +48,35 @@ high_contrast_changed_cb (AdwSettingsImplGSettings *self)
     g_settings_get_boolean (self->a11y_settings, "high-contrast");
 
   adw_settings_impl_set_high_contrast (ADW_SETTINGS_IMPL (self), high_contrast);
+}
+
+static void
+accent_color_changed_cb (AdwSettingsImplGSettings *self)
+{
+  AdwAccentColor accent_color =
+    g_settings_get_enum (self->interface_settings, "accent-color");
+
+  adw_settings_impl_set_accent_color (ADW_SETTINGS_IMPL (self), accent_color);
+}
+
+static void
+document_font_name_changed_cb (AdwSettingsImplGSettings *self)
+{
+  char *font_name = g_settings_get_string (self->interface_settings, "document-font-name");
+
+  adw_settings_impl_set_document_font_name (ADW_SETTINGS_IMPL (self), font_name);
+
+  g_free (font_name);
+}
+
+static void
+monospace_font_name_changed_cb (AdwSettingsImplGSettings *self)
+{
+  char *font_name = g_settings_get_string (self->interface_settings, "monospace-font-name");
+
+  adw_settings_impl_set_monospace_font_name (ADW_SETTINGS_IMPL (self), font_name);
+
+  g_free (font_name);
 }
 
 static void
@@ -84,15 +104,19 @@ adw_settings_impl_gsettings_init (AdwSettingsImplGSettings *self)
 }
 
 AdwSettingsImpl *
-adw_settings_impl_gsettings_new (gboolean enable_theme_name,
-                                 gboolean enable_color_scheme,
-                                 gboolean enable_high_contrast)
+adw_settings_impl_gsettings_new (gboolean enable_color_scheme,
+                                 gboolean enable_high_contrast,
+                                 gboolean enable_accent_colors,
+                                 gboolean enable_document_font_name,
+                                 gboolean enable_monospace_font_name)
 {
   AdwSettingsImplGSettings *self = g_object_new (ADW_TYPE_SETTINGS_IMPL_GSETTINGS, NULL);
   GSettingsSchemaSource *source;
-  gboolean found_theme_name = FALSE;
   gboolean found_color_scheme = FALSE;
   gboolean found_high_contrast = FALSE;
+  gboolean found_accent_colors = FALSE;
+  gboolean found_document_font_name = FALSE;
+  gboolean found_monospace_font_name = FALSE;
 
   /* While we can access gsettings in flatpak, we can't do anything useful with
    * them as they aren't propagated from the system. */
@@ -101,38 +125,65 @@ adw_settings_impl_gsettings_new (gboolean enable_theme_name,
 
   source = g_settings_schema_source_get_default ();
 
-  if (enable_theme_name) {
+  if (enable_color_scheme ||
+      enable_accent_colors ||
+      enable_document_font_name ||
+      enable_monospace_font_name) {
     GSettingsSchema *schema =
       g_settings_schema_source_lookup (source, "org.gnome.desktop.interface", TRUE);
 
-    if (schema && g_settings_schema_has_key (schema, "gtk-theme")) {
-      found_theme_name = TRUE;
+    if (schema) {
       self->interface_settings = g_settings_new ("org.gnome.desktop.interface");
 
-      theme_name_changed_cb (self);
-      g_signal_connect_swapped (self->interface_settings,
-                                "changed::gtk-theme",
-                                G_CALLBACK (theme_name_changed_cb),
-                                self);
-    }
+      if (enable_color_scheme &&
+          adw_get_disable_portal () &&
+          g_settings_schema_has_key (schema, "color-scheme")) {
+        found_color_scheme = TRUE;
 
-    g_clear_pointer (&schema, g_settings_schema_unref);
-  }
+        color_scheme_changed_cb (self);
 
-  if (enable_color_scheme && adw_get_disable_portal ()) {
-    GSettingsSchema *schema =
-      g_settings_schema_source_lookup (source, "org.gnome.desktop.interface", TRUE);
+        g_signal_connect_swapped (self->interface_settings,
+                                  "changed::color-scheme",
+                                  G_CALLBACK (color_scheme_changed_cb),
+                                  self);
+      }
 
-    if (schema && g_settings_schema_has_key (schema, "color-scheme")) {
-      found_color_scheme = TRUE;
-      self->interface_settings = g_settings_new ("org.gnome.desktop.interface");
+      if (enable_accent_colors &&
+          adw_get_disable_portal () &&
+          g_settings_schema_has_key (schema, "accent-color")) {
+        found_accent_colors = TRUE;
 
-      color_scheme_changed_cb (self);
+        accent_color_changed_cb (self);
 
-      g_signal_connect_swapped (self->interface_settings,
-                                "changed::color-scheme",
-                                G_CALLBACK (color_scheme_changed_cb),
-                                self);
+        g_signal_connect_swapped (self->interface_settings,
+                                  "changed::accent-color",
+                                  G_CALLBACK (accent_color_changed_cb),
+                                  self);
+      }
+
+      if (enable_document_font_name &&
+          g_settings_schema_has_key (schema, "document-font-name")) {
+        found_document_font_name = TRUE;
+
+        document_font_name_changed_cb (self);
+
+        g_signal_connect_swapped (self->interface_settings,
+                                  "changed::document-font-name",
+                                  G_CALLBACK (document_font_name_changed_cb),
+                                  self);
+      }
+
+      if (enable_monospace_font_name &&
+          g_settings_schema_has_key (schema, "monospace-font-name")) {
+        found_monospace_font_name = TRUE;
+
+        monospace_font_name_changed_cb (self);
+
+        g_signal_connect_swapped (self->interface_settings,
+                                  "changed::monospace-font-name",
+                                  G_CALLBACK (monospace_font_name_changed_cb),
+                                  self);
+      }
     }
 
     g_clear_pointer (&schema, g_settings_schema_unref);
@@ -158,9 +209,11 @@ adw_settings_impl_gsettings_new (gboolean enable_theme_name,
   }
 
   adw_settings_impl_set_features (ADW_SETTINGS_IMPL (self),
-                                  found_theme_name,
                                   found_color_scheme,
-                                  found_high_contrast);
+                                  found_high_contrast,
+                                  found_accent_colors,
+                                  found_document_font_name,
+                                  found_monospace_font_name);
 
   return ADW_SETTINGS_IMPL (self);
 }

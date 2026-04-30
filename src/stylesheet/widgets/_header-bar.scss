@@ -1,10 +1,16 @@
 headerbar {
   min-height: 47px;
-  background-color: $headerbar_bg_color;
-  color: $headerbar_fg_color;
-  box-shadow: inset 0 -1px if($contrast == 'high', $headerbar_border_color, $headerbar_shade_color),
+  background-color: var(--headerbar-bg-color);
+  color: var(--headerbar-fg-color);
+  box-shadow: inset 0 -1px var(--headerbar-shade-color),
               inset  1px 0 $headerbar_border_color,
               inset -1px 0 $headerbar_border_color;
+
+  @media (prefers-contrast: more) {
+    box-shadow: inset 0 -1px $headerbar_border_color,
+                inset  1px 0 $headerbar_border_color,
+                inset -1px 0 $headerbar_border_color;
+  }
 
   margin-left: -1px;
   margin-right: -1px;
@@ -33,7 +39,7 @@ headerbar {
   }
 
   &:backdrop {
-    background-color: $headerbar_backdrop_color;
+    background-color: var(--headerbar-backdrop-color);
     transition: background-color $backdrop_transition;
 
     > windowhandle {
@@ -56,6 +62,10 @@ headerbar {
         min-height: 22px;
         min-width: 22px;
         padding: 4px;
+
+        > image {
+          padding: 3px;
+        }
       }
 
       > .icon {
@@ -65,10 +75,15 @@ headerbar {
   }
 }
 
-window > {
+window:not(.ssd-frame) > {
   .titlebar:not(.flat) {
-    box-shadow: 0 1px if($contrast == 'high', $border_color, gtkalpha($headerbar_shade_color, .5)),
-                0 2px 4px gtkalpha($headerbar_shade_color, .5);
+    box-shadow: 0 1px color-mix(in srgb, var(--headerbar-shade-color) 50%, transparent),
+                0 2px 4px color-mix(in srgb, var(--headerbar-shade-color) 50%, transparent);
+
+    @media (prefers-contrast: more) {
+      box-shadow: 0 1px $border_color,
+                  0 2px 4px color-mix(in srgb, var(--headerbar-shade-color) 50%, transparent);
+    }
   }
 
   .titlebar headerbar:not(.flat) {
@@ -163,20 +178,23 @@ windowcontrols {
   > button {
     min-width: 24px;
     padding: 5px;
-    box-shadow: none;
+
+    &:not(.raised):not(.suggested-action):not(.destructive-action):not(.opaque).image-button {
+      &, &:hover, &:active {
+        background: none;
+        box-shadow: none;
+      }
+    }
 
     > image {
       background-color: $button_color;
       border-radius: 100%;
-      padding: 2px;
+      padding: 4px;
       transition: $button_transition;
-      @if $contrast == 'high' {
+
+      @media (prefers-contrast: more) {
         box-shadow: inset 0 0 0 1px $border_color;
       }
-    }
-
-    &, &:hover, &:active {
-      background: none;
     }
 
     &:hover > image { background-color: $button_hover_color; }
@@ -204,7 +222,7 @@ windowtitle {
     font-size: smaller;
     padding-left: 12px;
     padding-right: 12px;
-    @extend .dim-label;
+    @extend .dimmed;
   }
 }
 
@@ -223,7 +241,7 @@ window.devel {
     background-repeat: repeat-x;
   }
 
-  dialog headerbar > windowhandle {
+  sheet headerbar > windowhandle {
     background-image: unset;
     background-repeat: unset;
   }

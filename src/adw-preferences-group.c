@@ -8,6 +8,7 @@
 
 #include "adw-preferences-group-private.h"
 
+#include "adw-gtkbuilder-utils-private.h"
 #include "adw-preferences-row.h"
 #include "adw-widget-utils-private.h"
 
@@ -28,6 +29,11 @@
  * title and a description. The title will be used by [class@PreferencesDialog]
  * to let the user look for a preference.
  *
+ * The [property@PreferencesGroup:separate-rows] property can be used to
+ * separate the rows within the group, same as when using the
+ * [`.boxed-list-separate`](style-classes.html#boxed-lists-cards) style class
+ * instead of `.boxed-list`.
+ *
  * ## AdwPreferencesGroup as GtkBuildable
  *
  * The `AdwPreferencesGroup` implementation of the [iface@Gtk.Buildable] interface
@@ -44,7 +50,7 @@
  *
  * ## Accessibility
  *
- * `AdwPreferencesGroup` uses the `GTK_ACCESSIBLE_ROLE_GROUP` role.
+ * `AdwPreferencesGroup` uses the [enum@Gtk.AccessibleRole.group] role.
  */
 
 typedef struct
@@ -74,6 +80,7 @@ enum {
   PROP_TITLE,
   PROP_DESCRIPTION,
   PROP_HEADER_SUFFIX,
+  PROP_SEPARATE_ROWS,
   LAST_PROP,
 };
 
@@ -147,28 +154,13 @@ update_header_visibility (AdwPreferencesGroup *self)
 }
 
 static gboolean
-listbox_keynav_failed_cb (AdwPreferencesGroup *self,
-                          GtkDirectionType     direction)
-{
-  GtkWidget *toplevel = GTK_WIDGET (gtk_widget_get_root (GTK_WIDGET (self)));
-
-  if (!toplevel)
-    return FALSE;
-
-  if (direction != GTK_DIR_UP && direction != GTK_DIR_DOWN)
-    return FALSE;
-
-  return gtk_widget_child_focus (toplevel, direction == GTK_DIR_UP ?
-                                 GTK_DIR_TAB_BACKWARD : GTK_DIR_TAB_FORWARD);
-}
-
-static gboolean
 row_has_title (AdwPreferencesRow *row,
                gpointer           user_data)
 {
   const char *title;
 
-  g_assert (ADW_IS_PREFERENCES_ROW (row));
+  if (!ADW_IS_PREFERENCES_ROW (row))
+    return false;
 
   if (!gtk_widget_get_visible (GTK_WIDGET (row)))
     return FALSE;
@@ -196,6 +188,9 @@ adw_preferences_group_get_property (GObject    *object,
   case PROP_HEADER_SUFFIX:
     g_value_set_object (value, adw_preferences_group_get_header_suffix (self));
     break;
+  case PROP_SEPARATE_ROWS:
+    g_value_set_boolean (value, adw_preferences_group_get_separate_rows (self));
+    break;
   default:
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
   }
@@ -218,6 +213,9 @@ adw_preferences_group_set_property (GObject      *object,
     break;
   case PROP_HEADER_SUFFIX:
     adw_preferences_group_set_header_suffix (self, g_value_get_object (value));
+    break;
+  case PROP_SEPARATE_ROWS:
+    adw_preferences_group_set_separate_rows (self, g_value_get_boolean (value));
     break;
   default:
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -248,9 +246,10 @@ adw_preferences_group_class_init (AdwPreferencesGroupClass *klass)
   object_class->dispose = adw_preferences_group_dispose;
 
   widget_class->compute_expand = adw_widget_compute_expand;
+  widget_class->focus = adw_widget_focus_child;
 
   /**
-   * AdwPreferencesGroup:title: (attributes org.gtk.Property.get=adw_preferences_group_get_title org.gtk.Property.set=adw_preferences_group_set_title)
+   * AdwPreferencesGroup:title:
    *
    * The title for this group of preferences.
    */
@@ -260,7 +259,7 @@ adw_preferences_group_class_init (AdwPreferencesGroupClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwPreferencesGroup:description: (attributes org.gtk.Property.get=adw_preferences_group_get_description org.gtk.Property.set=adw_preferences_group_set_description)
+   * AdwPreferencesGroup:description:
    *
    * The description for this group of preferences.
    */
@@ -270,7 +269,7 @@ adw_preferences_group_class_init (AdwPreferencesGroupClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwPreferencesGroup:header-suffix: (attributes org.gtk.Property.get=adw_preferences_group_get_header_suffix org.gtk.Property.set=adw_preferences_group_set_header_suffix)
+   * AdwPreferencesGroup:header-suffix:
    *
    * The header suffix widget.
    *
@@ -286,6 +285,22 @@ adw_preferences_group_class_init (AdwPreferencesGroupClass *klass)
                          GTK_TYPE_WIDGET,
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
+  /**
+   * AdwPreferencesGroup:separate-rows:
+   *
+   * Whether to separate rows.
+   *
+   * Equivalent to using the
+   * [`.boxed-list-separate`](style-classes.html#boxed-lists-cards) style class
+   * on a [class@Gtk.ListBox] instead of `.boxed-list`.
+   *
+   * Since: 1.6
+   */
+  props[PROP_SEPARATE_ROWS] =
+    g_param_spec_boolean ("separate-rows", NULL, NULL,
+                          FALSE,
+                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
+
   g_object_class_install_properties (object_class, LAST_PROP, props);
 
   gtk_widget_class_set_template_from_resource (widget_class,
@@ -296,7 +311,7 @@ adw_preferences_group_class_init (AdwPreferencesGroupClass *klass)
   gtk_widget_class_bind_template_child_private (widget_class, AdwPreferencesGroup, listbox_box);
   gtk_widget_class_bind_template_child_private (widget_class, AdwPreferencesGroup, title);
   gtk_widget_class_bind_template_child_private (widget_class, AdwPreferencesGroup, header_box);
-  gtk_widget_class_bind_template_callback (widget_class, listbox_keynav_failed_cb);
+  gtk_widget_class_bind_template_callback (widget_class, adw_widget_on_vertical_keynav_failed);
 
   gtk_widget_class_set_css_name (widget_class, "preferencesgroup");
   gtk_widget_class_set_accessible_role (widget_class, GTK_ACCESSIBLE_ROLE_GROUP);
@@ -331,12 +346,14 @@ adw_preferences_group_buildable_add_child (GtkBuildable *buildable,
   AdwPreferencesGroup *self = ADW_PREFERENCES_GROUP (buildable);
   AdwPreferencesGroupPrivate *priv = adw_preferences_group_get_instance_private (self);
 
-  if (g_strcmp0 (type, "header-suffix") == 0 && GTK_IS_WIDGET (child))
+  if (g_strcmp0 (type, "header-suffix") == 0 && GTK_IS_WIDGET (child)) {
+    gtk_buildable_child_deprecation_warning (buildable, builder, "header-suffix", "header-suffix");
     adw_preferences_group_set_header_suffix (self, GTK_WIDGET (child));
-  else if (priv->box && GTK_IS_WIDGET (child))
+  } else if (priv->box && GTK_IS_WIDGET (child)) {
     adw_preferences_group_add (self, GTK_WIDGET (child));
-  else
+  } else {
     parent_buildable_iface->add_child (buildable, builder, child, type);
+  }
 }
 
 static void
@@ -378,7 +395,7 @@ adw_preferences_group_add (AdwPreferencesGroup *self,
 
   priv = adw_preferences_group_get_instance_private (self);
 
-  if (ADW_IS_PREFERENCES_ROW (child))
+  if (GTK_IS_LIST_BOX_ROW (child))
     gtk_list_box_append (priv->listbox, child);
   else
     gtk_box_append (priv->listbox_box, child);
@@ -414,7 +431,33 @@ adw_preferences_group_remove (AdwPreferencesGroup *self,
 }
 
 /**
- * adw_preferences_group_get_title: (attributes org.gtk.Method.get_property=title)
+ * adw_preferences_group_get_row:
+ * @self: a preferences group
+ * @index: a row index
+ *
+ * Gets the row at @index.
+ *
+ * Can return `NULL` if @index is larger than the number of rows in the group.
+ *
+ * Returns: (transfer none) (nullable): the row at @index
+ *
+ * Since: 1.8
+ */
+GtkWidget *
+adw_preferences_group_get_row (AdwPreferencesGroup *self,
+                               guint                index)
+{
+  AdwPreferencesGroupPrivate *priv;
+
+  g_return_val_if_fail (ADW_IS_PREFERENCES_GROUP (self), NULL);
+
+  priv = adw_preferences_group_get_instance_private (self);
+
+  return GTK_WIDGET (gtk_list_box_get_row_at_index (priv->listbox, index));
+}
+
+/**
+ * adw_preferences_group_get_title:
  * @self: a preferences group
  *
  * Gets the title of @self.
@@ -430,11 +473,11 @@ adw_preferences_group_get_title (AdwPreferencesGroup *self)
 
   priv = adw_preferences_group_get_instance_private (self);
 
-  return gtk_label_get_text (priv->title);
+  return gtk_label_get_label (priv->title);
 }
 
 /**
- * adw_preferences_group_set_title: (attributes org.gtk.Method.set_property=title)
+ * adw_preferences_group_set_title:
  * @self: a preferences group
  * @title: the title
  *
@@ -453,7 +496,7 @@ adw_preferences_group_set_title (AdwPreferencesGroup *self,
   if (g_strcmp0 (gtk_label_get_label (priv->title), title) == 0)
     return;
 
-  gtk_label_set_label (priv->title, title);
+  gtk_label_set_label (priv->title, title ? title : "");
   update_title_visibility (self);
   update_header_visibility (self);
 
@@ -461,7 +504,7 @@ adw_preferences_group_set_title (AdwPreferencesGroup *self,
 }
 
 /**
- * adw_preferences_group_get_description: (attributes org.gtk.Method.get_property=description)
+ * adw_preferences_group_get_description:
  * @self: a preferences group
  *
  * Gets the description of @self.
@@ -477,11 +520,11 @@ adw_preferences_group_get_description (AdwPreferencesGroup *self)
 
   priv = adw_preferences_group_get_instance_private (self);
 
-  return gtk_label_get_text (priv->description);
+  return gtk_label_get_label (priv->description);
 }
 
 /**
- * adw_preferences_group_set_description: (attributes org.gtk.Method.set_property=description)
+ * adw_preferences_group_set_description:
  * @self: a preferences group
  * @description: (nullable): the description
  *
@@ -509,7 +552,7 @@ adw_preferences_group_set_description (AdwPreferencesGroup *self,
 
 /**
  * adw_preferences_group_get_header_suffix:
- * @self: a `AdwPreferencesGroup`
+ * @self: a preferences group
  *
  * Gets the suffix for @self's header.
  *
@@ -531,7 +574,7 @@ adw_preferences_group_get_header_suffix (AdwPreferencesGroup *self)
 
 /**
  * adw_preferences_group_set_header_suffix:
- * @self: a `AdwPreferencesGroup`
+ * @self: a preferences group
  * @suffix: (nullable): the suffix to set
  *
  * Sets the suffix for @self's header.
@@ -551,13 +594,13 @@ adw_preferences_group_set_header_suffix (AdwPreferencesGroup *self,
   g_return_if_fail (ADW_IS_PREFERENCES_GROUP (self));
   g_return_if_fail (suffix == NULL || GTK_IS_WIDGET (suffix));
 
-  if (suffix)
-    g_return_if_fail (gtk_widget_get_parent (suffix) == NULL);
-
   priv = adw_preferences_group_get_instance_private (self);
 
   if (suffix == priv->header_suffix)
     return;
+
+  if (suffix)
+    g_return_if_fail (gtk_widget_get_parent (suffix) == NULL);
 
   if (priv->header_suffix)
     gtk_box_remove (priv->header_box, priv->header_suffix);
@@ -568,6 +611,102 @@ adw_preferences_group_set_header_suffix (AdwPreferencesGroup *self,
     gtk_box_append (priv->header_box, priv->header_suffix);
 
   update_header_visibility (self);
+
+  g_object_notify_by_pspec (G_OBJECT (self), props[PROP_HEADER_SUFFIX]);
+}
+
+/**
+ * adw_preferences_group_get_separate_rows:
+ * @self: a preferences group
+ *
+ * Gets whether @self's rows are separated.
+ *
+ * Returns: whether rows are separated
+ *
+ * Since: 1.6
+ */
+gboolean
+adw_preferences_group_get_separate_rows (AdwPreferencesGroup *self)
+{
+  AdwPreferencesGroupPrivate *priv;
+
+  g_return_val_if_fail (ADW_IS_PREFERENCES_GROUP (self), FALSE);
+
+  priv = adw_preferences_group_get_instance_private (self);
+
+  return gtk_widget_has_css_class (GTK_WIDGET (priv->listbox), "boxed-list-separate");
+}
+
+/**
+ * adw_preferences_group_set_separate_rows:
+ * @self: a preferences group
+ * @separate_rows: whether to separate rows
+ *
+ * Sets whether @self's rows are separated.
+ *
+ * Equivalent to using the
+ * [`.boxed-list-separate`](style-classes.html#boxed-lists-cards) style class
+ * on a [class@Gtk.ListBox] instead of `.boxed-list`.
+ *
+ * Since: 1.6
+ */
+void
+adw_preferences_group_set_separate_rows (AdwPreferencesGroup *self,
+                                         gboolean             separate_rows)
+{
+  AdwPreferencesGroupPrivate *priv;
+
+  g_return_if_fail (ADW_IS_PREFERENCES_GROUP (self));
+
+  priv = adw_preferences_group_get_instance_private (self);
+
+  separate_rows = !!separate_rows;
+
+  if (separate_rows == adw_preferences_group_get_separate_rows (self))
+    return;
+
+  if (separate_rows) {
+    gtk_widget_add_css_class (GTK_WIDGET (priv->listbox), "boxed-list-separate");
+    gtk_widget_remove_css_class (GTK_WIDGET (priv->listbox), "boxed-list");
+  } else {
+    gtk_widget_add_css_class (GTK_WIDGET (priv->listbox), "boxed-list");
+    gtk_widget_remove_css_class (GTK_WIDGET (priv->listbox), "boxed-list-separate");
+  }
+
+  g_object_notify_by_pspec (G_OBJECT (self), props[PROP_SEPARATE_ROWS]);
+}
+
+/**
+ * adw_preferences_group_bind_model:
+ * @self: a preferences group
+ * @model: (nullable): a list model to bind
+ * @create_row_func: (nullable) (scope notified) (closure user_data) (destroy user_data_free_func):
+ *   a function creating a row for each item, or `NULL` in case @model is `NULL`
+ * @user_data: user data passed to @create_row_func
+ * @user_data_free_func: function for freeing @user_data
+ *
+ * Binds @model to @self.
+ *
+ * See [method@Gtk.ListBox.bind_model].
+ *
+ * Since: 1.8
+ */
+void
+adw_preferences_group_bind_model (AdwPreferencesGroup        *self,
+                                  GListModel                 *model,
+                                  GtkListBoxCreateWidgetFunc  create_row_func,
+                                  gpointer                    user_data,
+                                  GDestroyNotify              user_data_free_func)
+{
+  AdwPreferencesGroupPrivate *priv;
+
+  g_return_if_fail (ADW_IS_PREFERENCES_GROUP (self));
+  g_return_if_fail (model == NULL || G_IS_LIST_MODEL (model));
+  g_return_if_fail (model == NULL || create_row_func != NULL);
+
+  priv = adw_preferences_group_get_instance_private (self);
+
+  gtk_list_box_bind_model (priv->listbox, model, create_row_func, user_data, user_data_free_func);
 }
 
 /**

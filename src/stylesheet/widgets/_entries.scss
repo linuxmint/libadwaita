@@ -10,24 +10,20 @@ entry {
     background-clip: padding-box;
     caret-color: currentColor;
 
-    @if $contrast == 'high' {
+    @media (prefers-contrast: more) {
       box-shadow: inset 0 0 0 1px $border_color;
     }
 
     @include focus-ring($focus-state: ':focus-within');
 
-    .osd &:focus-within {
-      outline-color: $osd_focus_color;
-    }
-
     > text {
       > placeholder {
-        @extend .dim-label;
+        @extend .dimmed;
       }
 
       > block-cursor {
-        color: $view_bg_color;
-        background-color: $view_fg_color;
+        color: var(--view-bg-color);
+        background-color: var(--view-fg-color);
       }
     }
 
@@ -41,34 +37,23 @@ entry {
       }
     }
 
-    &:disabled { filter: opacity($disabled_opacity); }
-
-    // entry error and warning style
-    @each $e_type, $e_color in (error,   $error_color),
-                               (warning, $warning_color),
-                               (success, $success_color) {
-      &.#{$e_type} {
-        @include focus-ring($focus-state: ':focus-within', $fc: gtkalpha(currentColor, $focus_border_opacity));
-
-        > text {
-          > selection:focus-within { background-color: gtkalpha($e_color, .2); }
-
-          > cursor-handle > contents { background-color: currentColor; }
-        }
-
-        > progress > trough > progress {
-          border-color: currentColor;
-        }
-      }
-    }
+    &:disabled { filter: Opacity(var(--disabled-opacity)); }
 
     > image { // icons inside the entry
-      opacity: if($contrast == 'high', .85, .7);
+      opacity: 70%;
 
-      &:hover { opacity: 1; }
+      @media (prefers-contrast: more) {
+        opacity: 85%;
+      }
+
+      &:hover { opacity: 100%; }
 
       &:active {
-        opacity: if($contrast == 'high', .9, .8);
+        opacity: 80%;
+
+        @media (prefers-contrast: more) {
+          opacity: 90%;
+        }
       }
 
       &.left { margin-right: 6px; }
@@ -77,6 +62,10 @@ entry {
 
     &.password image.caps-lock-indicator {
       opacity: $dimmer_opacity;
+
+      @media (prefers-contrast: more) {
+        opacity: $dimmer_opacity_hc;
+      }
     }
 
     &:drop(active) {
@@ -90,18 +79,18 @@ entry {
   > progress {
     margin-bottom: 3px;
 
-    > trough > progress {
-      background-color: transparent;
-      background-image: none;
-      border-radius: 0;
-      border-width: 0 0 2px;
-      border-color: $accent_bg_color;
-      border-style: solid;
-      box-shadow: none;
-    }
-  }
+    > trough {
+      min-height: 2px;
 
-  .osd & > progress > trough > progress {
-    border-color: $osd_fill_bg_color;
+      > progress {
+        background-color: transparent;
+        background-image: none;
+        border-radius: 0;
+        border-width: 0 0 2px;
+        border-color: var(--accent-bg-color);
+        border-style: solid;
+        box-shadow: none;
+      }
+    }
   }
 }

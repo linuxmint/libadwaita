@@ -2,6 +2,9 @@
 <interface domain="libadwaita">
   <requires lib="gtk" version="4.0"/>
   <template class="AdwPreferencesPage" parent="GtkWidget">
+    <accessibility>
+      <relation name="described-by">description</relation>
+    </accessibility>
     <child>
       <object class="GtkScrolledWindow" id="scrolled_window">
         <property name="hscrollbar-policy">never</property>
@@ -19,7 +22,8 @@
                     <property name="wrap-mode">word-char</property>
                     <property name="xalign">0</property>
                     <style>
-                      <class name="dim-label"/>
+                      <class name="body"/>
+                      <class name="dimmed"/>
                       <class name="description"/>
                     </style>
                   </object>

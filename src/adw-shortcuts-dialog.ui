@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface domain="libadwaita">
+  <requires lib="gtk" version="4.0"/>
+  <template class="AdwShortcutsDialog" parent="AdwDialog">
+    <property name="title" translatable="yes">Keyboard Shortcuts</property>
+    <property name="content-width">600</property>
+    <style>
+      <class name="shortcuts"/>
+    </style>
+    <property name="child">
+      <object class="AdwToolbarView">
+        <child type="top">
+          <object class="AdwHeaderBar">
+            <property name="title-widget">
+              <object class="AdwClamp">
+                <property name="maximum-size">400</property>
+                <property name="hexpand">True</property>
+                <property name="child">
+                  <object class="GtkSearchEntry" id="search_entry">
+                    <property name="placeholder-text" translatable="yes">Search shortcuts</property>
+                    <accessibility>
+                      <property name="label" translatable="yes">Search shortcuts</property>
+                    </accessibility>
+                    <signal name="search-started" handler="search_started_cb" swapped="yes"/>
+                    <signal name="search-changed" handler="search_changed_cb" swapped="yes"/>
+                    <signal name="stop-search" handler="stop_search_cb" swapped="yes"/>
+                    <signal name="activate" handler="search_activated_cb" swapped="yes"/>
+                  </object>
+                </property>
+              </object>
+            </property>
+          </object>
+        </child>
+        <property name="content">
+          <object class="AdwViewStack" id="stack">
+            <child>
+              <object class="AdwPreferencesPage" id="contents">
+                <style>
+                  <class name="contents"/>
+                </style>
+                <child>
+                  <object class="AdwPreferencesGroup" id="nav_group">
+                    <child>
+                      <object class="AdwWrapBox" id="nav_box">
+                        <property name="halign">center</property>
+                        <property name="child-spacing">6</property>
+                        <property name="line-spacing">6</property>
+                        <property name="align">0.5</property>
+                        <style>
+                          <class name="navigation-box"/>
+                        </style>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="AdwPreferencesPage" id="search">
+                <child>
+                  <object class="AdwPreferencesGroup">
+                    <child>
+                      <object class="GtkListBox" id="search_list">
+                        <property name="selection-mode">none</property>
+                        <signal name="row-activated" handler="search_row_activated_cb" swapped="yes"/>
+                        <signal name="keynav-failed" handler="adw_widget_on_vertical_keynav_failed" swapped="yes"/>
+                        <style>
+                          <class name="boxed-list"/>
+                        </style>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="AdwStatusPage" id="empty">
+                <property name="icon-name">edit-find-symbolic</property>
+                <property name="title" translatable="yes">No Results Found</property>
+                <property name="description" translatable="yes">Try a different search</property>
+              </object>
+            </child>
+          </object>
+        </property>
+      </object>
+    </property>
+  </template>
+</interface>

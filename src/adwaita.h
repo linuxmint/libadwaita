@@ -10,12 +10,12 @@
 
 G_BEGIN_DECLS
 
-#if !GTK_CHECK_VERSION(4, 13, 4)
-# error "libadwaita requires gtk4 >= 4.13.4"
+#if !GTK_CHECK_VERSION(4, 21, 1)
+# error "libadwaita requires gtk4 >= 4.21.1"
 #endif
 
-#if !GLIB_CHECK_VERSION(2, 76, 0)
-# error "libadwaita requires glib-2.0 >= 2.76.0"
+#if !GLIB_CHECK_VERSION(2, 84, 0)
+# error "libadwaita requires glib-2.0 >= 2.84.0"
 #endif
 
 #define _ADWAITA_INSIDE
@@ -23,6 +23,7 @@ G_BEGIN_DECLS
 #include "adw-version.h"
 #include "adw-about-dialog.h"
 #include "adw-about-window.h"
+#include "adw-accent-color.h"
 #include "adw-action-row.h"
 #include "adw-alert-dialog.h"
 #include "adw-animation.h"
@@ -33,9 +34,11 @@ G_BEGIN_DECLS
 #include "adw-avatar.h"
 #include "adw-banner.h"
 #include "adw-bin.h"
+#include "adw-bottom-sheet.h"
 #include "adw-breakpoint.h"
 #include "adw-breakpoint-bin.h"
 #include "adw-button-content.h"
+#include "adw-button-row.h"
 #include "adw-carousel.h"
 #include "adw-carousel-indicator-dots.h"
 #include "adw-carousel-indicator-lines.h"
@@ -51,10 +54,14 @@ G_BEGIN_DECLS
 #include "adw-flap.h"
 #include "adw-fold-threshold-policy.h"
 #include "adw-header-bar.h"
+#include "adw-inline-view-switcher.h"
+#include "adw-layout.h"
+#include "adw-layout-slot.h"
 #include "adw-leaflet.h"
 #include "adw-length-unit.h"
 #include "adw-main.h"
 #include "adw-message-dialog.h"
+#include "adw-multi-layout-view.h"
 #include "adw-navigation-direction.h"
 #include "adw-navigation-split-view.h"
 #include "adw-navigation-view.h"
@@ -65,7 +72,16 @@ G_BEGIN_DECLS
 #include "adw-preferences-page.h"
 #include "adw-preferences-row.h"
 #include "adw-preferences-window.h"
+#include "adw-shortcut-label.h"
+#include "adw-shortcuts-dialog.h"
+#include "adw-shortcuts-item.h"
+#include "adw-shortcuts-section.h"
+#include "adw-sidebar.h"
+#include "adw-sidebar-item.h"
+#include "adw-sidebar-section.h"
 #include "adw-spin-row.h"
+#include "adw-spinner.h"
+#include "adw-spinner-paintable.h"
 #include "adw-split-button.h"
 #include "adw-spring-animation.h"
 #include "adw-spring-params.h"
@@ -82,13 +98,17 @@ G_BEGIN_DECLS
 #include "adw-timed-animation.h"
 #include "adw-toast-overlay.h"
 #include "adw-toast.h"
+#include "adw-toggle-group.h"
 #include "adw-toolbar-view.h"
 #include "adw-view-stack.h"
 #include "adw-view-switcher.h"
 #include "adw-view-switcher-bar.h"
+#include "adw-view-switcher-sidebar.h"
 #include "adw-view-switcher-title.h"
 #include "adw-window.h"
 #include "adw-window-title.h"
+#include "adw-wrap-box.h"
+#include "adw-wrap-layout.h"
 
 #undef _ADWAITA_INSIDE
 

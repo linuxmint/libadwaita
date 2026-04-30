@@ -9,6 +9,7 @@
 #include "config.h"
 #include "adw-bin.h"
 
+#include "adw-gtkbuilder-utils-private.h"
 #include "adw-widget-utils-private.h"
 
 /**
@@ -105,9 +106,10 @@ adw_bin_class_init (AdwBinClass *klass)
   object_class->set_property = adw_bin_set_property;
 
   widget_class->compute_expand = adw_widget_compute_expand;
+  widget_class->focus = adw_widget_focus_child;
 
   /**
-   * AdwBin:child: (attributes org.gtk.Property.get=adw_bin_get_child org.gtk.Property.set=adw_bin_set_child)
+   * AdwBin:child:
    *
    * The child widget of the `AdwBin`.
    */
@@ -132,10 +134,12 @@ adw_bin_buildable_add_child (GtkBuildable *buildable,
                              GObject      *child,
                              const char   *type)
 {
-  if (GTK_IS_WIDGET (child))
+  if (GTK_IS_WIDGET (child)) {
+    gtk_buildable_child_deprecation_warning (buildable, builder, NULL, "child");
     adw_bin_set_child (ADW_BIN (buildable), GTK_WIDGET (child));
-  else
+  } else {
     parent_buildable_iface->add_child (buildable, builder, child, type);
+  }
 }
 
 static void
@@ -160,7 +164,7 @@ adw_bin_new (void)
 }
 
 /**
- * adw_bin_get_child: (attributes org.gtk.Method.get_property=child)
+ * adw_bin_get_child:
  * @self: a bin
  *
  * Gets the child widget of @self.
@@ -180,7 +184,7 @@ adw_bin_get_child (AdwBin *self)
 }
 
 /**
- * adw_bin_set_child: (attributes org.gtk.Method.set_property=child)
+ * adw_bin_set_child:
  * @self: a bin
  * @child: (nullable): the child widget
  *
@@ -195,13 +199,13 @@ adw_bin_set_child (AdwBin    *self,
   g_return_if_fail (ADW_IS_BIN (self));
   g_return_if_fail (child == NULL || GTK_IS_WIDGET (child));
 
-  if (child)
-    g_return_if_fail (gtk_widget_get_parent (child) == NULL);
-
   priv = adw_bin_get_instance_private (self);
 
   if (priv->child == child)
     return;
+
+  if (child)
+    g_return_if_fail (gtk_widget_get_parent (child) == NULL);
 
   if (priv->child)
     gtk_widget_unparent (priv->child);

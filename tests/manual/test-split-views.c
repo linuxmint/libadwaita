@@ -78,7 +78,39 @@ navigation_cb (void)
   gtk_window_set_title (GTK_WINDOW (window), "Navigation Sidebar");
   adw_window_set_content (ADW_WINDOW (window), view);
   adw_window_add_breakpoint (ADW_WINDOW (window), breakpoint);
-  gtk_widget_set_size_request (window, 360, 200);
+  gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
+
+  gtk_window_present (GTK_WINDOW (window));
+}
+
+static void
+navigation_inverted_cb (void)
+{
+  GtkWidget *window, *view, *button;
+  AdwNavigationPage *sidebar, *content;
+  AdwBreakpoint *breakpoint;
+
+  sidebar = create_page ("sidebar", "Sidebar");
+  content = create_page_with_button ("content", "Content", "Open Sidebar", "navigation.push::sidebar", &button);
+
+  gtk_widget_set_visible (button, FALSE);
+
+  view = adw_navigation_split_view_new ();
+  adw_navigation_split_view_set_sidebar_position (ADW_NAVIGATION_SPLIT_VIEW (view), GTK_PACK_END);
+  adw_navigation_split_view_set_show_content (ADW_NAVIGATION_SPLIT_VIEW (view), TRUE);
+  adw_navigation_split_view_set_sidebar (ADW_NAVIGATION_SPLIT_VIEW (view), sidebar);
+  adw_navigation_split_view_set_content (ADW_NAVIGATION_SPLIT_VIEW (view), content);
+
+  breakpoint = adw_breakpoint_new (adw_breakpoint_condition_parse ("max-width: 400sp"));
+  adw_breakpoint_add_setters (breakpoint,
+                              G_OBJECT (view), "collapsed", TRUE,
+                              G_OBJECT (button), "visible", TRUE,
+                              NULL);
+
+  window = adw_window_new ();
+  gtk_window_set_title (GTK_WINDOW (window), "Navigation Sidebar");
+  adw_window_set_content (ADW_WINDOW (window), view);
+  adw_window_add_breakpoint (ADW_WINDOW (window), breakpoint);
   gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
 
   gtk_window_present (GTK_WINDOW (window));
@@ -133,7 +165,6 @@ overlay_cb (void)
   gtk_window_set_title (GTK_WINDOW (window), "Transient Sidebar");
   adw_window_set_content (ADW_WINDOW (window), view);
   adw_window_add_breakpoint (ADW_WINDOW (window), breakpoint);
-  gtk_widget_set_size_request (window, 360, 200);
   gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
 
   gtk_window_present (GTK_WINDOW (window));
@@ -172,7 +203,6 @@ triple_pane_mail_cb (void)
   window = adw_window_new ();
   gtk_window_set_title (GTK_WINDOW (window), "Mail");
   adw_window_set_content (ADW_WINDOW (window), outer_view);
-  gtk_widget_set_size_request (window, 360, 200);
   gtk_window_set_default_size (GTK_WINDOW (window), 1200, 600);
 
   breakpoint = adw_breakpoint_new (adw_breakpoint_condition_parse ("max-width: 860sp"));
@@ -243,7 +273,6 @@ triple_pane_feeds_cb (void)
   window = adw_window_new ();
   gtk_window_set_title (GTK_WINDOW (window), "Feeds");
   adw_window_set_content (ADW_WINDOW (window), outer_view);
-  gtk_widget_set_size_request (window, 360, 200);
   gtk_window_set_default_size (GTK_WINDOW (window), 1200, 600);
 
   breakpoint = adw_breakpoint_new (adw_breakpoint_condition_parse ("max-width: 860sp"));
@@ -312,7 +341,6 @@ complex_navigation_cb (void)
   gtk_window_set_title (GTK_WINDOW (window), "Navigation Sidebar");
   adw_window_set_content (ADW_WINDOW (window), view);
   adw_window_add_breakpoint (ADW_WINDOW (window), breakpoint);
-  gtk_widget_set_size_request (window, 360, 200);
   gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
 
   gtk_window_present (GTK_WINDOW (window));
@@ -334,6 +362,11 @@ create_content (GtkWindow *parent)
   button = gtk_button_new_with_label ("Navigation");
   gtk_widget_add_css_class (button, "pill");
   g_signal_connect (button, "clicked", G_CALLBACK (navigation_cb), NULL);
+  gtk_box_append (GTK_BOX (box), button);
+
+  button = gtk_button_new_with_label ("Navigation (Inverted)");
+  gtk_widget_add_css_class (button, "pill");
+  g_signal_connect (button, "clicked", G_CALLBACK (navigation_inverted_cb), NULL);
   gtk_box_append (GTK_BOX (box), button);
 
   button = gtk_button_new_with_label ("Overlay");

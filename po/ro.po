@@ -2,15 +2,15 @@
 # Copyright (C) 2020 libhandy's COPYRIGHT HOLDER
 # This file is distributed under the same license as the libhandy package.
 # Florentina Mușat <florentina.musat.28@gmail.com>, 2020.
+# Antonio Marin <gnmer.6qxyg@slmail.me>, 2025-2026.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: libhandy master\n"
 "Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/libadwaita/issues\n"
-"POT-Creation-Date: 2023-07-08 11:22+0000\n"
-"PO-Revision-Date: 2023-08-01 12:16+0300\n"
-"Last-Translator: Florentina Mușat <florentina [dot] musat [dot] 28 [at] "
-"gmail [dot] com>\n"
+"POT-Creation-Date: 2025-12-25 12:43+0000\n"
+"PO-Revision-Date: 2026-01-09 14:39+0100\n"
+"Last-Translator: Antonio Marin <gnmer.6qxyg@slmail.me>\n"
 "Language-Team: Romanian <gnomero-list@lists.sourceforge.net>\n"
 "Language: ro\n"
 "MIME-Version: 1.0\n"
@@ -18,255 +18,461 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < "
 "20)) ? 1 : 2);\n"
-"X-Generator: Poedit 3.3.2\n"
+"X-Generator: Gtranslator 48.0\n"
 
-#: src/adw-about-window.c:206
+#: src/adw-about-dialog.c:214 src/adw-about-window.c:209
 msgid "GNU General Public License, version 2 or later"
 msgstr "Licența Publică Generală GNU, versiunea 2 sau mai nouă"
 
-#: src/adw-about-window.c:207
+#: src/adw-about-dialog.c:215 src/adw-about-window.c:210
 msgid "GNU General Public License, version 3 or later"
 msgstr "Licența Publică Generală GNU, versiunea 3 sau mai nouă"
 
-#: src/adw-about-window.c:208
+#: src/adw-about-dialog.c:216 src/adw-about-window.c:211
 msgid "GNU Lesser General Public License, version 2.1 or later"
 msgstr "Licența Publică Generală Minoră GNU, versiunea 2.1 sau mai nouă"
 
-#: src/adw-about-window.c:209
+#: src/adw-about-dialog.c:217 src/adw-about-window.c:212
 msgid "GNU Lesser General Public License, version 3 or later"
 msgstr "Licența Publică Generală Minoră GNU, versiunea 3 sau mai nouă"
 
-#: src/adw-about-window.c:210
+#: src/adw-about-dialog.c:218 src/adw-about-window.c:213
 msgid "BSD 2-Clause License"
 msgstr "Licența BSD clauza-2"
 
-#: src/adw-about-window.c:211
+#: src/adw-about-dialog.c:219 src/adw-about-window.c:214
 msgid "The MIT License (MIT)"
 msgstr "Licența MIT (MIT)"
 
-#: src/adw-about-window.c:212
+#: src/adw-about-dialog.c:220 src/adw-about-window.c:215
 msgid "Artistic License 2.0"
 msgstr "Licența artistică 2.0"
 
-#: src/adw-about-window.c:213
+#: src/adw-about-dialog.c:221 src/adw-about-window.c:216
 msgid "GNU General Public License, version 2 only"
 msgstr "Licența Publică Generală GNU, doar versiunea 2"
 
-#: src/adw-about-window.c:214
+#: src/adw-about-dialog.c:222 src/adw-about-window.c:217
 msgid "GNU General Public License, version 3 only"
 msgstr "Licența Publică Generală GNU, doar versiunea 3"
 
-#: src/adw-about-window.c:215
+#: src/adw-about-dialog.c:223 src/adw-about-window.c:218
 msgid "GNU Lesser General Public License, version 2.1 only"
 msgstr "Licența Publică Generală Minoră GNU, doar versiunea 2.1"
 
-#: src/adw-about-window.c:216
+#: src/adw-about-dialog.c:224 src/adw-about-window.c:219
 msgid "GNU Lesser General Public License, version 3 only"
 msgstr "Licența Publică Generală Minoră GNU, doar versiunea 3"
 
-#: src/adw-about-window.c:217
+#: src/adw-about-dialog.c:225 src/adw-about-window.c:220
 msgid "GNU Affero General Public License, version 3 or later"
 msgstr "Licența Publică Generală Affero GNU, versiunea 3 sau mai nouă"
 
-#: src/adw-about-window.c:218
+#: src/adw-about-dialog.c:226 src/adw-about-window.c:221
 msgid "GNU Affero General Public License, version 3 only"
 msgstr "Licența Publică Generală Affero GNU, doar versiunea 3"
 
-#: src/adw-about-window.c:219
+#: src/adw-about-dialog.c:227 src/adw-about-window.c:222
 msgid "BSD 3-Clause License"
 msgstr "Licența BSD clauza-3"
 
-#: src/adw-about-window.c:220
+#: src/adw-about-dialog.c:228 src/adw-about-window.c:223
 msgid "Apache License, Version 2.0"
 msgstr "Licența Apache, versiunea 2.0"
 
-#: src/adw-about-window.c:221
+#: src/adw-about-dialog.c:229 src/adw-about-window.c:224
 msgid "Mozilla Public License 2.0"
 msgstr "Licența Publică Mozilla 2.0"
 
-#: src/adw-about-window.c:535
+#: src/adw-about-dialog.c:230 src/adw-about-window.c:225
+msgid "BSD Zero-Clause License"
+msgstr "Licența BSD clauza-zero"
+
+#: src/adw-about-dialog.c:574 src/adw-about-window.c:567
 msgid "Code by"
 msgstr "Cod de"
 
-#: src/adw-about-window.c:536
+#: src/adw-about-dialog.c:575 src/adw-about-window.c:568
 msgid "Design by"
-msgstr "Design de"
+msgstr "Conceput de"
 
-#: src/adw-about-window.c:537
+#: src/adw-about-dialog.c:576 src/adw-about-window.c:569
 msgid "Artwork by"
-msgstr "Artă de"
+msgstr "Grafică de"
 
-#: src/adw-about-window.c:538
+#: src/adw-about-dialog.c:577 src/adw-about-window.c:570
 msgid "Documentation by"
 msgstr "Documentație de"
 
-#: src/adw-about-window.c:539
+#: src/adw-about-dialog.c:578 src/adw-about-window.c:571
 msgid "Translated by"
 msgstr "Tradus de"
 
 #. Translators: this is the license preamble; the string at the end
 #. * contains the name of the license as link text.
 #.
-#: src/adw-about-window.c:568
+#: src/adw-about-dialog.c:607 src/adw-about-window.c:600
 #, c-format
 msgid ""
 "This application comes with absolutely no warranty. See the <a "
 "href=\"%s\">%s</a> for details."
 msgstr ""
-"Această aplicație nu vine cu niciun fel de garanție. Vedeți <a "
+"Această aplicație nu vine cu niciun fel de garanție. A se vedea <a "
 "href=\"%s\">%s</a> pentru detalii."
 
-#: src/adw-about-window.c:646
+#: src/adw-about-dialog.c:685 src/adw-about-window.c:678
 msgid "This Application"
 msgstr "Această aplicație"
 
-#: src/adw-about-window.c:948
+#: src/adw-about-dialog.c:987 src/adw-about-window.c:980
 #, c-format
 msgid "Version %s"
 msgstr "Versiunea %s"
 
-#: src/adw-about-window.c:974
+#: src/adw-about-dialog.c:1013 src/adw-about-window.c:1006
 msgid "Unable to parse release notes:"
-msgstr "Nu se pot parsa notițele de lansare:"
+msgstr "Nu se pot procesa informațiile de lansare:"
 
-#: src/adw-about-window.c:980
+#: src/adw-about-dialog.c:1019 src/adw-about-window.c:1012
 #, c-format
 msgid "Line: %d, character: %d"
-msgstr "Linie: %d, caracter: %d"
+msgstr "Rând: %d, caracter: %d"
 
-#: src/adw-about-window.c:1256
+#: src/adw-about-dialog.c:1280 src/adw-about-window.c:1273
 msgid "Copied to clipboard"
-msgstr "Copiat la clipboard"
+msgstr "Copiat"
 
-#: src/adw-about-window.c:1284
+#: src/adw-about-dialog.c:1307 src/adw-about-window.c:1301
 msgid "Unable to save debugging information"
 msgstr "Nu se pot salva informațiile de depanare"
 
-#: src/adw-about-window.c:1289
+#: src/adw-about-dialog.c:1312 src/adw-about-window.c:1306
+#: src/adw-sheet-controls.c:127
 msgid "Close"
 msgstr "Închide"
 
-#: src/adw-about-window.c:1305
+#: src/adw-about-dialog.c:1329 src/adw-about-window.c:1322
 msgid "Save debugging information"
 msgstr "Salvează informațiile de depanare"
 
-#: src/adw-about-window.ui:5
+#: src/adw-about-dialog.c:2270
+#, c-format
+msgid "Other Apps by %s"
+msgstr "Alte aplicații de %s"
+
+#: src/adw-about-dialog.c:2276
+msgid "Other Apps"
+msgstr "Alte aplicații"
+
+#: src/adw-about-dialog.ui:5 src/adw-about-window.ui:5
 msgid "About"
 msgstr "Despre"
 
-#: src/adw-about-window.ui:91
-msgid "_What’s New"
-msgstr "_Ce este nou"
+#: src/adw-about-dialog.ui:88 src/adw-about-window.ui:91
+msgid "What’s _New"
+msgstr "Ce este _nou"
 
-#: src/adw-about-window.ui:106
+#: src/adw-about-dialog.ui:104 src/adw-about-window.ui:107
 msgid "_Details"
 msgstr "_Detalii"
 
-#: src/adw-about-window.ui:121 src/adw-about-window.ui:331
+#: src/adw-about-dialog.ui:120 src/adw-about-dialog.ui:324
+#: src/adw-about-window.ui:123 src/adw-about-window.ui:322
 msgid "_Website"
-msgstr "_Pagină web"
+msgstr "_Pagina web"
 
-#: src/adw-about-window.ui:144
+#: src/adw-about-dialog.ui:135 src/adw-about-window.ui:138
 msgid "_Support Questions"
-msgstr "Întrebări de _suport"
+msgstr "Întrebări de aju_tor"
 
-#: src/adw-about-window.ui:160
+#: src/adw-about-dialog.ui:144 src/adw-about-window.ui:147
 msgid "_Report an Issue"
 msgstr "_Raportează o problemă"
 
-#: src/adw-about-window.ui:175
+#: src/adw-about-dialog.ui:153 src/adw-about-window.ui:156
 msgid "_Troubleshooting"
-msgstr "_Depanare"
+msgstr "D_epanare"
 
-#: src/adw-about-window.ui:194
+#: src/adw-about-dialog.ui:173 src/adw-about-window.ui:176
 msgid "_Credits"
-msgstr "_Autori"
+msgstr "_Colaboratori"
 
-#: src/adw-about-window.ui:209
+#: src/adw-about-dialog.ui:189 src/adw-about-window.ui:192
 msgid "_Legal"
 msgstr "_Legal"
 
-#: src/adw-about-window.ui:224
+#: src/adw-about-dialog.ui:205 src/adw-about-window.ui:208
 msgid "_Acknowledgements"
 msgstr "_Mulțumiri"
 
-#: src/adw-about-window.ui:253
+#: src/adw-about-dialog.ui:240 src/adw-about-window.ui:238
 msgid "What’s New"
 msgstr "Ce este nou"
 
-#: src/adw-about-window.ui:293
+#: src/adw-about-dialog.ui:286 src/adw-about-window.ui:284
 msgid "Details"
 msgstr "Detalii"
 
-#: src/adw-about-window.ui:358
+#: src/adw-about-dialog.ui:344 src/adw-about-window.ui:342
 msgid "Troubleshooting"
 msgstr "Depanare"
 
-#: src/adw-about-window.ui:381
+#: src/adw-about-dialog.ui:367 src/adw-about-window.ui:365
 msgid ""
 "To assist in troubleshooting, you can view your debugging information. "
 "Providing this information to the application developers can help diagnose "
 "any problems you encounter when you report an issue."
 msgstr ""
-"Pentru a asista la depanare, puteți vizualiza informațiile de depanare. "
-"Furnizarea acestor informații dezvoltatorilor aplicației poate ajuta la "
-"diagnosticarea oricăror probleme pe care le întâlniți când raportați o "
-"problemă."
+"Pentru a ajuta la rezolvarea problemelor, se pot consulta informațiile de "
+"depanare. Transmiterea acestor informații programatorilor aplicației "
+"facilitează diagnosticarea problemelor."
 
-#: src/adw-about-window.ui:392
+#: src/adw-about-dialog.ui:378 src/adw-about-window.ui:376
 msgid "_Debugging Information"
 msgstr "Informații de _depanare"
 
-#: src/adw-about-window.ui:418
+#: src/adw-about-dialog.ui:405 src/adw-about-window.ui:403
 msgid "Debugging Information"
 msgstr "Informații de depanare"
 
-#: src/adw-about-window.ui:460
+#: src/adw-about-dialog.ui:453 src/adw-about-window.ui:451
 msgid "_Copy Text"
 msgstr "_Copiază textul"
 
-#: src/adw-about-window.ui:468
-msgid "_Save as…"
+#: src/adw-about-dialog.ui:461 src/adw-about-window.ui:459
+msgid "_Save As…"
 msgstr "_Salvează ca…"
 
-#: src/adw-about-window.ui:481
+#: src/adw-about-dialog.ui:474 src/adw-about-window.ui:472
 msgid "Credits"
-msgstr "Autori"
+msgstr "Colaboratori"
 
-#: src/adw-about-window.ui:512
+#: src/adw-about-dialog.ui:505 src/adw-about-window.ui:503
 msgid "Legal"
 msgstr "Legal"
 
-#: src/adw-about-window.ui:543
+#: src/adw-about-dialog.ui:537 src/adw-about-window.ui:535
 msgid "Acknowledgements"
 msgstr "Mulțumiri"
 
-#: src/adw-back-button.c:444
+#: src/adw-adaptive-preview.c:387
+msgid "Screenshot Copied to Clipboard"
+msgstr "Instantaneu de ecran copiat"
+
+#: src/adw-adaptive-preview.ui:19 src/adw-inspector-page.c:67
+#: src/adw-inspector-page.ui:88
+msgid "Adaptive Preview"
+msgstr "Previzualizare adaptabilă"
+
+#: src/adw-adaptive-preview.ui:28
+msgid "Display"
+msgstr "Ecran"
+
+#: src/adw-adaptive-preview.ui:31
+msgid "Device"
+msgstr "Aparat"
+
+#: src/adw-adaptive-preview.ui:37
+msgid "Width"
+msgstr "Lățime"
+
+#: src/adw-adaptive-preview.ui:51
+msgid "Height"
+msgstr "Înălțime"
+
+#: src/adw-adaptive-preview.ui:65
+msgid "Rotate"
+msgstr "Rotire"
+
+#: src/adw-adaptive-preview.ui:68 src/adw-adaptive-preview.ui:70
+msgid "Rotate Left"
+msgstr "Rotire la stânga"
+
+#: src/adw-adaptive-preview.ui:80 src/adw-adaptive-preview.ui:82
+msgid "Rotate Right"
+msgstr "Rotire la dreapta"
+
+#: src/adw-adaptive-preview.ui:96
+msgid "Shell"
+msgstr "Interfață"
+
+#: src/adw-adaptive-preview.ui:99
+msgid "Preset"
+msgstr "Prestabilit"
+
+#: src/adw-adaptive-preview.ui:105
+msgid "Top Bar"
+msgstr "Partea de sus"
+
+#: src/adw-adaptive-preview.ui:119
+msgid "Bottom Bar"
+msgstr "Partea de jos"
+
+#: src/adw-adaptive-preview.ui:133
+msgid "Window Controls"
+msgstr "Opțiuni fereastră"
+
+#: src/adw-adaptive-preview.ui:141
+msgid "View"
+msgstr "Vizualizare"
+
+#: src/adw-adaptive-preview.ui:144
+msgid "Scale to Fit"
+msgstr "Adaptează"
+
+#. Translators: screen bezel, e.g. on a phone
+#: src/adw-adaptive-preview.ui:151
+msgid "Highlight Bezel"
+msgstr "Contur de evidențiere"
+
+#: src/adw-adaptive-preview.ui:177
+msgid "Toggle Sidebar"
+msgstr "Arată/Ascunde Panoul lateral"
+
+#: src/adw-adaptive-preview.ui:187
+msgid "Exit"
+msgstr "Închide"
+
+#: src/adw-adaptive-preview.ui:197
+msgid "Take Screenshot"
+msgstr "Instantaneu de ecran"
+
+#: src/adw-adaptive-preview-presets-private.h:24
+msgctxt "Shell preset"
+msgid "Desktop Shell"
+msgstr "Interfață computer"
+
+#: src/adw-adaptive-preview-presets-private.h:25
+msgctxt "Shell preset"
+msgid "Mobile Shell"
+msgstr "Interfață mobil"
+
+#: src/adw-adaptive-preview-presets-private.h:26
+msgctxt "Shell preset"
+msgid "Phosh"
+msgstr "Phosh"
+
+#: src/adw-adaptive-preview-presets-private.h:27
+msgctxt "Shell preset"
+msgid "Fullscreen"
+msgstr "Pe tot ecranul"
+
+#: src/adw-adaptive-preview-presets-private.h:28
+msgctxt "Shell preset"
+msgid "Custom"
+msgstr "Personalizată"
+
+#: src/adw-adaptive-preview-presets-private.h:90
+msgctxt "Device preset"
+msgid "Generic Phone"
+msgstr "Telefon obișnuit"
+
+#: src/adw-adaptive-preview-presets-private.h:99
+msgctxt "Device preset"
+msgid "Generic Tablet"
+msgstr "Tabletă obișnuită"
+
+#: src/adw-adaptive-preview-presets-private.h:108
+msgctxt "Device preset"
+msgid "OnePlus 6"
+msgstr "OnePlus 6"
+
+#: src/adw-adaptive-preview-presets-private.h:117
+msgctxt "Device preset"
+msgid "OnePlus 6T"
+msgstr "OnePlus 6T"
+
+#: src/adw-adaptive-preview-presets-private.h:126
+msgctxt "Device preset"
+msgid "Custom"
+msgstr "Personalizat"
+
+#: src/adw-avatar.c:159
+#, c-format
+msgid "Avatar of %s"
+msgstr "Poza de profil %s"
+
+#: src/adw-back-button.c:313 src/adw-back-button.c:411
+#: src/adw-back-button.c:521
 msgid "Back"
 msgstr "Înapoi"
 
-#: src/adw-combo-row.ui:50
-msgid "Search…"
-msgstr "Caută…"
+#. Translators: This is a placeholder text of the search entry from AdwComboRow. It should be phrased as a verb.
+#: src/adw-combo-row.ui:50 src/adw-preferences-dialog.ui:86
+#: src/adw-preferences-window.ui:97
+msgid "Search"
+msgstr "Caută"
 
-#: src/adw-entry-row.ui:97
+#: src/adw-entry-row.ui:96
 msgid "Apply"
 msgstr "Aplică"
 
-#: src/adw-inspector-page.c:75
+#: src/adw-indicator-bin.c:77
+msgctxt "view switcher button badge"
+msgid "Attention requested."
+msgstr "Atenție solicitată."
+
+#: src/adw-indicator-bin.c:80
+msgctxt "view switcher button badge"
+msgid "Has a badge: more than 999."
+msgstr "Are o insignă: mai mult de 999."
+
+#: src/adw-indicator-bin.c:82
+#, c-format
+msgctxt "view switcher button badge"
+msgid "Has a badge: %u."
+msgstr "Are o insignă: %u."
+
+#: src/adw-inspector-page.c:131
 msgid "No Preference"
 msgstr "Nicio preferință"
 
-#: src/adw-inspector-page.c:77
+#: src/adw-inspector-page.c:133
 msgid "Prefer Dark"
-msgstr "Preferă întunecat"
+msgstr "Preferă întunecos"
 
-#: src/adw-inspector-page.c:79
+#: src/adw-inspector-page.c:135
 msgid "Prefer Light"
-msgstr "Preferă luminat"
+msgstr "Preferă luminos"
+
+#: src/adw-inspector-page.c:148
+msgid "Blue"
+msgstr "Albastru"
+
+#: src/adw-inspector-page.c:150
+msgid "Teal"
+msgstr "Turcoaz"
+
+#: src/adw-inspector-page.c:152
+msgid "Green"
+msgstr "Verde"
+
+#: src/adw-inspector-page.c:154
+msgid "Yellow"
+msgstr "Galben"
+
+#: src/adw-inspector-page.c:156
+msgid "Orange"
+msgstr "Portocaliu"
+
+#: src/adw-inspector-page.c:158
+msgid "Red"
+msgstr "Roșu"
+
+#: src/adw-inspector-page.c:160
+msgid "Pink"
+msgstr "Roz"
+
+#: src/adw-inspector-page.c:162
+msgid "Purple"
+msgstr "Mov"
+
+#: src/adw-inspector-page.c:164
+msgid "Slate"
+msgstr "Gri"
 
 #. Translators: The name of the library, not the stylesheet
-#: src/adw-inspector-page.c:97
+#: src/adw-inspector-page.c:303
 msgid "Adwaita"
 msgstr "Adwaita"
 
@@ -284,15 +490,48 @@ msgstr ""
 
 #: src/adw-inspector-page.ui:14
 msgid "System Supports Color Schemes"
-msgstr "Sistemul suportă scheme de culoare"
+msgstr "Sistemul acceptă combinații de culori"
 
 #: src/adw-inspector-page.ui:20
 msgid "Preferred Color Scheme"
-msgstr "Schemă de culoare preferată"
+msgstr "Combinația de culori preferată"
 
-#: src/adw-inspector-page.ui:37
+#: src/adw-inspector-page.ui:39
+msgid "Accent Color"
+msgstr "Culoare de evidențiere"
+
+#: src/adw-inspector-page.ui:42
+msgid "System Supports Accent Colors"
+msgstr "Sistemul acceptă culori de evidențiere"
+
+#: src/adw-inspector-page.ui:48
+msgid "Preferred Accent Color"
+msgstr "Culoarea preferată  de evidențiere"
+
+#: src/adw-inspector-page.ui:77
+msgid "Accessibility"
+msgstr "Accesibilitate"
+
+#: src/adw-inspector-page.ui:80
 msgid "High Contrast"
-msgstr "Contrast ridicat"
+msgstr "Contrast mare"
+
+#: src/adw-inspector-page.ui:89
+msgid ""
+"Test the app at specific screen sizes to simulate a mobile environment. Open "
+"the preview directly on any supported window using Shift+Ctrl+M"
+msgstr ""
+"Pentru a simula un mediu mobil, se testează aplicația la anumite dimensiuni "
+"ale ecranului. Se folosește Shift+Ctrl+M pentru a deschide previzualizarea "
+"direct în orice fereastră compatibilă"
+
+#: src/adw-link-row.c:327
+msgid "_Open Link"
+msgstr "_Deschide legătura"
+
+#: src/adw-link-row.c:328
+msgid "Copy _Link Address"
+msgstr "Copiază adresa _legăturii"
 
 #: src/adw-password-entry-row.c:70
 msgid "Hide Password"
@@ -304,46 +543,84 @@ msgstr "Arată parola"
 
 #: src/adw-password-entry-row.c:168
 msgid "Caps Lock is on"
-msgstr "Caps Lock este activat"
+msgstr "Blocarea majusculelor este activată"
 
 #: src/adw-password-entry-row.c:176
 msgid "_Show Password"
 msgstr "_Arată parola"
 
-#: src/adw-preferences-window.c:259
+#: src/adw-preferences-dialog.c:217 src/adw-preferences-window.c:218
 msgid "Untitled page"
 msgstr "Pagină fără titlu"
 
-#: src/adw-preferences-window.ui:8
+#: src/adw-preferences-dialog.ui:5 src/adw-preferences-window.ui:8
 msgid "Preferences"
 msgstr "Preferințe"
 
-#: src/adw-preferences-window.ui:81
+#: src/adw-preferences-dialog.ui:70 src/adw-preferences-window.ui:81
 msgid "Search preferences"
-msgstr "Preferințe de căutare"
+msgstr "Caută preferințe"
 
-#: src/adw-preferences-window.ui:96
-msgid "Search"
-msgstr "Caută"
-
-#: src/adw-preferences-window.ui:163
+#: src/adw-preferences-dialog.ui:154 src/adw-preferences-window.ui:164
+#: src/adw-shortcuts-dialog.ui:79
 msgid "No Results Found"
 msgstr "Nu s-au găsit rezultate"
 
-#: src/adw-preferences-window.ui:164 src/adw-tab-overview.ui:111
-msgid "Try a different search."
-msgstr "Încercați o căutare diferită."
+#: src/adw-preferences-dialog.ui:155 src/adw-shortcuts-dialog.ui:80
+#: src/adw-tab-overview.ui:111
+msgid "Try a different search"
+msgstr "Caută altfel"
 
-#: src/adw-split-button.c:519 src/adw-split-button.c:1033
+#: src/adw-preferences-window.ui:165
+msgid "Try a different search."
+msgstr "Caută altfel."
+
+#: src/adw-sheet-controls.c:129
+msgid "Close the window"
+msgstr "Închide fereastra"
+
+#. Translators: This string is used to mark left/right variants of modifier
+#. * keys in the shortcut window (e.g. Control_L vs Control_R). Please keep
+#. * this string very short, ideally just a single character, since it will
+#. * be rendered as part of the key.
+#.
+#: src/adw-shortcut-label.c:133
+msgctxt "keyboard side marker"
+msgid "L"
+msgstr "S"
+
+#. Translators: This string is used to mark left/right variants of modifier
+#. * keys in the shortcut window (e.g. Control_L vs Control_R). Please keep
+#. * this string very short, ideally just a single character, since it will
+#. * be rendered as part of the key.
+#.
+#: src/adw-shortcut-label.c:146
+msgctxt "keyboard side marker"
+msgid "R"
+msgstr "D"
+
+#: src/adw-shortcuts-dialog.ui:5
+msgid "Keyboard Shortcuts"
+msgstr "Scurtături"
+
+#: src/adw-shortcuts-dialog.ui:20 src/adw-shortcuts-dialog.ui:22
+msgid "Search shortcuts"
+msgstr "Caută scurtături"
+
+#: src/adw-shortcut-row.c:257
+msgid "No Shortcut"
+msgstr "Nicio scurtătură"
+
+#: src/adw-split-button.c:530 src/adw-split-button.c:1044
 msgid "More Options"
-msgstr "Mai multe opțiuni"
+msgstr "Alte opțiuni"
 
 #: src/adw-tab-button.ui:7
 msgid "View Open Tabs"
-msgstr "Vizualizează filele deschise"
+msgstr "Arată filele deschise"
 
 #. Translators: Tab overview title, %u is the number of open tabs
-#: src/adw-tab-overview.c:918
+#: src/adw-tab-overview.c:964
 #, c-format
 msgid "%u Tab"
 msgid_plural "%u Tabs"
@@ -351,17 +628,17 @@ msgstr[0] "%u filă"
 msgstr[1] "%u file"
 msgstr[2] "%u de file"
 
-#: src/adw-tab-overview.ui:21
+#: src/adw-tab-overview.ui:20
 msgid "Search Tabs"
-msgstr "Caută filele"
+msgstr "Caută file"
 
-#: src/adw-tab-overview.ui:51
+#: src/adw-tab-overview.ui:50
 msgid "Search tabs"
-msgstr "Caută filele"
+msgstr "Caută file"
 
 #: src/adw-tab-overview.ui:97
 msgid "No Open Tabs"
-msgstr "Nu sunt file deschise"
+msgstr "Nicio filă deschisă"
 
 #: src/adw-tab-overview.ui:110
 msgid "No Tabs Found"
@@ -371,613 +648,29 @@ msgstr "Nu au fost găsite file"
 msgid "New _Tab"
 msgstr "_Filă nouă"
 
-#: src/adw-tab-thumbnail.ui:39 src/adw-tab.ui:95
+#: src/adw-tab-thumbnail.ui:39 src/adw-tab.ui:75
 msgid "Close Tab"
 msgstr "Închide fila"
 
-#~ msgid "This property does not apply unless Show Indicators is set."
-#~ msgstr ""
-#~ "Această proprietate nu se aplică decât dacă Arată Indicatori este "
-#~ "stabilită."
-
-#~ msgid "Insert placeholder to %s"
-#~ msgstr "Inserează substituent pentru %s"
-
-#~ msgid "Remove placeholder from %s"
-#~ msgstr "Elimină substituentul din %s"
-
-#~ msgid "This property does not apply when a custom title is set"
-#~ msgstr ""
-#~ "Această proprietate nu se aplică când un titlu personalizat este stabilit"
-
-#~ msgid ""
-#~ "The decoration layout does not apply to header bars which do no show "
-#~ "window controls"
-#~ msgstr ""
-#~ "Aspectul decorației nu se aplică barelor de antet care nu afișează "
-#~ "controale pentru fereastră"
-
-#~ msgid "This property only applies when the leaflet is folded"
-#~ msgstr "Această proprietate se aplică doar când manifestul este pliat"
-
-#~ msgid "Add group to %s"
-#~ msgstr "Adaugă grupul la %s"
-
-#~ msgid "Add page to %s"
-#~ msgstr "Adaugă pagina la %s"
-
-#~ msgid "Search bar is already full"
-#~ msgstr "Bara de căutare este plină deja"
-
-#~ msgid "Only objects of type %s can be added to objects of type %s."
-#~ msgstr "Doar obiectele de tipul %s pot fi adăugate obiectelor de tip %s."
-
-#~ msgid "Icon name"
-#~ msgstr "Nume iconiță"
-
-#~ msgid "Activatable widget"
-#~ msgstr "Widget care se poate activa"
-
-#~ msgid "The widget to be activated when the row is activated"
-#~ msgstr "Widgetul de activat când rândul este activat"
-
-#~ msgid "Subtitle"
-#~ msgstr "Subitlu"
-
-#~ msgid "Title"
-#~ msgstr "Titlu"
-
-#~ msgid "Use underline"
-#~ msgstr "Utilizează sublinieri"
-
-#~ msgid ""
-#~ "If set, an underline in the text indicates the next character should be "
-#~ "used for the mnemonic accelerator key"
-#~ msgstr ""
-#~ "Dacă este stabilit, o linie de subliniere în text indică faptul că "
-#~ "următorul caracter ar trebui să fie utilizat ca tasta de accelerare "
-#~ "mnemonic"
-
-#~ msgid "Number of pages"
-#~ msgstr "Număr de pagini"
-
-#~ msgid "Position"
-#~ msgstr "Poziționează"
-
-#~ msgid "Current scrolling position"
-#~ msgstr "Poziție de derulare curentă"
-
-#~ msgid "Spacing"
-#~ msgstr "Spațiere"
-
-#~ msgid "Spacing between pages"
-#~ msgstr "Spațiere între pagini"
-
-#~ msgid "Reveal duration"
-#~ msgstr "Durată de dezvăluire"
-
-#~ msgid "Page reveal duration"
-#~ msgstr "Durată de dezvăluire a paginii"
-
-#~ msgid "Interactive"
-#~ msgstr "Interactiv"
-
-#~ msgid "Whether the widget can be swiped"
-#~ msgstr "Dacă widgetul poate fi glisat"
-
-#~ msgid "Indicator style"
-#~ msgstr "Stil de indicator"
-
-#~ msgid "Page indicator style"
-#~ msgstr "Stil de indicator de pagină"
-
-#~ msgid "Indicator spacing"
-#~ msgstr "Spațiere de indicator"
-
-#~ msgid "Spacing between content and indicators"
-#~ msgstr "Spațiere între conținut și indicatori"
-
-#~ msgid "Center content"
-#~ msgstr "Centrează conținutul"
-
-#~ msgid "Whether to center pages to compensate for indicators"
-#~ msgstr "Dacă să se centreze paginile pentru a compensa pentru indicatori"
-
-#~ msgid "Animation duration"
-#~ msgstr "Durata animației"
-
-#~ msgid "Default animation duration"
-#~ msgstr "Durata de animație implicită"
-
-#~ msgid "Allow mouse drag"
-#~ msgstr "Permite tragerea mausului"
-
-#~ msgid "Whether to allow dragging with mouse pointer"
-#~ msgstr "Dacă să se permită tragerea cu indicatorul mausului"
-
-#~ msgid "Maximum size"
-#~ msgstr "Dimensiunea maximă"
-
-#~ msgid "The maximum size allocated to the child"
-#~ msgstr "Dimensiunea maximă alocată la copil"
-
-#~ msgid "Tightening threshold"
-#~ msgstr "Pragul de strângere"
-
-#~ msgid "The size from which the clamp will tighten its grip on the child"
-#~ msgstr ""
-#~ "Dimensiunea de la care clema va strânge strânsoarea asupra copilului"
-
-#~ msgid "Selected index"
-#~ msgstr "Indexul selectat"
-
-#~ msgid "The index of the selected item"
-#~ msgstr "Indexul elementului selectat"
-
-#~ msgid "Use subtitle"
-#~ msgstr "Utilizează subtitrare"
-
-#~ msgid "Set the current value as the subtitle"
-#~ msgstr "Stabilește valoarea curentă ca subtitrare"
-
-#~ msgid "Horizontally homogeneous"
-#~ msgstr "Omogenă orizontal"
-
-#~ msgid "Horizontally homogeneous sizing"
-#~ msgstr "Dimensionare omogenă orizontală"
-
-#~ msgid "Vertically homogeneous"
-#~ msgstr "Omogenă vertical"
-
-#~ msgid "Vertically homogeneous sizing"
-#~ msgstr "Dimensionare verticală omogenă"
-
-#~ msgid "Visible child"
-#~ msgstr "Copil vizibil"
-
-#~ msgid "The widget currently visible"
-#~ msgstr "Widget-ul vizibil curent"
-
-#~ msgid "Name of visible child"
-#~ msgstr "Numele copilului vizibil"
-
-#~ msgid "The name of the widget currently visible"
-#~ msgstr "Numele widget-ului vizibil curent"
-
-#~ msgid "Transition type"
-#~ msgstr "Tip de tranziție"
-
-#~ msgid "The type of animation used to transition between children"
-#~ msgstr "Tipul de animație utilizat pentru tranziția dintre copii"
-
-#~ msgid "Transition duration"
-#~ msgstr "Durata tranziției"
-
-#~ msgid "The transition animation duration, in milliseconds"
-#~ msgstr "Durata animației de tranziție, în milisecunde"
-
-#~ msgid "Transition running"
-#~ msgstr "Tranziția rulează"
-
-#~ msgid "Whether or not the transition is currently running"
-#~ msgstr "Dacă rulează sau nu tranziția în mod curent"
-
-#~ msgid "Interpolate size"
-#~ msgstr "Dimensiune interpolare"
-
-#~ msgid ""
-#~ "Whether or not the size should smoothly change when changing between "
-#~ "differently sized children"
-#~ msgstr ""
-#~ "Dacă ar trebui sau nu să se schimbe neted dimensiunea când se comută "
-#~ "între copiii dimensionați diferit"
-
-#~ msgid "Can swipe back"
-#~ msgstr "Poate să gliseze înapoi"
-
-#~ msgid ""
-#~ "Whether or not swipe gesture can be used to switch to the previous child"
-#~ msgstr ""
-#~ "Dacă se poate sau nu să se utilizeze un gest de glisare pentru a comuta "
-#~ "la copilul anterior"
-
-#~ msgid "Can swipe forward"
-#~ msgstr "Poate să gliseze înainte"
-
-#~ msgid "Whether or not swipe gesture can be used to switch to the next child"
-#~ msgstr ""
-#~ "Dacă se poate sau nu să se utilizeze un gest de glisare pentru a comuta "
-#~ "la copilul următor"
-
-#~ msgid "Name"
-#~ msgstr "Nume"
-
-#~ msgid "The name of the child page"
-#~ msgstr "Numele paginii copilului"
-
-#~ msgid "The title for this row"
-#~ msgstr "Titlul pentru acest rând"
-
-#~ msgid "The subtitle for this row"
-#~ msgstr "Subtitrarea pentru acest rând"
-
-#~ msgid "Expanded"
-#~ msgstr "Extins"
-
-#~ msgid "Whether the row is expanded"
-#~ msgstr "Dacă rândul este extins"
-
-#~ msgid "Enable expansion"
-#~ msgstr "Activează extinderea"
-
-#~ msgid "Whether the expansion is enabled"
-#~ msgstr "Dacă extinderea este activată"
-
-#~ msgid "Show enable switch"
-#~ msgstr "Arată activează comutarea"
-
-#~ msgid "Whether the switch enabling the expansion is visible"
-#~ msgstr "Dacă comutatorul care activează extinderea este vizibil"
-
-#~ msgid "Minimize"
-#~ msgstr "Minimizează"
-
-#~ msgid "Restore"
-#~ msgstr "Restaurează"
-
-#~ msgid "Maximize"
-#~ msgstr "Maximizează"
-
-#~ msgid "Pack type"
-#~ msgstr "Tip de pachet"
-
-#~ msgid ""
-#~ "A GtkPackType indicating whether the child is packed with reference to "
-#~ "the start or end of the parent"
-#~ msgstr ""
-#~ "Un GtkPackType care indică dacă copilul este împachetat cu referința la "
-#~ "începutul sau sfârșitul părintelui"
-
-#~ msgid "The index of the child in the parent"
-#~ msgstr "Indexul copilului în părinte"
-
-#~ msgid "The title to display"
-#~ msgstr "Titlul de afișat"
-
-#~ msgid "The subtitle to display"
-#~ msgstr "Subtitrarea de afișat"
-
-#~ msgid "Custom Title"
-#~ msgstr "Titlu personalizat"
-
-#~ msgid "Custom title widget to display"
-#~ msgstr "Widget de titlu personalizat de afișat"
-
-#~ msgid "The amount of space between children"
-#~ msgstr "Cantitatea de spațiu între copii"
-
-#~ msgid "Show decorations"
-#~ msgstr "Arată decorațiile"
-
-#~ msgid "Whether to show window decorations"
-#~ msgstr "Dacă să se arate decorațiile ferestrei"
-
-#~ msgid "Decoration Layout"
-#~ msgstr "Aspect decorație"
-
-#~ msgid "The layout for window decorations"
-#~ msgstr "Aspectul decorațiilor ferestrei"
-
-#~ msgid "Decoration Layout Set"
-#~ msgstr "Aranjament de decorație stabilit"
-
-#~ msgid "Whether the decoration-layout property has been set"
-#~ msgstr "Dacă proprietatea de aranjament-decorație a fost stabilită"
-
-#~ msgid "Has Subtitle"
-#~ msgstr "Are subtitrare"
-
-#~ msgid "Whether to reserve space for a subtitle"
-#~ msgstr "Dacă să se rezerve spațiu pentru o subtitrare"
-
-#~ msgid "Centering policy"
-#~ msgstr "Politică de centrare"
-
-#~ msgid "The policy to horizontally align the center widget"
-#~ msgstr "Politic de aliniere orizontală a widgetului de centru"
-
-#~ msgid "The animation duration, in milliseconds"
-#~ msgstr "Durata animației, în milisecunde"
-
-#~ msgid "Decorate all"
-#~ msgstr "Decorează toate"
-
-#~ msgid ""
-#~ "Whether the elements of the group should all receive the full decoration"
-#~ msgstr ""
-#~ "Dacă elementele grupului ar trebui ca toate să primească decorația "
-#~ "completă"
-
-#~ msgid "Digit"
-#~ msgstr "Cifră"
-
-#~ msgid "The keypad digit of the button"
-#~ msgstr "Cifra tastaturii butonului"
-
-#~ msgid "Symbols"
-#~ msgstr "Simboluri"
-
-#~ msgid ""
-#~ "The keypad symbols of the button. The first symbol is used as the digit"
-#~ msgstr ""
-#~ "Simbolurile tastaturii butonului. Primul simbol este utilizat ca cifra"
-
-#~ msgid "Show Symbols"
-#~ msgstr "Arată simbolurile"
-
-#~ msgid "Whether the second line of symbols should be shown or not"
-#~ msgstr "Dacă a doua linie de simboluri ar trebui să fie arătată sau nu"
-
-#~ msgid "Row spacing"
-#~ msgstr "Spațiere rânduri"
-
-#~ msgid "The amount of space between two consecutive rows"
-#~ msgstr "Cantitatea de spațiu între două rânduri consecutive"
-
-#~ msgid "Column spacing"
-#~ msgstr "Spațiere coloane"
-
-#~ msgid "The amount of space between two consecutive columns"
-#~ msgstr "Cantitatea de spațiu între două coloane consecutive"
-
-#~ msgid "Only Digits"
-#~ msgstr "Doar cifre"
-
-#~ msgid ""
-#~ "Whether the keypad should show only digits or also extra buttons for #, *"
-#~ msgstr ""
-#~ "Dacă tastatura ar trebui să arate doar cifre sau de asemenea butoane "
-#~ "extra pentru #, *"
-
-#~ msgid "Entry widget"
-#~ msgstr "Widget de intrare"
-
-#~ msgid "The entry widget connected to the keypad"
-#~ msgstr "Widget-ul de intrare conectat la tastatură"
-
-#~ msgid "Right action widget"
-#~ msgstr "Widget de acțiune dreapta"
-
-#~ msgid "The right action widget"
-#~ msgstr "Widget-ul de acțiune dreapta"
-
-#~ msgid "Left action widget"
-#~ msgstr "Widget de acțiune stânga"
-
-#~ msgid "The left action widget"
-#~ msgstr "Widget-ul de acțiune stânga"
-
-#~ msgid "Folded"
-#~ msgstr "Pliat"
-
-#~ msgid "Whether the widget is folded"
-#~ msgstr "Dacă widget-ul este pliat"
-
-#~ msgid "Horizontally homogeneous folded"
-#~ msgstr "Pliat omogen orizontal"
-
-#~ msgid "Horizontally homogeneous sizing when the leaflet is folded"
-#~ msgstr "Dimensionare omogenă orizontală când manifestul este pliat"
-
-#~ msgid "Vertically homogeneous folded"
-#~ msgstr "Pliat omogen vertical"
-
-#~ msgid "Vertically homogeneous sizing when the leaflet is folded"
-#~ msgstr "Dimensionare omogenă verticală când manifestul este pliat"
-
-#~ msgid "Box horizontally homogeneous"
-#~ msgstr "Omogen orizontal cutie"
-
-#~ msgid "Horizontally homogeneous sizing when the leaflet is unfolded"
-#~ msgstr "Dimensionare omogenă orizontală când manifestul nu este pliat"
-
-#~ msgid "Box vertically homogeneous"
-#~ msgstr "Omogen vertical cutie"
-
-#~ msgid "Vertically homogeneous sizing when the leaflet is unfolded"
-#~ msgstr "Dimensionare omogenă verticală când manifestul nu este pliat"
-
-#~ msgid "The widget currently visible when the leaflet is folded"
-#~ msgstr "Widget-ul vizibil curent când manifestul este pliat"
-
-#~ msgid ""
-#~ "The name of the widget currently visible when the children are stacked"
-#~ msgstr "Numele widget-ului vizibil curent când copiii sunt stivuiți"
-
-#~ msgid "The type of animation used to transition between modes and children"
-#~ msgstr ""
-#~ "Tipul de animație utilizat pentru a face tranziție între moduri și copii"
-
-#~ msgid "Mode transition duration"
-#~ msgstr "Durata tranziției modului"
-
-#~ msgid "The mode transition animation duration, in milliseconds"
-#~ msgstr "Durata animației tranziției modului, în milisecunde"
-
-#~ msgid "Child transition duration"
-#~ msgstr "Durata tranziției copilului"
-
-#~ msgid "The child transition animation duration, in milliseconds"
-#~ msgstr "Durata animației tranziției copilului, în milisecunde"
-
-#~ msgid "Child transition running"
-#~ msgstr "Rularea tranziției copilului"
-
-#~ msgid "Whether or not the child transition is currently running"
-#~ msgstr "Dacă rulează sau nu în mod curent tranziția copilului"
-
-#~ msgid "Allow visible"
-#~ msgstr "Permite vizibil"
-
-#~ msgid "Whether the child can be visible in folded mode"
-#~ msgstr "Dacă copilul poate fi vizibil în modul pliat"
-
-#~ msgid "Description"
-#~ msgstr "Descriere"
-
-#~ msgid "The title of the preference"
-#~ msgstr "Titlul preferinței"
-
-#~ msgid "Whether search is enabled"
-#~ msgstr "Dacă căutarea este activată"
-
-#~ msgid "Search Mode Enabled"
-#~ msgstr "Modul de căutare activat"
-
-#~ msgid "Whether the search mode is on and the search bar shown"
-#~ msgstr "Dacă modul de căutare este activ și bara de căutare este arătată"
-
-#~ msgid "Show Close Button"
-#~ msgstr "Arată butonul de închidere"
-
-#~ msgid "Whether to show the close button in the toolbar"
-#~ msgstr "Dacă să se afișeze butonul de închidere în bara cu unelte"
-
-#~ msgid "Widget"
-#~ msgstr "Widget"
-
-#~ msgid "The widget the shadow will be drawn for"
-#~ msgstr "Widget-ul pentru care va fi desenată umbra"
-
-#~ msgid "Homogeneous"
-#~ msgstr "Omogen"
-
-#~ msgid "Homogeneous sizing"
-#~ msgstr "Dimensionare omogenă"
-
-#~ msgid "The widget currently visible in the squeezer"
-#~ msgstr "Widget-ul vizibil curent în storcător"
-
-#~ msgid "The type of animation used to transition"
-#~ msgstr "Tipul de animație folosit la tranziție"
-
-#~ msgid "Enabled"
-#~ msgstr "Activat"
-
-#~ msgid ""
-#~ "Whether the child can be picked or should be ignored when looking for the "
-#~ "child fitting the available size best"
-#~ msgstr ""
-#~ "Dacă copilul poate fi ales sau ar trebui să fie ignorat când se caută "
-#~ "pentru copilul care se potrivește cel mai bine cu dimensiunea disponibilă"
-
-#~ msgid "Horizontally homogeneous sizing when the widget is folded"
-#~ msgstr "Dimensiune omogenă orizontală când widget-ul este pliat"
-
-#~ msgid "Vertically homogeneous sizing when the widget is folded"
-#~ msgstr "Dimensiune omogenă verticală când widget-ul este pliat"
-
-#~ msgid "Horizontally homogeneous sizing when the widget is unfolded"
-#~ msgstr "Dimensionare omogenă orizontală când widget-ul nu este pliat"
-
-#~ msgid "Vertically homogeneous sizing when the widget is unfolded"
-#~ msgstr "Dimensiune omogenă verticală când widget-ul nu este pliat"
-
-#~ msgid "The widget currently visible when the widget is folded"
-#~ msgstr "Widget-ul vizibil curent când widget-ul este pliat"
-
-#~ msgid "Orientation"
-#~ msgstr "Orientare"
-
-#~ msgid "Swipeable"
-#~ msgstr "Glisabil"
-
-#~ msgid "The swipeable the swipe tracker is attached to"
-#~ msgstr "Glisabilul la care este atașat urmăritorul de glisare"
-
-#~ msgid "Whether the swipe tracker processes events"
-#~ msgstr "Dacă urmăritorul de glisare procesează evenimente"
-
-#~ msgid "Reversed"
-#~ msgstr "Inversat"
-
-#~ msgid "Whether swipe direction is reversed"
-#~ msgstr "Dacă direcția de glisare este inversată"
-
-#~ msgid "Selection mode"
-#~ msgstr "Mod de selecție"
-
-#~ msgid "Whether or not the title bar is in selection mode"
-#~ msgstr "Dacă bara de titlu se află sau nu în modul de selecție"
-
-#~ msgctxt "HdyValueObjectClass"
-#~ msgid "Value"
-#~ msgstr "Valoare"
-
-#~ msgctxt "HdyValueObjectClass"
-#~ msgid "The contained value"
-#~ msgstr "Valoarea conținută"
-
-#~ msgid "Policy"
-#~ msgstr "Politică"
-
-#~ msgid "The policy to determine the mode to use"
-#~ msgstr "Politica de determinare a modului de utilizat"
-
-#~ msgid "Icon Size"
-#~ msgstr "Dimensiunea iconiței"
-
-#~ msgid "Symbolic size to use for named icon"
-#~ msgstr "Dimensiunea simbolică de utilizat pentru iconița numită"
-
-#~ msgid "Stack"
-#~ msgstr "Stivă"
-
-#~ msgid "Reveal"
-#~ msgstr "Dezvăluie"
-
-#~ msgid "Whether the view switcher is revealed"
-#~ msgstr "Dacă comutatorul de vizualizare este dezvăluit"
-
-#~ msgid "Icon Name"
-#~ msgstr "Nume iconiță"
-
-#~ msgid "Icon name for image"
-#~ msgstr "Numele iconiței pentru imagine"
-
-#~ msgid "Needs attention"
-#~ msgstr "Are nevoie de atenție"
-
-#~ msgid "Hint the view needs attention"
-#~ msgstr "Indiciu cum că vizualizarea are nevoie de atenție"
-
-#~ msgid "Narrow ellipsize"
-#~ msgstr "Transformare în elipsă îngustă"
-
-#~ msgid ""
-#~ "The preferred place to ellipsize the string, if the narrow mode label "
-#~ "does not have enough room to display the entire string"
-#~ msgstr ""
-#~ "Locul preferat pentru a transforma în elipsă șirul, dacă eticheta modului "
-#~ "îngust nu are destul spațiu pentru a afișa întregul șir"
-
-#~ msgid "View switcher enabled"
-#~ msgstr "Comutator de vizualizare activat"
-
-#~ msgid "Whether the view switcher is enabled"
-#~ msgstr "Dacă comutatorul de vizualizare este activat"
-
-#~ msgid "Title visible"
-#~ msgstr "Titlu vizibil"
-
-#~ msgid "Whether the title label is visible"
-#~ msgstr "Dacă eticheta titlului este vizibilă"
-
-#~ msgid "Move"
-#~ msgstr "Mută"
-
-#~ msgid "Resize"
-#~ msgstr "Redimensionează"
-
-#~ msgid "Always on Top"
-#~ msgstr "Întotdeauna deasupra"
+#: src/adw-toast-overlay.c:285
+#, c-format
+msgid "A toast appeared: %s, has a button: %s"
+msgstr "A apărut o notificare: %s, are un buton: %s"
+
+#: src/adw-toast-overlay.c:288
+#, c-format
+msgid "A toast appeared: %s"
+msgstr "A apărut o notificare: %s"
+
+#: src/adw-toast-overlay.c:290
+#, c-format
+msgid "A toast appeared, has a button: %s"
+msgstr "A apărut o notificare, are un buton: %s"
+
+#: src/adw-toast-overlay.c:293
+msgid "A toast appeared"
+msgstr "A apărut o notificare"
+
+#: src/adw-toast-widget.ui:66
+msgid "Dismiss"
+msgstr "Ignoră"

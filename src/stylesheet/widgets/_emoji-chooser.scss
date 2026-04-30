@@ -34,7 +34,7 @@ popover.emoji-picker emoji {
     background: $active_color;
   }
 
-  @if $contrast == 'high' {
+  @media (prefers-contrast: more) {
     &:focus,
     &:hover,
     &:active {
@@ -47,8 +47,13 @@ popover.emoji-picker scrolledwindow.view {
   background: none;
   color: inherit;
 
-  @include undershoot(top, $popover_shade_color);
-  @include undershoot(bottom, $popover_shade_color);
+  &:not(.undershoot-top) {
+    @include undershoot(top);
+  }
+
+  &:not(.undershoot-bottom) {
+    @include undershoot(bottom);
+  }
 }
 
 // Emoji completion popover
@@ -74,14 +79,14 @@ emoji-completion-row {
   &:focus,
   &:hover {
     background-color: $selected_color;
-    color: $popover_fg_color;
+    color: var(--popover-fg-color);
   }
 
   &:active {
     background-color: $active_color; // matching buttons
   }
 
-  @if $contrast == 'high' {
+  @media (prefers-contrast: more) {
     &:focus,
     &:hover,
     &:active {

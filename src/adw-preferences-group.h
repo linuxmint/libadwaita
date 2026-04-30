@@ -43,6 +43,10 @@ ADW_AVAILABLE_IN_ALL
 void adw_preferences_group_remove (AdwPreferencesGroup *self,
                                    GtkWidget           *child);
 
+ADW_AVAILABLE_IN_1_8
+GtkWidget *adw_preferences_group_get_row (AdwPreferencesGroup *self,
+                                          guint                index);
+
 ADW_AVAILABLE_IN_ALL
 const char *adw_preferences_group_get_title (AdwPreferencesGroup *self);
 ADW_AVAILABLE_IN_ALL
@@ -60,5 +64,18 @@ GtkWidget *adw_preferences_group_get_header_suffix (AdwPreferencesGroup *self);
 ADW_AVAILABLE_IN_1_1
 void       adw_preferences_group_set_header_suffix (AdwPreferencesGroup *self,
                                                     GtkWidget           *suffix);
+
+ADW_AVAILABLE_IN_1_6
+gboolean adw_preferences_group_get_separate_rows (AdwPreferencesGroup *self);
+ADW_AVAILABLE_IN_1_6
+void     adw_preferences_group_set_separate_rows (AdwPreferencesGroup *self,
+                                                  gboolean             separate_rows);
+
+ADW_AVAILABLE_IN_1_8
+void adw_preferences_group_bind_model (AdwPreferencesGroup        *self,
+                                       GListModel                 *model,
+                                       GtkListBoxCreateWidgetFunc  create_row_func,
+                                       gpointer                    user_data,
+                                       GDestroyNotify              user_data_free_func);
 
 G_END_DECLS

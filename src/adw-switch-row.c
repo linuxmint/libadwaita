@@ -38,6 +38,10 @@
  * The [property@SwitchRow:active] property should be connected to in order to
  * monitor changes to the active state.
  *
+ * ## Accessibility
+ *
+ * `AdwSwitchRow` uses the [enum@Gtk.AccessibleRole.switch] role.
+ *
  * Since: 1.4
  */
 
@@ -120,13 +124,14 @@ static void
 adw_switch_row_class_init (AdwSwitchRowClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
+  GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
 
   object_class->get_property = adw_switch_row_get_property;
   object_class->set_property = adw_switch_row_set_property;
   object_class->dispose = adw_switch_row_dispose;
 
   /**
-   * AdwSwitchRow:active: (attributes org.gtk.Property.get=adw_switch_row_get_active org.gtk.Property.set=adw_switch_row_set_active)
+   * AdwSwitchRow:active:
    *
    * Whether the switch row is in the "on" or "off" position.
    *
@@ -138,6 +143,8 @@ adw_switch_row_class_init (AdwSwitchRowClass *klass)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   g_object_class_install_properties (object_class, PROP_LAST_PROP, props);
+
+  gtk_widget_class_set_accessible_role (widget_class, GTK_ACCESSIBLE_ROLE_SWITCH);
 }
 
 static void
@@ -180,7 +187,7 @@ adw_switch_row_new (void)
 }
 
 /**
- * adw_switch_row_get_active: (attributes org.gtk.Method.get_property=active)
+ * adw_switch_row_get_active:
  * @self: a switch row
  *
  * Gets whether @self is in its "on" or "off" position.
@@ -198,7 +205,7 @@ adw_switch_row_get_active (AdwSwitchRow *self)
 }
 
 /**
- * adw_switch_row_set_active: (attributes org.gtk.Method.set_property=active)
+ * adw_switch_row_set_active:
  * @self: a switch row
  * @is_active: whether @self should be active
  *

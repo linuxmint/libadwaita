@@ -9,6 +9,7 @@
 
 #include "adw-split-button.h"
 
+#include "adw-gtkbuilder-utils-private.h"
 #include "adw-marshalers.h"
 #include "adw-widget-utils-private.h"
 
@@ -48,9 +49,20 @@
  * classes matching the button contents. The nested button nodes will never
  * contain them.
  *
+ * ## Style classes
+ *
+ * `AdwSplitButton` can use some of the same style classes as [class@Gtk.Button]:
+ *
+ * - [`.suggested-action`](style-classes.html#suggested-action)
+ * - [`.destructive-action`](style-classes.html#destructive-action)
+ * - [`.flat`](style-classes.html#flat)
+ * - [`.raised`](style-classes.html#raised)
+ *
+ * Other style classes, like `.pill`, cannot be used.
+ *
  * ## Accessibility
  *
- * `AdwSplitButton` uses the `GTK_ACCESSIBLE_ROLE_GROUP` role.
+ * `AdwSplitButton` uses the [enum@Gtk.AccessibleRole.group] role.
  */
 
 enum {
@@ -289,7 +301,7 @@ adw_split_button_class_init (AdwSplitButtonClass *klass)
   widget_class->compute_expand = adw_widget_compute_expand;
 
   /**
-   * AdwSplitButton:label: (attributes org.gtk.Property.get=adw_split_button_get_label org.gtk.Property.set=adw_split_button_set_label)
+   * AdwSplitButton:label:
    *
    * The label for the button.
    *
@@ -302,7 +314,7 @@ adw_split_button_class_init (AdwSplitButtonClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwSplitButton:use-underline: (attributes org.gtk.Property.get=adw_split_button_get_use_underline org.gtk.Property.set=adw_split_button_set_use_underline)
+   * AdwSplitButton:use-underline:
    *
    * Whether an underline in the text indicates a mnemonic.
    *
@@ -314,7 +326,7 @@ adw_split_button_class_init (AdwSplitButtonClass *klass)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwSplitButton:icon-name: (attributes org.gtk.Property.get=adw_split_button_get_icon_name org.gtk.Property.set=adw_split_button_set_icon_name)
+   * AdwSplitButton:icon-name:
    *
    * The name of the icon used to automatically populate the button.
    *
@@ -327,7 +339,7 @@ adw_split_button_class_init (AdwSplitButtonClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwSplitButton:child: (attributes org.gtk.Property.get=adw_split_button_get_child org.gtk.Property.set=adw_split_button_set_child)
+   * AdwSplitButton:child:
    *
    * The child widget.
    *
@@ -340,7 +352,7 @@ adw_split_button_class_init (AdwSplitButtonClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwSplitButton:can-shrink: (attributes org.gtk.Property.get=adw_split_button_get_can_shrink org.gtk.Property.set=adw_split_button_set_can_shrink)
+   * AdwSplitButton:can-shrink:
    *
    * Whether the button can be smaller than the natural size of its contents.
    *
@@ -357,7 +369,7 @@ adw_split_button_class_init (AdwSplitButtonClass *klass)
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwSplitButton:menu-model: (attributes org.gtk.Property.get=adw_split_button_get_menu_model org.gtk.Property.set=adw_split_button_set_menu_model)
+   * AdwSplitButton:menu-model:
    *
    * The `GMenuModel` from which the popup will be created.
    *
@@ -376,7 +388,7 @@ adw_split_button_class_init (AdwSplitButtonClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwSplitButton:popover: (attributes org.gtk.Property.get=adw_split_button_get_popover org.gtk.Property.set=adw_split_button_set_popover)
+   * AdwSplitButton:popover:
    *
    * The `GtkPopover` that will be popped up when the dropdown is clicked.
    *
@@ -391,7 +403,7 @@ adw_split_button_class_init (AdwSplitButtonClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwSplitButton:direction: (attributes org.gtk.Property.get=adw_split_button_get_direction org.gtk.Property.set=adw_split_button_set_direction)
+   * AdwSplitButton:direction:
    *
    * The direction in which the popup will be popped up.
    *
@@ -400,7 +412,7 @@ adw_split_button_class_init (AdwSplitButtonClass *klass)
    * If the does not fit in the available space in the given direction, GTK will
    * try its best to keep it inside the screen and fully visible.
    *
-   * If you pass `GTK_ARROW_NONE`, it's equivalent to `GTK_ARROW_DOWN`.
+   * [enum@Gtk.ArrowType.none] behaves same as [enum@Gtk.ArrowType.down].
    */
   props[PROP_DIRECTION] =
     g_param_spec_enum ("direction", NULL, NULL,
@@ -409,7 +421,7 @@ adw_split_button_class_init (AdwSplitButtonClass *klass)
                        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwSplitButton:dropdown-tooltip: (attributes org.gtk.Property.get=adw_split_button_get_dropdown_tooltip org.gtk.Property.set=adw_split_button_set_dropdown_tooltip)
+   * AdwSplitButton:dropdown-tooltip:
    *
    * The tooltip of the dropdown button.
    *
@@ -587,12 +599,15 @@ adw_split_button_buildable_add_child (GtkBuildable *buildable,
                                       GObject      *child,
                                       const char   *type)
 {
-  if (GTK_IS_POPOVER (child))
+  if (GTK_IS_POPOVER (child)) {
+    gtk_buildable_child_deprecation_warning (buildable, builder, NULL, "popover");
     adw_split_button_set_popover (ADW_SPLIT_BUTTON (buildable), GTK_POPOVER (child));
-  else if (GTK_IS_WIDGET (child))
+  } else if (GTK_IS_WIDGET (child)) {
+    gtk_buildable_child_deprecation_warning (buildable, builder, NULL, "child");
     adw_split_button_set_child (ADW_SPLIT_BUTTON (buildable), GTK_WIDGET (child));
-  else
+  } else {
     parent_buildable_iface->add_child (buildable, builder, child, type);
+  }
 }
 
 static void
@@ -617,7 +632,7 @@ adw_split_button_new (void)
 }
 
 /**
- * adw_split_button_get_label: (attributes org.gtk.Method.get_property=label)
+ * adw_split_button_get_label:
  * @self: a split button
  *
  * Gets the label for @self.
@@ -633,7 +648,7 @@ adw_split_button_get_label (AdwSplitButton *self)
 }
 
 /**
- * adw_split_button_set_label: (attributes org.gtk.Method.set_property=label)
+ * adw_split_button_set_label:
  * @self: a split button
  * @label: the label to set
  *
@@ -666,7 +681,7 @@ adw_split_button_set_label (AdwSplitButton *self,
 }
 
 /**
- * adw_split_button_get_use_underline: (attributes org.gtk.Method.get_property=use-underline)
+ * adw_split_button_get_use_underline:
  * @self: a split button
  *
  * Gets whether an underline in the text indicates a mnemonic.
@@ -682,7 +697,7 @@ adw_split_button_get_use_underline (AdwSplitButton *self)
 }
 
 /**
- * adw_split_button_set_use_underline: (attributes org.gtk.Method.set_property=use-underline)
+ * adw_split_button_set_use_underline:
  * @self: a split button
  * @use_underline: whether an underline in the text indicates a mnemonic
  *
@@ -705,7 +720,7 @@ adw_split_button_set_use_underline (AdwSplitButton *self,
 }
 
 /**
- * adw_split_button_get_icon_name: (attributes org.gtk.Method.get_property=icon-name)
+ * adw_split_button_get_icon_name:
  * @self: a split button
  *
  * Gets the name of the icon used to automatically populate the button.
@@ -721,7 +736,7 @@ adw_split_button_get_icon_name (AdwSplitButton *self)
 }
 
 /**
- * adw_split_button_set_icon_name: (attributes org.gtk.Method.set_property=icon-name)
+ * adw_split_button_set_icon_name:
  * @self: a split button
  * @icon_name: the icon name to set
  *
@@ -755,7 +770,7 @@ adw_split_button_set_icon_name (AdwSplitButton *self,
 }
 
 /**
- * adw_split_button_get_child: (attributes org.gtk.Method.get_property=child)
+ * adw_split_button_get_child:
  * @self: a split button
  *
  * Gets the child widget.
@@ -771,7 +786,7 @@ adw_split_button_get_child (AdwSplitButton *self)
 }
 
 /**
- * adw_split_button_set_child: (attributes org.gtk.Method.set_property=child)
+ * adw_split_button_set_child:
  * @self: a split button
  * @child: (nullable): the new child widget
  *
@@ -787,11 +802,11 @@ adw_split_button_set_child (AdwSplitButton *self,
   g_return_if_fail (ADW_IS_SPLIT_BUTTON (self));
   g_return_if_fail (child == NULL || GTK_IS_WIDGET (child));
 
-  if (child)
-    g_return_if_fail (gtk_widget_get_parent (child) == NULL);
-
   if (child == adw_split_button_get_child (self))
     return;
+
+  if (child)
+    g_return_if_fail (gtk_widget_get_parent (child) == NULL);
 
   g_object_freeze_notify (G_OBJECT (self));
   if (adw_split_button_get_label (self))
@@ -808,7 +823,7 @@ adw_split_button_set_child (AdwSplitButton *self,
 }
 
 /**
- * adw_split_button_get_can_shrink: (attributes org.gtk.Method.get_property=can-shrink)
+ * adw_split_button_get_can_shrink:
  * @self: a split button
  *
  * gets whether the button can be smaller than the natural size of its contents.
@@ -826,7 +841,7 @@ adw_split_button_get_can_shrink (AdwSplitButton *self)
 }
 
 /**
- * adw_split_button_set_can_shrink: (attributes org.gtk.Method.set_property=can-shrink)
+ * adw_split_button_set_can_shrink:
  * @self: a split button
  * @can_shrink: whether the button can shrink
  *
@@ -856,7 +871,7 @@ adw_split_button_set_can_shrink (AdwSplitButton *self,
 }
 
 /**
- * adw_split_button_get_menu_model: (attributes org.gtk.Method.get_property=menu-model)
+ * adw_split_button_get_menu_model:
  * @self: a split button
  *
  * Gets the menu model from which the popup will be created.
@@ -872,7 +887,7 @@ adw_split_button_get_menu_model (AdwSplitButton *self)
 }
 
 /**
- * adw_split_button_set_menu_model: (attributes org.gtk.Method.set_property=menu-model)
+ * adw_split_button_set_menu_model:
  * @self: a split button
  * @menu_model: (nullable): the menu model
  *
@@ -900,7 +915,7 @@ adw_split_button_set_menu_model (AdwSplitButton *self,
 }
 
 /**
- * adw_split_button_get_popover: (attributes org.gtk.Method.get_property=popover)
+ * adw_split_button_get_popover:
  * @self: a split button
  *
  * Gets the popover that will be popped up when the dropdown is clicked.
@@ -916,7 +931,7 @@ adw_split_button_get_popover (AdwSplitButton *self)
 }
 
 /**
- * adw_split_button_set_popover: (attributes org.gtk.Method.set_property=popover)
+ * adw_split_button_set_popover:
  * @self: a split button
  * @popover: (nullable): the popover
  *
@@ -940,7 +955,7 @@ adw_split_button_set_popover (AdwSplitButton *self,
 }
 
 /**
- * adw_split_button_get_direction: (attributes org.gtk.Method.get_property=direction)
+ * adw_split_button_get_direction:
  * @self: a split button
  *
  * Gets the direction in which the popup will be popped up.
@@ -956,7 +971,7 @@ adw_split_button_get_direction (AdwSplitButton *self)
 }
 
 /**
- * adw_split_button_set_direction: (attributes org.gtk.Method.set_property=direction)
+ * adw_split_button_set_direction:
  * @self: a split button
  * @direction: the direction
  *
@@ -967,7 +982,7 @@ adw_split_button_get_direction (AdwSplitButton *self)
  * If the does not fit in the available space in the given direction, GTK will
  * try its best to keep it inside the screen and fully visible.
  *
- * If you pass `GTK_ARROW_NONE`, it's equivalent to `GTK_ARROW_DOWN`.
+ * [enum@Gtk.ArrowType.none] behaves same as [enum@Gtk.ArrowType.down].
  */
 void
 adw_split_button_set_direction (AdwSplitButton *self,
@@ -984,7 +999,7 @@ adw_split_button_set_direction (AdwSplitButton *self,
 }
 
 /**
- * adw_split_button_get_dropdown_tooltip: (attributes org.gtk.Method.get_property=dropdown-tooltip)
+ * adw_split_button_get_dropdown_tooltip:
  * @self: a split button
  *
  * Gets the tooltip of the dropdown button of @self.
@@ -1005,7 +1020,7 @@ adw_split_button_get_dropdown_tooltip (AdwSplitButton *self)
 }
 
 /**
- * adw_split_button_set_dropdown_tooltip: (attributes org.gtk.Method.set_property=dropdown-tooltip)
+ * adw_split_button_set_dropdown_tooltip:
  * @self: a split button
  * @tooltip: the dropdown tooltip of @self
  *

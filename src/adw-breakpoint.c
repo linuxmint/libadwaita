@@ -70,7 +70,7 @@
  */
 
 /**
- * AdwBreakpointCondition:
+ * AdwBreakpointCondition: (copy-func adw_breakpoint_condition_copy) (free-func adw_breakpoint_condition_free)
  *
  * Describes condition for an [class@Breakpoint].
  *
@@ -642,6 +642,7 @@ parse_multi (const char            *str,
       return cond_1;
     } else {
       *error = CONDITION_PARSER_ERROR_UNKNOWN_OPERATOR;
+      g_clear_pointer (&cond_1, adw_breakpoint_condition_free);
       return NULL;
     }
 
@@ -650,6 +651,7 @@ parse_multi (const char            *str,
     } else {
       *endp = (char *) str;
       *error = CONDITION_PARSER_ERROR_UNEXPECTED_CHARACTER;
+      g_clear_pointer (&cond_1, adw_breakpoint_condition_free);
       return NULL;
     }
 
@@ -663,6 +665,7 @@ parse_multi (const char            *str,
 
       if (!cond_2) {
         *endp = (char *) str;
+        g_clear_pointer (&cond_1, adw_breakpoint_condition_free);
         return NULL;
       }
 
@@ -679,6 +682,7 @@ parse_multi (const char            *str,
 
     if (!cond_2) {
       *endp = (char *) str;
+      g_clear_pointer (&cond_1, adw_breakpoint_condition_free);
       return NULL;
     }
 
@@ -845,6 +849,8 @@ adw_breakpoint_condition_parse (const char *str)
 char *
 adw_breakpoint_condition_to_string (AdwBreakpointCondition *self)
 {
+  char buf[G_ASCII_DTOSTR_BUF_SIZE];
+
   g_return_val_if_fail (self != NULL, NULL);
 
   /* Example: "max-width: 400px" */
@@ -882,7 +888,9 @@ adw_breakpoint_condition_to_string (AdwBreakpointCondition *self)
       g_assert_not_reached ();
     }
 
-    return g_strdup_printf ("%s: %g%s", type, self->data.length.value, unit);
+    g_ascii_dtostr (buf, sizeof (buf), self->data.length.value);
+
+    return g_strdup_printf ("%s: %s%s", type, buf, unit);
   }
 
   /* Example: "max-aspect-ratio: 4/3" */
@@ -1110,7 +1118,7 @@ adw_breakpoint_class_init (AdwBreakpointClass *klass)
   object_class->set_property = adw_breakpoint_set_property;
 
   /**
-   * AdwBreakpoint:condition: (attributes org.gtk.Property.get=adw_breakpoint_get_condition org.gtk.Property.set=adw_breakpoint_set_condition)
+   * AdwBreakpoint:condition:
    *
    * The breakpoint's condition.
    *
@@ -1478,7 +1486,7 @@ adw_breakpoint_new (AdwBreakpointCondition *condition)
 }
 
 /**
- * adw_breakpoint_get_condition: (attributes org.gtk.Method.get_property=condition)
+ * adw_breakpoint_get_condition:
  * @self: a breakpoint
  *
  * Gets the condition for @self.
@@ -1496,7 +1504,7 @@ adw_breakpoint_get_condition (AdwBreakpoint *self)
 }
 
 /**
- * adw_breakpoint_set_condition: (attributes org.gtk.Method.set_property=condition)
+ * adw_breakpoint_set_condition:
  * @self: a breakpoint
  * @condition: (nullable): the new condition
  *
@@ -1526,7 +1534,7 @@ adw_breakpoint_set_condition (AdwBreakpoint          *self,
  * @self: a breakpoint
  * @object: the target object
  * @property: the target property
- * @value: the value to set
+ * @value: (nullable): the value to set
  *
  * Adds a setter to @self.
  *

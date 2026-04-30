@@ -1,131 +1,335 @@
-$border_opacity: if($contrast == 'high', .5, .15);
-$thin_border_opacity: if($contrast == 'high', .25, .05);
-$focus_border_opacity: if($contrast == 'high', 0.8, 0.5);
+/* GTK NAMED COLORS
+   ----------------
+   use responsibly! */
 
-// Colors from _defaults.scss
+// Sass thinks we're using the colors in the variables as strings and may shoot
+// warning, it's innocuous and can be defeated by using #{$var}.
 
-$accent_bg_color: gtkcolor(accent_bg_color);
-$accent_fg_color: gtkcolor(accent_fg_color);
-$accent_color: gtkcolor(accent_color);
+// These are the colors apps can override. We define the defaults here and
+// define variables for them in _colors.scss
 
-$destructive_bg_color: gtkcolor(destructive_bg_color);
-$destructive_fg_color: gtkcolor(destructive_fg_color);
-$destructive_color: gtkcolor(destructive_color);
+// destructive-action buttons
+@define-color destructive_bg_color @red_3;
+@define-color destructive_fg_color white;
 
-$success_bg_color: gtkcolor(success_bg_color);
-$success_fg_color: gtkcolor(success_fg_color);
-$success_color: gtkcolor(success_color);
+// Levelbars, entries, labels and infobars. These don't need text colors
+@define-color success_bg_color @green_4;
+@define-color success_fg_color white;
 
-$warning_bg_color: gtkcolor(warning_bg_color);
-$warning_fg_color: gtkcolor(warning_fg_color);
-$warning_color: gtkcolor(warning_color);
+@define-color warning_bg_color @yellow_5;
+@define-color warning_fg_color RGB(0 0 0 / 80%);
 
-$error_bg_color: gtkcolor(error_bg_color);
-$error_fg_color: gtkcolor(error_fg_color);
-$error_color: gtkcolor(error_color);
+@define-color error_bg_color @red_3;
+@define-color error_fg_color white;
 
-$window_bg_color: gtkcolor(window_bg_color);
-$window_fg_color: gtkcolor(window_fg_color);
+@define-color accent_color oklab(from @accent_bg_color min(l, 0.5) a b);
+@define-color destructive_color oklab(from @destructive_bg_color min(l, 0.5) a b);
+@define-color success_color oklab(from @success_bg_color min(l, 0.5) a b);
+@define-color warning_color oklab(from @warning_bg_color min(l, 0.5) a b);
+@define-color error_color oklab(from @error_bg_color min(l, 0.5) a b);
 
-$view_bg_color: gtkcolor(view_bg_color);
-$view_fg_color: gtkcolor(view_fg_color);
+// Window
+@define-color window_bg_color #fafafb;
+@define-color window_fg_color RGB(0 0 6 / 80%);
 
-$headerbar_bg_color: gtkcolor(headerbar_bg_color);
-$headerbar_fg_color: gtkcolor(headerbar_fg_color);
-$headerbar_border_color: gtkalpha(gtkcolor(headerbar_border_color), $border_opacity);
-$headerbar_backdrop_color: gtkcolor(headerbar_backdrop_color);
-$headerbar_shade_color: gtkcolor(headerbar_shade_color);
-$headerbar_darker_shade_color: gtkcolor(headerbar_darker_shade_color);
+// Views - e.g. text view or tree view
+@define-color view_bg_color #ffffff;
+@define-color view_fg_color RGB(0 0 6 / 80%);
 
-$sidebar_bg_color: gtkcolor(sidebar_bg_color);
-$sidebar_fg_color: gtkcolor(sidebar_fg_color);
-$sidebar_backdrop_color: gtkcolor(sidebar_backdrop_color);
-$sidebar_border_color: gtkcolor(sidebar_border_color);
-$sidebar_shade_color: gtkcolor(sidebar_shade_color);
+// Header bar, search bar, tab bar
+@define-color headerbar_bg_color #ffffff;
+@define-color headerbar_fg_color RGB(0 0 6 / 80%);
+@define-color headerbar_border_color RGB(0 0 6 / 80%);
+@define-color headerbar_backdrop_color @window_bg_color;
+@define-color headerbar_shade_color RGB(0 0 6 / 12%);
+@define-color headerbar_darker_shade_color RGB(0 0 6 / 12%);
 
-$secondary_sidebar_bg_color: gtkcolor(secondary_sidebar_bg_color);
-$secondary_sidebar_fg_color: gtkcolor(secondary_sidebar_fg_color);
-$secondary_sidebar_backdrop_color: gtkcolor(secondary_sidebar_backdrop_color);
-$secondary_sidebar_border_color: gtkcolor(secondary_sidebar_border_color);
-$secondary_sidebar_shade_color: gtkcolor(secondary_sidebar_shade_color);
+// Split pane views
+@define-color sidebar_bg_color #ebebed;
+@define-color sidebar_fg_color RGB(0 0 6 / 80%);
+@define-color sidebar_backdrop_color #f2f2f4;
+@define-color sidebar_shade_color RGB(0 0 6 / 7%);
+@define-color sidebar_border_color RGB(0 0 6 / 7%);
 
-$card_bg_color: gtkcolor(card_bg_color);
-$card_fg_color: gtkcolor(card_fg_color);
-$card_shade_color: gtkcolor(card_shade_color);
+@define-color secondary_sidebar_bg_color #f3f3f5;
+@define-color secondary_sidebar_fg_color RGB(0 0 6 / 80%);
+@define-color secondary_sidebar_backdrop_color #f6f6fa;
+@define-color secondary_sidebar_shade_color RGB(0 0 6 / 7%);
+@define-color secondary_sidebar_border_color RGB(0 0 6 / 7%);
 
-$dialog_bg_color: gtkcolor(dialog_bg_color);
-$dialog_fg_color: gtkcolor(dialog_fg_color);
+// Cards, boxed lists
+@define-color card_bg_color #ffffff;
+@define-color card_fg_color RGB(0 0 6 / 80%);
+@define-color card_shade_color RGB(0 0 6 / 7%);
 
-$popover_bg_color: gtkcolor(popover_bg_color);
-$popover_fg_color: gtkcolor(popover_fg_color);
-$popover_shade_color: gtkcolor(popover_shade_color);
+// Dialogs
+@define-color dialog_bg_color #fafafb;
+@define-color dialog_fg_color RGB(0 0 6 / 80%);
 
-$thumbnail_bg_color: gtkcolor(thumbnail_bg_color);
-$thumbnail_fg_color: gtkcolor(thumbnail_fg_color);
+// Popovers
+@define-color popover_bg_color #ffffff;
+@define-color popover_fg_color RGB(0 0 6 / 80%);
+@define-color popover_shade_color RGB(0 0 6 / 7%);
 
-$shade_color: gtkcolor(shade_color);
-$scrollbar_outline_color: gtkcolor(scrollbar_outline_color);
+// Thumbnails
+@define-color thumbnail_bg_color #ffffff;
+@define-color thumbnail_fg_color RGB(0 0 6 / 80%);
+
+// Miscellaneous
+@define-color shade_color RGB(0 0 6 / 7%);
+@define-color scrollbar_outline_color white;
+
+@media (prefers-color-scheme: dark) {
+  @define-color destructive_bg_color @red_4;
+  @define-color success_bg_color @green_5;
+  @define-color warning_bg_color #cd9309;
+  @define-color error_bg_color @red_4;
+
+  @define-color accent_color oklab(from @accent_bg_color min(l, 0.5) a b);
+  @define-color destructive_color oklab(from @destructive_bg_color min(l, 0.5) a b);
+  @define-color success_color oklab(from @success_bg_color min(l, 0.5) a b);
+  @define-color warning_color oklab(from @warning_bg_color min(l, 0.5) a b);
+  @define-color error_color oklab(from @error_bg_color min(l, 0.5) a b);
+
+  @define-color accent_color oklab(from @accent_bg_color max(l, 0.85) a b);
+  @define-color destructive_color oklab(from @destructive_bg_color max(l, 0.85) a b);
+  @define-color success_color oklab(from @success_bg_color max(l, 0.85) a b);
+  @define-color warning_color oklab(from @warning_bg_color max(l, 0.85) a b);
+  @define-color error_color oklab(from @error_bg_color max(l, 0.85) a b);
+
+  // Window
+  @define-color window_bg_color #222226;
+  @define-color window_fg_color white;
+
+  // Views - e.g. text view or tree view
+  @define-color view_bg_color #1d1d20;
+  @define-color view_fg_color white;
+
+  // Header bar, search bar, tab bar
+  @define-color headerbar_bg_color #2e2e32;
+  @define-color headerbar_fg_color white;
+  @define-color headerbar_border_color white;
+  @define-color headerbar_shade_color RGB(0 0 6 / 36%);
+  @define-color headerbar_darker_shade_color RGB(0 0 12 / 90%);
+
+  // Split pane views
+  @define-color sidebar_bg_color #2e2e32;
+  @define-color sidebar_fg_color white;
+  @define-color sidebar_backdrop_color #28282c;
+  @define-color sidebar_shade_color RGB(0 0 6 / 25%);
+  @define-color sidebar_border_color RGB(0 0 6 / 36%);
+
+  @define-color secondary_sidebar_bg_color #28282c;
+  @define-color secondary_sidebar_fg_color white;
+  @define-color secondary_sidebar_backdrop_color #252529;
+  @define-color secondary_sidebar_shade_color RGB(0 0 6 / 25%);
+  @define-color secondary_sidebar_border_color RGB(0 0 6 / 36%);
+
+  // Cards, boxed lists
+  @define-color card_bg_color RGB(255 255 255 / 8%);
+  @define-color card_fg_color white;
+  @define-color card_shade_color RGB(0 0 6 / 36%);
+
+  // Dialogs
+  @define-color dialog_bg_color #36363a;
+  @define-color dialog_fg_color white;
+
+  // Popovers
+  @define-color popover_bg_color #36363a;
+  @define-color popover_fg_color white;
+  @define-color popover_shade_color RGB(0 0 6 / 25%);
+
+  // Thumbnails
+  @define-color thumbnail_bg_color #39393d;
+  @define-color thumbnail_fg_color white;
+
+  // Miscellaneous
+  @define-color shade_color RGB(0 0 6 / 25%);
+  @define-color scrollbar_outline_color RGB(0 0 12 / 95%);
+}
+
+:root {
+  --standalone-color-oklab: min(l, 0.5) a b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --standalone-color-oklab: max(l, 0.85) a b;
+  }
+}
+
+:root {
+  --accent-blue: #3584e4;
+  --accent-teal: #2190a4;
+  --accent-green: #3a944a;
+  --accent-yellow: #c88800;
+  --accent-orange: #ed5b00;
+  --accent-red: #e62d42;
+  --accent-pink: #d56199;
+  --accent-purple: #9141ac;
+  --accent-slate: #6f8396;
+
+  --accent-bg-color: @accent_bg_color;
+  --accent-fg-color: @accent_fg_color;
+  --accent-color: oklab(
+    from var(--accent-bg-color) var(--standalone-color-oklab)
+  );
+
+  --destructive-bg-color: @destructive_bg_color;
+  --destructive-fg-color: @destructive_fg_color;
+  --destructive-color: oklab(
+    from var(--destructive-bg-color) var(--standalone-color-oklab)
+  );
+
+  --success-bg-color: @success_bg_color;
+  --success-fg-color: @success_fg_color;
+  --success-color: oklab(
+    from var(--success-bg-color) var(--standalone-color-oklab)
+  );
+
+  --warning-bg-color: @warning_bg_color;
+  --warning-fg-color: @warning_fg_color;
+  --warning-color: oklab(
+    from var(--warning-bg-color) var(--standalone-color-oklab)
+  );
+
+  --error-bg-color: @error_bg_color;
+  --error-fg-color: @error_fg_color;
+  --error-color: oklab(
+    from var(--error-bg-color) var(--standalone-color-oklab)
+  );
+
+  --window-bg-color: @window_bg_color;
+  --window-fg-color: @window_fg_color;
+
+  --view-bg-color: @view_bg_color;
+  --view-fg-color: @view_fg_color;
+
+  --headerbar-bg-color: @headerbar_bg_color;
+  --headerbar-fg-color: @headerbar_fg_color;
+  --headerbar-border-color: @headerbar_border_color;
+  --headerbar-backdrop-color: @headerbar_backdrop_color;
+  --headerbar-shade-color: @headerbar_shade_color;
+  --headerbar-darker-shade-color: @headerbar_darker_shade_color;
+
+  --sidebar-bg-color: @sidebar_bg_color;
+  --sidebar-fg-color: @sidebar_fg_color;
+  --sidebar-backdrop-color: @sidebar_backdrop_color;
+  --sidebar-border-color: @sidebar_border_color;
+  --sidebar-shade-color: @sidebar_shade_color;
+
+  --secondary-sidebar-bg-color: @secondary_sidebar_bg_color;
+  --secondary-sidebar-fg-color: @secondary_sidebar_fg_color;
+  --secondary-sidebar-backdrop-color: @secondary_sidebar_backdrop_color;
+  --secondary-sidebar-border-color: @secondary_sidebar_border_color;
+  --secondary-sidebar-shade-color: @secondary_sidebar_shade_color;
+
+  --card-bg-color: @card_bg_color;
+  --card-fg-color: @card_fg_color;
+  --card-shade-color: @card_shade_color;
+
+  --dialog-bg-color: @dialog_bg_color;
+  --dialog-fg-color: @dialog_fg_color;
+
+  --popover-bg-color: @popover_bg_color;
+  --popover-fg-color: @popover_fg_color;
+  --popover-shade-color: @popover_shade_color;
+
+  --thumbnail-bg-color: @thumbnail_bg_color;
+  --thumbnail-fg-color: @thumbnail_fg_color;
+
+  --shade-color: @shade_color;
+  --scrollbar-outline-color: @scrollbar_outline_color;
+
+  --active-toggle-bg-color: #ffffff;
+  --active-toggle-fg-color: rgb(0 0 6 / 80%);
+
+  --overview-bg-color: #f3f3f5;
+  --overview-fg-color: rgb(0 0 6 / 80%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --active-toggle-bg-color: rgb(255 255 255 / 20%);
+    --active-toggle-fg-color: #ffffff;
+
+    --overview-bg-color: #28282c;
+    --overview-fg-color: #ffffff;
+  }
+}
 
 // Other colors
 
-$border_color: gtkalpha(currentColor, $border_opacity);
-$thin_border_color: gtkalpha(currentColor, $thin_border_opacity);
-$link_color: $accent_color;
-$link_visited_color: gtkmix($accent_color, $view_fg_color, 80%);
+$border_opacity: 15%;
+$border_opacity_hc: 50%;
 
-$hover_color: gtkalpha(currentColor, .07);
-$active_color: gtkalpha(currentColor, .16);
-$selected_color: gtkalpha(currentColor, .1);
-$selected_hover_color: gtkalpha(currentColor, .13);
-$selected_active_color: gtkalpha(currentColor, .19);
+$focus_border_opacity: 50%;
+$focus_border_opacity_hc: 80%;
 
-$view_hover_color: gtkalpha(currentColor, .04);
-$view_active_color: gtkalpha(currentColor, .08);
-$view_selected_color: gtkalpha($accent_bg_color, .25);
-$view_selected_hover_color: gtkalpha($accent_bg_color, .32);
-$view_selected_active_color: gtkalpha($accent_bg_color, .39);
+$border_color: color-mix(in srgb, currentColor var(--border-opacity), transparent);
+$headerbar_border_color: color-mix(in srgb, var(--headerbar-border-color) var(--border-opacity), transparent);
+$link_color: var(--accent-color);
+$link_visited_color: color-mix(in srgb, var(--accent-color) 80%, var(--view-fg-color));
 
-$trough_color: gtkalpha(currentColor, .15);
-$trough_hover_color: gtkalpha(currentColor, .2);
-$trough_active_color: gtkalpha(currentColor, .25);
+$hover_color: color-mix(in srgb, currentColor 7%, transparent);
+$active_color: color-mix(in srgb, currentColor 16%, transparent);
+$selected_color: color-mix(in srgb, currentColor 10%, transparent);
+$selected_hover_color: color-mix(in srgb, currentColor 13%, transparent);
+$selected_active_color: color-mix(in srgb, currentColor 19%, transparent);
 
-$fill_color: $accent_bg_color;
-$fill_text_color: $accent_fg_color;
+$view_hover_color: color-mix(in srgb, currentColor 4%, transparent);
+$view_active_color: color-mix(in srgb, currentColor 8%, transparent);
+$view_selected_color: color-mix(in srgb, var(--accent-bg-color) 25%, transparent);
+$view_selected_hover_color: color-mix(in srgb, var(--accent-bg-color) 32%, transparent);
+$view_selected_active_color: color-mix(in srgb, var(--accent-bg-color) 39%, transparent);
 
-$slider_color: gtkmix(white, $view_bg_color, 80%);
+$trough_color: color-mix(in srgb, currentColor 15%, transparent);
+$trough_hover_color: color-mix(in srgb, currentColor 20%, transparent);
+$trough_active_color: color-mix(in srgb, currentColor 25%, transparent);
+
+$trough_color_hc: color-mix(in srgb, currentColor 30%, transparent);
+$trough_hover_color_hc: color-mix(in srgb, currentColor 40%, transparent);
+$trough_active_color_hc: color-mix(in srgb, currentColor 50%, transparent);
+
+$slider_color: color-mix(in srgb, white 80%, var(--view-bg-color));
 $slider_hover_color: white;
 
-$osd_fg_color: transparentize(white, .1);
-$osd_text_color: white;
-$osd_bg_color: transparentize(black, 0.3);
-$osd_fill_bg_color: transparentize(white, .25);
-$osd_fill_fg_color: transparentize(black, .25);
-$osd_focus_color: transparentize(white, .5);
-$osd_link_color: gtkmix($accent_bg_color, $osd_text_color, 50%);
-$osd_link_visited_color: gtkmix($accent_bg_color, $osd_text_color, 75%);
+$osd_fg_color: RGB(255 255 255 / 90%);
+$osd_bg_color: RGB(0 0 0 / 70%);
+$osd_link_color: color-mix(in srgb, var(--accent-bg-color) 50%, white);
+$osd_link_visited_color: color-mix(in srgb, var(--accent-bg-color) 75%, white);
 
-$tooltip_border_color: transparentize(white, 0.9);
-$shadow_color: transparentize(black, 0.9);
+$toast_bg_color: #505053;
+$toast_fg_color: white;
 
-$drop_target_color: $accent_bg_color;
+$tooltip_border_color: RGB(255 255 255 / 10%);
 
-$window_outline_color: transparentize(white, .93);
+$drop_target_color: var(--accent-bg-color);
+
+$window_outline_color: RGB(255 255 255 / 7%);
+$window_outline_color_hc: RGB(255 255 255 / 30%);
 
 //special cased widget colors
-$focus_border_color:  gtkalpha($accent_color, $focus_border_opacity);
-$dim_label_opacity: 0.55;
-$dimmer_opacity: 0.3;
-$disabled_opacity: 0.5;
-$strong_disabled_opacity: 0.3;
+$focus_border_color: color-mix(in srgb, var(--accent-color) $focus_border_opacity, transparent);
+$focus_border_color_hc: color-mix(in srgb, var(--accent-color) $focus_border_opacity_hc, transparent);
+$dimmer_opacity: 30%;
+$dimmer_opacity_hc: 80%;
+$strong_disabled_opacity: 30%;
 
-// High Contrast color overrides
-@if $contrast == 'high' {
-  $dim_label_opacity: 0.9;
-  $dimmer_opacity: 0.8;
-  $disabled_opacity: 0.4;
+$standalone-color-oklab-light: Min(l, 0.5) a b;
+$standalone-color-oklab-dark: Max(l, 0.85) a b;
 
-  $trough_color: gtkalpha(currentColor, .3);
-  $trough_hover_color: gtkalpha(currentColor, .4);
-  $trough_active_color: gtkalpha(currentColor, .5);
-  $window_outline_color: transparentize(white, .7);
+:root {
+  --border-color: #{$border_color};
+  --border-opacity: #{$border_opacity};
+  --dim-opacity: 55%;
+  --disabled-opacity: 50%;
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --border-opacity: #{$border_opacity_hc};
+    --dim-opacity: 90%;
+    --disabled-opacity: 40%;
+  }
 }

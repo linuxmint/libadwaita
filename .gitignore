@@ -10,16 +10,4 @@ subprojects/sassc
 subprojects/libsass
 subprojects/gi-docgen
 subprojects/gtk
-
-debian/tmp
-debian/gir1.2-adw-1
-debian/libadwaita-1-0
-debian/libadwaita-1-dev
-debian/libadwaita-1-doc
-debian/libadwaita-1-examples
-debian/.debhelper
-debian/*.debhelper.log
-debian/*.substvars
-debian/debhelper-build-stamp
-debian/files
-po/libadwaita.pot
+tools/icon-development-kit

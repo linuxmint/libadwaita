@@ -38,8 +38,9 @@ G_STMT_START { \
 gboolean adw_widget_focus_child (GtkWidget        *widget,
                                  GtkDirectionType  direction);
 
-gboolean adw_widget_grab_focus_self  (GtkWidget *widget);
-gboolean adw_widget_grab_focus_child (GtkWidget *widget);
+gboolean adw_widget_grab_focus_self          (GtkWidget *widget);
+gboolean adw_widget_grab_focus_child         (GtkWidget *widget);
+gboolean adw_widget_grab_focus_child_or_self (GtkWidget *widget);
 
 void adw_widget_compute_expand (GtkWidget *widget,
                                 gboolean  *hexpand_p,
@@ -64,6 +65,19 @@ GtkWidget *adw_widget_get_ancestor (GtkWidget *widget,
                                     gboolean   same_native,
                                     gboolean   same_sheet);
 
+GtkWidget *adw_widget_get_nth_child (GtkWidget *widget,
+                                     guint      index);
+
 gboolean adw_decoration_layout_prefers_start (const char *layout);
+
+char *adw_strip_mnemonic (const char *src);
+
+void adw_ensure_child_allocation_size (GtkWidget     *child,
+                                       GtkAllocation *allocation);
+
+gboolean adw_get_inspector_keybinding_enabled (void);
+
+gboolean adw_widget_on_vertical_keynav_failed (GtkWidget        *widget,
+                                               GtkDirectionType  direction);
 
 G_END_DECLS

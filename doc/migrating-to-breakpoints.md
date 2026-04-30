@@ -63,7 +63,7 @@ becomes this:
 `AdwToolbarView` defaults to flat header bars, replacing the `.flat` style
 class. To use a raised style, set the [property@ToolbarView:top-bar-style]
 and/or [property@ToolbarView:bottom-bar-style] properties to
-`ADW_TOOLBAR_RAISED`.
+[enum@Adw.ToolbarStyle.raised].
 
 Subsequent sections will assume that you're using `AdwToolbarView`.
 
@@ -112,24 +112,8 @@ using [method@Gtk.Widget.set_size_request], or the
 [property@Gtk.Widget:width-request] and [property@Gtk.Widget:height-request]
 properties.
 
-The target window size that would work on phones both in portrait and landscape
-orientations is 360x294 pixels:
-
-```xml
-<object class="AdwWindow">
-  <property name="width-request">360</property>
-  <property name="height-request">294</property>
-  <property name="content">
-    <object class="AdwToolbarView">
-      <child type="top">
-        <!-- titlebar -->
-      </child>
-      <property name="content">
-        <!-- content -->
-    </object>
-  </property>
-</object>
-```
+`AdwWindow` has a default size: 360×200, which should work well for most use
+cases, but if it doesn't, change it to something else.
 
 The child widget must completely fit into your minimum size. If it doesn't, then
 as soon as you add a breakpoint and resize the window to that size, the contents
@@ -301,8 +285,8 @@ If you're using [class@Gtk.HeaderBar], replace it with `AdwHeaderBar` as well:
 ```
 
 Replace [method@Leaflet.navigate] calls with
-[method@NavigationView.push] for `ADW_NAVIGATION_DIRECTION_FORWARD` and
-[method@NavigationView.pop] for `ADW_NAVIGATION_DIRECTION_BACK`. It's also
+[method@NavigationView.push] for [enum@Adw.NavigationDirection.forward] and
+[method@NavigationView.pop] for [enum@Adw.NavigationDirection.back]. It's also
 possible to push a page using the `navigation.push` action and the page's tag as
 parameter, or pop the visible page using the `navigation.pop` action.
 
@@ -421,8 +405,6 @@ Add a setter to your breakpoint, setting the
 
 ```xml
 <object class="AdwWindow">
-  <property name="width-request">360</property>
-  <property name="height-request">200</property>
   <child>
     <object class="AdwBreakpoint">
       <condition>max-width: 400sp</condition>
@@ -551,8 +533,6 @@ Add a setter to your breakpoint, setting the
 
 ```xml
 <object class="AdwWindow">
-  <property name="width-request">360</property>
-  <property name="height-request">200</property>
   <child>
     <object class="AdwBreakpoint">
       <condition>max-width: 400sp</condition>
@@ -602,7 +582,12 @@ automatically when using `AdwOverlaySplitView`, so there's no need to bind their
 visibility to the [property@Flap:folded] property anymore.
 
 While `AdwOverlaySplitView` doesn't require using [class@NavigationPage], it can
-still be used to provide header bar titles insead of using [class@WindowTitle].
+still be used to provide header bar titles instead of using [class@WindowTitle].
+
+## Bottom Sheet
+
+A vertical `AdwFlap` can be used as a bottom sheet-like widget. It can be
+replaced with [class@BottomSheet].
 
 ## Fullscreen Header Bar
 
@@ -628,8 +613,6 @@ A typical `AdwViewSwitcherTitle` use looks as follows:
 
 ```xml
 <object class="AdwWindow">
-  <property name="width-request">360</property>
-  <property name="height-request">294</property>
   <property name="content">
     <object class="AdwToolbarView">
       <child type="top">
@@ -663,7 +646,7 @@ A typical `AdwViewSwitcherTitle` use looks as follows:
 ```
 
 Replace your `AdwViewSwitcherTitle` with a regular [class@ViewSwitcher] and set
-the `ADW_VIEW_SWITCHER_POLICY_WIDE` policy on it.
+the [enum@Adw.ViewSwitcherPolicy.wide] policy on it.
 
 Also remove the [property@ViewSwitcherBar:reveal] property binding on your
 switcher bar, and stop setting [property@HeaderBar:centering-policy] on your
@@ -758,8 +741,8 @@ visible page from your breakpoint.
   <child>
     <object class="AdwBreakpoint">
       <condition>max-width: 550sp</condition>
-      <setter object="title_stack" property="visible-child">window_title</property>
-      <setter object="switcher_bar" property="reveal">True</property>
+      <setter object="title_stack" property="visible-child">window_title</setter>
+      <setter object="switcher_bar" property="reveal">True</setter>
     </object>
   </child>
   <property name="child">
@@ -864,7 +847,7 @@ use a single [class@Gtk.Box], and a breakpoint toggling the box's
 
 <object class="AdwBreakpoint">
   <condition>max-width: 400sp</condition>
-  <setter object="box" property="orientation">vertical</property>
+  <setter object="box" property="orientation">vertical</setter>
 </object>
 ```
 

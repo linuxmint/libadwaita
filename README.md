@@ -1,37 +1,43 @@
-This is the patched version of libAdwaita in Linux Mint 22.
+# Adwaita
 
-It is based on libAdwaita 1.5 and adds theme support.
+Building blocks for modern GNOME applications.
 
-CSS support
------------
+## License
 
-The library uses the current GTK3 theme. If it provides a `libadwaita-1.5` directory, it uses the theme's stylesheets. Otherwise it fallsback to the library's own stylesheet, which looks exactly the same as upstream libadwaita.
+Libadwaita is licensed under the LGPL-2.1+.
 
-Inside the theme's `libadwaita-1.5` directory, there should be the following CSS files:
+## Building
 
-- `defaults-light.css` defines the colors in Light mode
-- `defaults-dark.css` defines the colors in dark mode
-- `base.css` defines the widgets style
-- `base-hc.css` defines the widgets style in high-contrast mode
-- `assets` provide pictures used by the stylesheet
+We use the Meson (and thereby Ninja) build system for libadwaita. The quickest
+way to get going is to do the following:
 
-You can find these files in `/usr/share/themes/LibAdwaita-Example/libadwaita-1.5` after installing the `libadwaita-1-examples` package.
+```sh
+meson setup _build
+ninja -C _build
+ninja -C _build install
+```
 
-To minimize potential issues it is recommended to only change the colors and the style of the window controls.
+For build options see [meson_options.txt](./meson_options.txt). E.g. to enable documentation:
 
-The best place to modify the window controls is at the bottom of `base.css`.
+```sh
+meson setup _build -Ddocumentation=true
+ninja -C _build
+```
 
-SASS support
-------------
+## Usage
 
-If your theme uses SASS you can work from the SASS files directly and get greater control.
+There's a C example:
 
-In this case, you can find the stylesheet here in the `src/stylesheet` directory.
+```sh
+_build/run _build/demo/adwaita-1-demo
+```
 
-Examples
---------
+## Documentation
 
-Mint-X and Mint-Y implement support for this library.
+The documentation can be found online
+[here](https://gnome.pages.gitlab.gnome.org/libadwaita/doc/).
 
-You can find their stylesheets in `/usr/share/themes/Mint-X/libadwaita-1.5` and `/usr/share/themes/Mint-Y/libadwaita-1.5`, or on github at https://github.com/linuxmint/mint-themes/tree/master/files/usr/share/themes.
+## Getting in Touch
+
+Matrix room: [#libadwaita:gnome.org](https://matrix.to/#/#libadwaita:gnome.org)
 

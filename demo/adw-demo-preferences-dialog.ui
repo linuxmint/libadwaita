@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="libadwaita" version="1.0"/>
+  <template class="AdwDemoPreferencesDialog" parent="AdwPreferencesDialog">
+    <property name="content-height">1000</property>
+    <property name="search-enabled">True</property>
+    <child>
+      <object class="AdwPreferencesPage">
+        <property name="icon_name">preferences-window-layout-symbolic</property>
+        <property name="title">L_ayout</property>
+        <property name="description">Preferences pages can have a description</property>
+        <property name="use-underline">True</property>
+        <property name="banner">
+          <object class="AdwBanner">
+            <property name="title">Preferences pages can have a banner</property>
+            <property name="revealed">True</property>
+          </object>
+        </property>
+        <child>
+          <object class="AdwPreferencesGroup">
+            <property name="description" translatable="yes">Preferences are organized in pages, this example has the following pages:</property>
+            <property name="title" translatable="yes">Pages</property>
+            <child>
+              <object class="AdwActionRow">
+                <property name="title" translatable="yes">L_ayout</property>
+                <property name="use_underline">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwActionRow">
+                <property name="title" translatable="yes">S_earch</property>
+                <property name="use_underline">True</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="AdwPreferencesGroup">
+            <property name="description" translatable="yes">Preferences are grouped together, a group can have a title and a description. Descriptions will be wrapped if they are too long. This page has the following groups:</property>
+            <property name="title" translatable="yes">Groups</property>
+            <child>
+              <object class="AdwActionRow">
+                <property name="title" translatable="yes">An Untitled Group</property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwActionRow">
+                <property name="title" translatable="yes">Pages</property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwActionRow">
+                <property name="title" translatable="yes">Groups</property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwActionRow">
+                <property name="title" translatable="yes">Preferences</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="AdwPreferencesGroup">
+            <property name="title" translatable="yes">Preferences</property>
+            <child>
+              <object class="AdwActionRow">
+                <property name="title" translatable="yes">Preferences rows are appended to the list box</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="ellipsize">end</property>
+                <property name="label" translatable="yes">Other widgets are appended after the list box</property>
+                <property name="margin-top">12</property>
+                <property name="margin-bottom">12</property>
+                <property name="xalign">0</property>
+                <style>
+                  <class name="dimmed"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="AdwPreferencesGroup">
+            <property name="title" translatable="yes">Toasts</property>
+            <child>
+              <object class="AdwActionRow">
+                <property name="title" translatable="yes">Show a Toast</property>
+                <child>
+                  <object class="GtkButton">
+                    <property name="label" translatable="yes">Show</property>
+                    <property name="action-name">toast.show</property>
+                    <property name="valign">center</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="AdwPreferencesGroup">
+            <property name="description" translatable="yes">Preferences dialogs can have subpages</property>
+            <property name="title" translatable="yes">Subpages</property>
+            <child>
+              <object class="AdwActionRow">
+                <property name="title" translatable="yes">Open Subpage</property>
+                <property name="activatable">True</property>
+                <signal name="activated" handler="subpage1_activated_cb" swapped="yes"/>
+                <child>
+                  <object class="GtkImage">
+                    <property name="icon_name">go-next-symbolic</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="AdwActionRow">
+                <property name="title" translatable="yes">Open Another Subpage</property>
+                <property name="activatable">True</property>
+                <signal name="activated" handler="subpage2_activated_cb" swapped="yes"/>
+                <child>
+                  <object class="GtkImage">
+                    <property name="icon_name">go-next-symbolic</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="AdwPreferencesPage">
+        <property name="icon_name">preferences-window-search-symbolic</property>
+        <property name="title">_Search</property>
+        <property name="use-underline">True</property>
+        <child>
+          <object class="AdwPreferencesGroup">
+            <property name="description">Preferences can be searched, do so using one of the following ways:</property>
+            <property name="title">Searching</property>
+            <child>
+              <object class="AdwActionRow">
+                <property name="title" translatable="yes">Activate the Search Button</property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwPreferencesRow">
+                <property name="title" translatable="yes">Ctrl + F</property>
+                <child>
+                  <object class="AdwShortcutLabel">
+                    <property name="accelerator">&lt;ctrl&gt;f</property>
+                    <property name="margin-top">12</property>
+                    <property name="margin-bottom">12</property>
+                    <property name="margin-start">12</property>
+                    <property name="margin-end">12</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="AdwActionRow">
+                <property name="title" translatable="yes">Directly Type Your Search</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+  <object class="AdwNavigationPage" id="subpage1">
+    <property name="title">Subpage</property>
+    <property name="child">
+      <object class="AdwToolbarView">
+        <child type="top">
+          <object class="AdwHeaderBar"/>
+        </child>
+        <property name="content">
+          <object class="AdwStatusPage">
+            <property name="title" translatable="yes">This Is a Subpage</property>
+            <property name="child">
+              <object class="GtkButton">
+                <property name="label" translatable="yes">Open Another Subpage</property>
+                <property name="can-shrink">True</property>
+                <property name="halign">center</property>
+                <signal name="clicked" handler="subpage2_activated_cb" swapped="yes"/>
+                <style>
+                  <class name="pill"/>
+                </style>
+              </object>
+            </property>
+          </object>
+        </property>
+      </object>
+    </property>
+  </object>
+  <object class="AdwNavigationPage" id="subpage2">
+    <property name="title">Another Subpage</property>
+    <property name="child">
+      <object class="AdwToolbarView">
+        <child type="top">
+          <object class="AdwHeaderBar"/>
+        </child>
+        <property name="content">
+          <object class="AdwStatusPage">
+            <property name="title" translatable="yes">This Is Another Subpage</property>
+          </object>
+        </property>
+      </object>
+    </property>
+  </object>
+</interface>

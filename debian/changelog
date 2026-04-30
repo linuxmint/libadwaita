@@ -1,24 +1,604 @@
-libadwaita-1 (1.5.0-2mint3) zara; urgency=medium
+libadwaita-1 (1.9.0-0ubuntu1) resolute; urgency=medium
 
-  * Bump version
+  * New upstream release 1.9.0 (LP: #2144437)
+  * Refresh patch:
+    stylesheet-common-Use-disabled-opacity-for-disabled-pictu.patch
 
- -- Clement Lefebvre <root@linuxmint.com>  Tue, 02 Sep 2025 15:17:23 +0200
+ -- Daniel van Vugt <daniel.van.vugt@canonical.com>  Tue, 17 Mar 2026 15:59:20 +0800
 
-libadwaita-1 (1.5.0-1mint2) zara; urgency=medium
+libadwaita-1 (1.9~beta-2ubuntu1) resolute; urgency=medium
 
-  [ Michael Webster ]
-  * Allow the theme name to determine the applied color-scheme if there's no overriding app/system preference. (#1)
+  * Merge with Debian.
+  * Refresh Ubuntu patches:
+    - accent-color-Return-return-orange-as-default-color.patch
+    - style-manager-Support-Yaru-accent-colors.patch
 
- -- Clement Lefebvre <root@linuxmint.com>  Thu, 28 Aug 2025 09:57:40 +0200
+ -- Daniel van Vugt <daniel.van.vugt@canonical.com>  Wed, 18 Feb 2026 13:57:41 +0800
 
-libadwaita-1 (1.5.0-1mint1) zara; urgency=medium
+libadwaita-1 (1.9~beta-2) unstable; urgency=medium
 
-  [ Michael Webster ]
-  * adw-style-manager.c: Try to use the current system theme for style info.
-  * build: Install a copy of the default theme as 'LibAdwaita' as part of the libadwaita-1-examples package.
-  * AdwSettings: Watch for theme name changes via xdg-portal or gsettings.
+  * Remove patch that avoided use of gtk4 4.21
+  * Update minimum gtk4
 
- -- Clement Lefebvre <root@linuxmint.com>  Tue, 20 May 2025 12:07:51 +0100
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Tue, 17 Feb 2026 17:16:34 -0500
+
+libadwaita-1 (1.9~beta-0ubuntu3) resolute; urgency=medium
+
+  * style-manager-Support-Yaru-accent-colors.patch: main.css got renamed to
+    gtk.css, update accordingly (LP: #2141928)
+
+ -- Julian Andres Klode <juliank@ubuntu.com>  Mon, 16 Feb 2026 19:18:58 +0100
+
+libadwaita-1 (1.9~beta-0ubuntu2) resolute; urgency=medium
+
+  * Disable patch:
+    stylesheet-common-Use-opacity-for-all-disabled-gtk-images.patch
+    While it is syntactically correct in theory, in practice it's triggering
+    a bug in libsass which replaces "opacity(" with "alpha(", which
+    gtk_css_filter_value_parse() does not understand (LP: #2141831)
+
+ -- Daniel van Vugt <daniel.van.vugt@canonical.com>  Mon, 16 Feb 2026 16:23:22 +0800
+
+libadwaita-1 (1.9~beta-1) unstable; urgency=medium
+
+  [ Daniel van Vugt ]
+  * New upstream release 1.9.beta
+  * Remove upstreamed patch: demo-Remove-NoDisplay-from-desktop-file.patch
+  * Update debian/patches/stylesheet-common* to use the disabled-opacity
+    variable instead of $disabled_opacity which no longer exists.
+  * Add Make-GtkReducedMotion-optional.patch so we're not blocked waiting
+    for a new GTK version. The change is so simple and unimportant that
+    it should not prevent builds against older GTK versions. Although we
+    fully expect a new GTK version soon and this patch can be dropped.
+  * Update debian/libadwaita-1-0.symbols with new symbols in 1.9.beta
+
+  [ Jeremy Bícha ]
+  * Disable stylesheet-common-Use-opacity-for-all-disabled-gtk-images.patch:
+    It emits a lot of warnings
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Fri, 13 Feb 2026 08:41:17 -0500
+
+libadwaita-1 (1.9~beta-0ubuntu1) resolute; urgency=medium
+
+  * New upstream release 1.9.beta
+  * Drop upstreamed patch: demo-Remove-NoDisplay-from-desktop-file.patch
+  * Update debian/patches/stylesheet-common* to use the disabled-opacity
+    variable instead of $disabled_opacity which no longer exists.
+  * Add Make-GtkReducedMotion-optional.patch so we're not blocked waiting
+    for a new GTK version. The change is so simple and unimportant that
+    it should not prevent builds against older GTK versions. Although we
+    fully expect a new GTK version soon and this patch can be dropped.
+  * Update debian/libadwaita-1-0.symbols with new symbols in 1.9.beta
+  * Refresh Ubuntu patches and fix conflicts:
+    - accent-color-Always-expose-and-use-yaru-accent-colors-val.patch
+    - accent-color-Return-return-orange-as-default-color.patch
+    - style-Add-wartybrown-accent-support.patch
+    - style-manager-Support-Yaru-accent-colors.patch
+
+ -- Daniel van Vugt <daniel.van.vugt@canonical.com>  Thu, 12 Feb 2026 18:40:13 +0800
+
+libadwaita-1 (1.8.4-1ubuntu1) resolute; urgency=medium
+
+  * Merge with debian, remaining changes:
+    - Add 2 patches to adjust accent colors for Ubuntu
+    - Add patch to set orange as default accent color instead of blue
+    - Add patch to include a warty brown accent color
+    - Add patch to make the spinner match the Yaru theme
+    - Update debian/salsa-ci.yml & debian/gbp.conf for Ubuntu
+
+ -- Alessandro Astone <alessandro.astone@canonical.com>  Mon, 09 Feb 2026 17:26:26 +0100
+
+libadwaita-1 (1.8.4-1) unstable; urgency=medium
+
+  * New upstream release
+  * Cherry-pick patch to stop hiding launcher for libadwaita demo
+    (Closes: #1123563)
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Mon, 02 Feb 2026 10:33:04 -0500
+
+libadwaita-1 (1.8.3-1) unstable; urgency=medium
+
+  * New upstream release
+  * autopkgtest: Set allow-stderr restriction to work around new xkb errors
+  * Bump Standards Version to 4.7.3
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Sat, 03 Jan 2026 17:35:22 -0500
+
+libadwaita-1 (1.8.2-1) unstable; urgency=medium
+
+  * New upstream release
+  * Bump minimum gtk4
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Sun, 23 Nov 2025 14:27:17 -0500
+
+libadwaita-1 (1.8.1-1) unstable; urgency=medium
+
+  * New upstream release
+  * Add Build-Depends: appstream for build tests
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Mon, 13 Oct 2025 19:29:08 -0400
+
+libadwaita-1 (1.8.0-1ubuntu2) questing; urgency=medium
+
+  * d/p/yaru-accent-colors: Notify yaru-accent change for the default style manager too
+    (LP: #2125422)
+
+ -- Alessandro Astone <alessandro.astone@canonical.com>  Wed, 24 Sep 2025 14:52:06 +0200
+
+libadwaita-1 (1.8.0-1ubuntu1) questing; urgency=medium
+
+  * Merge with debian, containing the new upstream release (LP: #2123885)
+  * d/p/ubuntu/adw-spinner:
+    - Fix yaru theme detection
+  * d/p/yaru-accent-colors:
+    - Adapt the code to upstream changes
+    - Fix stylesheet switching from Yaru to other theme
+    - Use yaru colors for backgrounds (LP: #2123897)
+  * Remaining changes with debian:
+    - Add 2 patches to adjust accent colors for Ubuntu
+    - Add patch to set orange as default accent color instead of blue
+    - Add patch to include a warty brown accent color
+    - Update debian/salsa-ci.yml & debian/gbp.conf for Ubuntu
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 16 Sep 2025 05:06:29 +0200
+
+libadwaita-1 (1.8.0-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Fri, 12 Sep 2025 15:54:39 -0400
+
+libadwaita-1 (1.8~rc-2) unstable; urgency=medium
+
+  [ Simon McVittie ]
+  * d/control: Standards-Version: 4.7.2 (no changes required)
+  * d/control: Remove Rules-Requires-Root, unnecessary since trixie
+  * d/control: Replace libgirepository1.0-dev B-D with gobject-introspection
+  * d/libadwaita-1-doc.links: Make the API documentation more discoverable
+  * d/libadwaita-1-doc.doc-base: Register API documentation with doc-base
+
+  [ Jeremy Bícha ]
+  * Release to unstable
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Fri, 12 Sep 2025 06:10:19 -0400
+
+libadwaita-1 (1.8~rc-1) experimental; urgency=medium
+
+  [ Jeremy Bícha ]
+  * New upstream release
+  * Bump minimum gtk4 to 4.19.4
+
+  [ Simon McVittie ]
+  * Merge 1.7.x updates from unstable (no functional change)
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Sun, 31 Aug 2025 08:59:24 -0400
+
+libadwaita-1 (1.8~beta-1ubuntu2) questing; urgency=medium
+
+  [ Vincent Renzo Quilon ]
+  * debian/patches: Align AdwSpinnerPaintable Design and Animation to
+    YaruCircularProgressIndicator (LP: #2114778)
+
+ -- Daniel van Vugt <daniel.van.vugt@canonical.com>  Tue, 19 Aug 2025 15:56:04 +0800
+
+libadwaita-1 (1.8~beta-1ubuntu1) questing; urgency=medium
+
+  * Merge with debian. Remaining changes:
+    - Add 2 patches to adjust accent colors for Ubuntu
+    - Add patch to set orange as default accent color instead of blue
+    - Add patch to include a warty brown accent color
+    - Update debian/salsa-ci.yml & debian/gbp.conf for Ubuntu
+  * d/p: Refresh
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 06 Aug 2025 00:36:35 +0200
+
+libadwaita-1 (1.8~beta-1) experimental; urgency=medium
+
+  * New upstream release
+  * debian/control: Add libfribidi build dependency
+  * debian/libadwaita-1-0.symbols: Update
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Wed, 06 Aug 2025 00:18:36 +0200
+
+libadwaita-1 (1.8~alpha-0ubuntu1) questing; urgency=medium
+
+  * Merge with debian. Remaining changes:
+    - Add 2 patches to adjust accent colors for Ubuntu
+    - Add patch to set orange as default accent color instead of blue
+    - Add patch to include a warty brown accent color
+    - Update debian/salsa-ci.yml & debian/gbp.conf for Ubuntu
+  * d/p: Drop patch for window buttons padding that was included upstream.
+  * New upstream release
+  * d/p: Rebase on new upstream version
+  * d: Update symbols file
+
+ -- Alessandro Astone <alessandro.astone@canonical.com>  Tue, 15 Jul 2025 17:00:03 +0200
+
+libadwaita-1 (1.7.6-1) unstable; urgency=medium
+
+  * Team upload
+  * d/control, d/gbp.conf, d/watch: Track 1.7.x
+  * New upstream bugfix release 1.7.5
+    - Explicitly set the size of a custom avatar image, avoiding a
+      regression with GTK 4.19.x
+      (libadwaita!1492 upstream)
+    - Always set the document font name, even if all of the debug
+      environment variables ADW_DEBUG_HIGH_CONTRAST,
+      ADW_DEBUG_COLOR_SCHEME and DEBUG_ACCENT_COLOR are set
+      (libadwaita#1042 upstream)
+    - Slightly increase the window border radius for AdwTabOverview
+      (libadwaita!1489 upstream)
+    - Fix an assertion failure when showing a "toast" notification while its
+      hiding animation is still in progress
+      (libadwaita#997 upstream)
+    - Fix some memory leaks
+    - CI updates, not relevant to how this package is built in Debian
+  * New upstream bugfix release 1.7.6
+    - Make cancelling an alert dialog go through the same code path as
+      the user interacting with it
+      (libadwaita!1511 upstream)
+    - Avoid type-check warnings when a dialog is presented as a window
+      (libadwaita!1519 upstream)
+    - Fix keyboard activation on AdwButtonRow inside AdwDialog presented
+      as a window
+      (libadwaita#1062 upstream)
+    - Crash with a somewhat graceful assertion error if a layout slot is
+      invalidly constructed without an ID, instead of segfaulting
+      (libadwaita#1059 upstream)
+    - Fix a memory leak
+      (libadwaita#1067 upstream)
+    - Avoid AdwNavigationPage "showing" and "hidden" signals being
+      spuriously triggered when swiping left on a touchscreen
+      (libadwaita#1065 upstream)
+    - Make tab overview buttons easier to press on touchscreens
+      (libadwaita#1039 upstream)
+    - Fix scan-build warnings by programming more defensively
+      (libadwaita!1517 upstream)
+    - Remove some dead code
+      (libadwaita!1521 upstream)
+
+ -- Simon McVittie <smcv@debian.org>  Fri, 08 Aug 2025 11:06:22 +0100
+
+libadwaita-1 (1.7.4-2) unstable; urgency=medium
+
+  * Team upload
+  * Summarize upstream changes in previous changelog entry
+  * Release to unstable
+
+ -- Simon McVittie <smcv@debian.org>  Sat, 14 Jun 2025 14:02:45 +0100
+
+libadwaita-1 (1.7.4-1) experimental; urgency=medium
+
+  * New upstream release 1.7.3
+    - Fix a crash if the preference for titlebar button layout is set
+      to empty
+      (libadwaita#1032 upstream)
+    - Don't let the text colour in various widgets become unreadable
+      when disabled (insensitive)
+      (libadwaita#1020 upstream)
+    - Fix visual style of expander rows marked as .property class
+      (libadwaita#967 upstream)
+    - Correctly transfer focus to expander rows when targeted by search
+      (libadwaita#1037 upstream)
+    - Adjust the threshold between yellow and green when normalizing accent
+      colours
+    - In the "inspector" debugging tool, don't interpret window titles
+      as Pango markup
+    - Documentation fixes
+    - Translation updates: ja, lv, pt
+  * New upstream release 1.7.4
+    - Fix a critical when disposing AdwCarousel after scrolling with
+      mouse wheel
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Fri, 06 Jun 2025 14:29:05 -0400
+
+libadwaita-1 (1.7.2-1ubuntu1) questing; urgency=medium
+
+  * Merge with debian, containing new upstream release:
+    - Add 2 patches to adjust accent colors for Ubuntu
+    - Add patch to set orange as default accent color instead of blue
+    - Add patch to include a warty brown accent color
+    - Update debian/salsa-ci.yml & debian/gbp.conf for Ubuntu
+  * d/p: Drop unneeded yaru-only patch for window button paddings.
+    Related to LP: #2106784
+  * d/p: Add upstream fix for window buttons padding on default decoration.
+    Related to LP: #2106784
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 23 May 2025 15:46:22 +0200
+
+libadwaita-1 (1.7.2-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Thu, 17 Apr 2025 08:20:57 -0400
+
+libadwaita-1 (1.7.1-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Fri, 11 Apr 2025 10:01:59 -0400
+
+libadwaita-1 (1.7.0-1ubuntu2) plucky; urgency=medium
+
+  * d/p/ubuntu: Increase size for window controls button in stylesheet
+    (LP: #2106784)
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 15 Apr 2025 19:07:58 +0200
+
+libadwaita-1 (1.7.0-1ubuntu1) plucky; urgency=medium
+
+  * Merge with Debian. Remaining changes:
+    - Add 2 patches to adjust accent colors for Ubuntu
+    - Add patch to set orange as default accent color instead of blue
+    - Add patch to include a warty brown accent color
+    - Update debian/salsa-ci.yml & debian/gbp.conf for Ubuntu
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Fri, 14 Mar 2025 16:45:14 -0400
+
+libadwaita-1 (1.7.0-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Fri, 14 Mar 2025 16:44:37 -0400
+
+libadwaita-1 (1.7~rc-1ubuntu1) plucky; urgency=medium
+
+  * Merge with Debian. Remaining changes:
+    - Add 2 patches to adjust accent colors for Ubuntu
+    - Add patch to set orange as default accent color instead of blue
+    - Add patch to include a warty brown accent color
+    - Update debian/salsa-ci.yml & debian/gbp.conf for Ubuntu
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Thu, 06 Mar 2025 13:47:14 -0500
+
+libadwaita-1 (1.7~rc-1) unstable; urgency=medium
+
+  * New upstream release
+  * Bump minimum glib and gtk4
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Thu, 06 Mar 2025 13:30:09 -0500
+
+libadwaita-1 (1.7~beta-2ubuntu1) plucky; urgency=medium
+
+  * Merge with Debian containing new upstream release.
+  * d/p/ubuntu: Update accent color patches for libadwaita 1.7
+  * d/p/ubuntu: Do not use special background for wartybrown anymore.
+    20 years anniversary is gone, we still keep the brown for now but we
+    let's not change change anymore the background or add more special
+    casing
+  * Remaining changes with debian:
+    - Add patches to adjust accent colors for Ubuntu
+    - Add patch to set orange as default accent color instead of blue
+    - Add patch to temporarily include a warty brown accent color
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Sat, 15 Feb 2025 20:36:24 +0100
+
+libadwaita-1 (1.7~beta-2) unstable; urgency=medium
+
+  * Release to unstable
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Mon, 03 Feb 2025 08:54:11 -0500
+
+libadwaita-1 (1.7~beta-1) experimental; urgency=medium
+
+  * New upstream release
+  * debian/libadwaita-1.0-symbols: Add new symbols
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Fri, 31 Jan 2025 14:37:03 -0500
+
+libadwaita-1 (1.7~alpha-1) experimental; urgency=medium
+
+  * New upstream release
+  * Refresh patches
+  * debian/libadwaita-1-0.symbols: Add new symbols
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Tue, 14 Jan 2025 20:07:58 -0500
+
+libadwaita-1 (1.6.3-1) unstable; urgency=medium
+
+  [ Jeremy Bícha ]
+  * New upstream release
+
+  [ Nathan Pratta Teodosio ]
+  * Add debian/clean for debian/testtmp
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Tue, 14 Jan 2025 18:51:23 -0500
+
+libadwaita-1 (1.6.2-1ubuntu1) plucky; urgency=medium
+
+  * Merge with Debian (LP: #2090847). Remaining changes:
+    - Add patches to adjust accent colors for Ubuntu
+    - Add patch to set orange as default accent color instead of blue
+    - Add patch to temporarily include a warty brown accent color
+  * debian/salsa-ci.yml: Run CI for Ubuntu Oracular
+
+ -- Nathan Pratta Teodosio <nteodosio@ubuntu.com>  Mon, 02 Dec 2024 16:11:17 +0100
+
+libadwaita-1 (1.6.2-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Mon, 25 Nov 2024 11:13:17 -0500
+
+libadwaita-1 (1.6.1-2ubuntu1) plucky; urgency=medium
+
+  * Merge with Debian. Remaining changes:
+    - Add patches to adjust accent colors for Ubuntu
+    - Add patch to set orange as default accent color instead of blue
+    - Add patch to temporarily include a warty brown accent color
+  * debian/salsa-ci.yml: Run CI for Ubuntu Oracular
+
+ -- Alessandro Astone <alessandro.astone@canonical.com>  Tue, 19 Nov 2024 18:00:54 +0100
+
+libadwaita-1 (1.6.1-2) unstable; urgency=medium
+
+  * Team upload
+  * d/rules, d/tests: Consistently use the same arguments for xvfb-run
+    - Explicitly set a screen size, which for whatever reason works
+      around a crash during libunwind initialization
+      (Mitigates: #1082659, #1084230)
+    - Don't reset the X server when a client exits
+    - Send diagnostic messages to stderr
+    - Automatically choose a display number
+
+ -- Simon McVittie <smcv@debian.org>  Wed, 06 Nov 2024 15:32:48 +0000
+
+libadwaita-1 (1.6.1-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Thu, 17 Oct 2024 15:04:30 -0400
+
+libadwaita-1 (1.6.0-1ubuntu2) oracular; urgency=medium
+
+  * d/p/ubuntu/wartybrown: Do not remove yellow accent color yaru support
+    (LP: #2083617)
+  * d/p/accent-colors: Move all wartybrown color bits to different patch.
+    This helps later removal of the patch
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 03 Oct 2024 16:47:13 +0200
+
+libadwaita-1 (1.6.0-1ubuntu1) oracular; urgency=medium
+
+  * Merge with Debian. Remaining changes:
+    - Add patches to adjust accent colors for Ubuntu
+    - Add patch to set orange as default accent color instead of blue
+    - Add patch to temporarily include a warty brown accent color
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Mon, 16 Sep 2024 22:49:21 -0400
+
+libadwaita-1 (1.6.0-1) unstable; urgency=medium
+
+  * New upstream release
+  * Remove patch applied in new release
+  * Release to unstable
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Sun, 15 Sep 2024 17:33:05 -0400
+
+libadwaita-1 (1.6~rc-2) experimental; urgency=medium
+
+  * Team upload
+  * d/p/test-bottom-sheet-Pass-alignment-in-varargs-correctly.patch:
+    Add proposed patch to fix undefined behaviour in a unit test
+    (Closes: #1080324, #1080325)
+
+ -- Simon McVittie <smcv@debian.org>  Fri, 13 Sep 2024 11:04:06 +0100
+
+libadwaita-1 (1.6~rc-1ubuntu1) oracular; urgency=medium
+
+  [ Nathan Pratta Teodosio ]
+  * Merge with debian
+  * d/p/u/style-Add-wartybrown-accent-support.patch: Rebase.
+  * d/p/u/style-Add-wartybrown-accent-support.patch: Some more colors matching brown in the tests.
+
+  [ Marco Trevisan (Treviño) ]
+  * d/p/warty-brown: Fix patch syntax
+  * debian/patches: Refresh indexes
+  * d/p/Yaru-accent-colors: Improve computation of colors based on contrast
+  * d/p/Yaru-accent-colors: Properly export yaru accent background color
+  * d/p/wartybrown-accent: Use actual warty window background color
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Fri, 06 Sep 2024 07:44:18 +0200
+
+libadwaita-1 (1.6~rc-1) experimental; urgency=medium
+
+  [ Jeremy Bícha ]
+  * New upstream release
+
+  [ Marco Trevisan (Treviño) ]
+  * debian/control: Add test dependency on mesa-vulkan-drivers
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Fri, 30 Aug 2024 22:09:24 -0400
+
+libadwaita-1 (1.6~beta-1ubuntu4) oracular; urgency=medium
+
+  * debian/control: Add test dependency on mesa-vulkan-drivers
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 20 Aug 2024 21:08:11 -0400
+
+libadwaita-1 (1.6~beta-1ubuntu3) oracular; urgency=medium
+
+  * d/p/wartybrown-support: Fix detection of nearest color when using brown
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Tue, 20 Aug 2024 20:27:18 -0400
+
+libadwaita-1 (1.6~beta-1ubuntu2) oracular; urgency=medium
+
+  [ Marco Trevisan (Treviño) ]
+  * Merge with debian, containing new upstream release
+  * d/p/ubuntu: Always return orange as default accent color
+  * d/p/yaru-accent-colors:
+    - Update to support upstream accent colors
+    - Use yaru accent color from system settings if any
+    - Always expose and use yaru colors values when in Yaru
+    - Handle overriding yaru colors from inspector
+    - Add definition for yellow color
+    - Drop support for bark and viridian accent colors
+  * d/p/ubuntu: Add temporary warty brown accent color support
+  * Add back missing ubuntu changelog entries
+
+  [ Jeremy Bícha ]
+  * Update debian/gbp.conf
+
+ -- Marco Trevisan (Treviño) <marco@ubuntu.com>  Thu, 15 Aug 2024 08:29:40 -0400
+
+libadwaita-1 (1.6~beta-1ubuntu1) oracular; urgency=medium
+
+  * Temporarily ignore build test failures on s390x
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Fri, 09 Aug 2024 20:20:20 -0400
+
+libadwaita-1 (1.6~beta-1) experimental; urgency=medium
+
+  * New upstream release
+  * debian/libadwaita-1-0.symbols: Add new symbols
+  * Bump minimum GTK4 to 4.15.2
+  * Build tests separately from main build to avoid including exported
+    private symbols
+  * Bump Standards Version to 4.7.0
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Fri, 02 Aug 2024 15:18:00 -0400
+
+libadwaita-1 (1.5.3-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Fri, 02 Aug 2024 14:45:20 -0400
+
+libadwaita-1 (1.5.2-2) unstable; urgency=medium
+
+  * Set minimum GTK4 to 4.13.4
+  * Revert "Revert 3 commits bumping minimum GTK4"
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Wed, 31 Jul 2024 14:38:54 -0400
+
+libadwaita-1 (1.5.2-1ubuntu1) oracular; urgency=medium
+
+  * Merge with Debian (LP: #2067418). Remaining changes:
+    - Add patch to support Yaru accent colors using Adwaita theming
+    - Set minimum GTK4 to 4.13.4
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Fri, 28 Jun 2024 15:04:28 -0400
+
+libadwaita-1 (1.5.2-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Fri, 28 Jun 2024 14:32:35 -0400
+
+libadwaita-1 (1.5.1-1ubuntu1) oracular; urgency=medium
+
+  * Merge with Debian (LP: #2067418). Remaining changes:
+    - Add patch to support Yaru accent colors using Adwaita theming
+    - Set minimum GTK4 to 4.13.4
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Tue, 28 May 2024 15:49:06 -0400
+
+libadwaita-1 (1.5.1-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Tue, 28 May 2024 15:46:47 -0400
 
 libadwaita-1 (1.5.0-1ubuntu2) noble; urgency=medium
 

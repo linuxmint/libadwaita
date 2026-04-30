@@ -5,17 +5,18 @@
   <object class="AdwWindow" id="widget">
     <property name="title">View Switcher Bar</property>
     <property name="default-height">150</property>
+    <property name="height-request">-1</property>
     <property name="content">
       <object class="AdwToolbarView">
         <child type="top">
-          <object class="GtkHeaderBar"/>
+          <object class="AdwHeaderBar"/>
         </child>
         <property name="content">
           <object class="AdwViewStack" id="stack">
             <child>
               <object class="AdwViewStackPage">
                 <property name="title">Page 1</property>
-                <property name="icon-name">applications-system-symbolic</property>
+                <property name="icon-name">generic-symbolic</property>
                 <property name="child">
                   <object class="AdwBin"/>
                 </property>
@@ -24,7 +25,7 @@
             <child>
               <object class="AdwViewStackPage">
                 <property name="title">Page 2</property>
-                <property name="icon-name">applications-system-symbolic</property>
+                <property name="icon-name">generic-symbolic</property>
                 <property name="child">
                   <object class="AdwBin"/>
                 </property>
@@ -33,7 +34,9 @@
             <child>
               <object class="AdwViewStackPage">
                 <property name="title">Page 3</property>
-                <property name="icon-name">applications-system-symbolic</property>
+                <property name="icon-name">generic-symbolic</property>
+                <property name="needs-attention">True</property>
+                <property name="badge-number">3</property>
                 <property name="child">
                   <object class="AdwBin"/>
                 </property>

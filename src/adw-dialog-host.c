@@ -12,6 +12,7 @@
 
 #include "adw-bin.h"
 #include "adw-dialog-private.h"
+#include "adw-gtkbuilder-utils-private.h"
 #include "adw-widget-utils-private.h"
 
 struct _AdwDialogHost
@@ -58,6 +59,15 @@ struct _AdwDialogModel
 
   AdwDialogHost *host;
 };
+
+enum {
+  MODEL_PROP_0,
+  MODEL_PROP_ITEM_TYPE,
+  MODEL_PROP_N_ITEMS,
+  N_MODEL_PROPS,
+};
+
+static GParamSpec *model_props[N_MODEL_PROPS];
 
 static GType
 adw_dialog_model_get_item_type (GListModel *model)
@@ -121,11 +131,58 @@ adw_dialog_model_dispose (GObject *object)
 }
 
 static void
+adw_dialog_model_get_property (GObject    *object,
+                               guint       prop_id,
+                               GValue     *value,
+                               GParamSpec *pspec)
+{
+  AdwDialogModel *self = ADW_DIALOG_MODEL (object);
+
+  switch (prop_id) {
+  case MODEL_PROP_ITEM_TYPE:
+    g_value_set_gtype (value, ADW_TYPE_DIALOG);
+    break;
+  case MODEL_PROP_N_ITEMS:
+    g_value_set_uint (value, adw_dialog_model_get_n_items (G_LIST_MODEL (self)));
+    break;
+  default:
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+  }
+}
+
+static void
 adw_dialog_model_class_init (AdwDialogModelClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
   object_class->dispose = adw_dialog_model_dispose;
+  object_class->get_property = adw_dialog_model_get_property;
+
+  /**
+   * AdwDialogModel:item-type:
+   *
+   * The type of the items. See [method@Gio.ListModel.get_item_type].
+   *
+   * Since: 1.9
+   */
+  model_props[MODEL_PROP_ITEM_TYPE] =
+    g_param_spec_gtype ("item-type", NULL, NULL,
+                        ADW_TYPE_DIALOG,
+                        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+  /**
+   * AdwDialogModel:n-items:
+   *
+   * The number of items. See [method@Gio.ListModel.get_n_items].
+   *
+   * Since: 1.9
+   */
+  model_props[MODEL_PROP_N_ITEMS] =
+    g_param_spec_uint ("n-items", NULL, NULL,
+                       0, G_MAXUINT, 0,
+                       G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+
+  g_object_class_install_properties (object_class, N_MODEL_PROPS, model_props);
 }
 
 static GListModel *
@@ -167,8 +224,10 @@ dialog_closing_cb (AdwDialog     *dialog,
 
   adw_dialog_set_closing (dialog, TRUE);
 
-  if (self->dialogs_model)
+  if (self->dialogs_model) {
     g_list_model_items_changed (self->dialogs_model, index, 1, 0);
+    g_object_notify_by_pspec (G_OBJECT (self->dialogs_model), model_props[MODEL_PROP_N_ITEMS]);
+  }
 
   if (self->dialogs->len == 0) {
     gtk_widget_set_can_focus (self->bin, TRUE);
@@ -202,15 +261,6 @@ dialog_remove_cb (AdwDialog     *dialog,
     g_ptr_array_add (self->dialogs_closed_during_unmap, dialog);
   else
     gtk_widget_unparent (GTK_WIDGET (dialog));
-}
-
-static gboolean
-key_pressed_cb (AdwDialogHost *self)
-{
-  if (self->dialogs->len == 0)
-    return GDK_EVENT_PROPAGATE;
-
-  return GDK_EVENT_STOP;
 }
 
 static void
@@ -260,6 +310,14 @@ adw_dialog_host_unmap (GtkWidget *widget)
                             self->dialogs_closed_during_unmap->len);
 }
 
+static GtkSizeRequestMode
+adw_dialog_host_get_request_mode (GtkWidget *widget)
+{
+  AdwDialogHost *self = ADW_DIALOG_HOST (widget);
+
+  return gtk_widget_get_request_mode (self->bin);
+}
+
 static void
 adw_dialog_host_measure (GtkWidget      *widget,
                          GtkOrientation  orientation,
@@ -271,6 +329,10 @@ adw_dialog_host_measure (GtkWidget      *widget,
 {
   AdwDialogHost *self = ADW_DIALOG_HOST (widget);
 
+  /* Only measure the child, not any dialogs. In case a dialog is too
+   * large to fit the screen (e.g. on a phone), we'd rather clip the
+   * dialog than have the whole window request a large size and overflow.
+   */
   gtk_widget_measure (self->bin, orientation, for_size,
                       minimum, natural, minimum_baseline, natural_baseline);
 }
@@ -286,14 +348,10 @@ adw_dialog_host_size_allocate (GtkWidget *widget,
   for (child = gtk_widget_get_first_child (widget);
        child;
        child = gtk_widget_get_next_sibling (child)) {
-    GtkRequisition min;
+    GtkAllocation child_allocation = { 0, 0, width, height };
 
-    gtk_widget_get_preferred_size (child, &min, NULL);
-
-    width = MAX (width, min.width);
-    height = MAX (height, min.height);
-
-    gtk_widget_allocate (child, width, height, baseline, NULL);
+    adw_ensure_child_allocation_size (child, &child_allocation);
+    gtk_widget_size_allocate (child, &child_allocation, -1);
   }
 }
 
@@ -302,8 +360,10 @@ adw_dialog_host_dispose (GObject *object)
 {
   AdwDialogHost *self = ADW_DIALOG_HOST (object);
 
-  if (self->dialogs_model)
+  if (self->dialogs_model) {
     g_list_model_items_changed (self->dialogs_model, 0, self->dialogs->len, 0);
+    g_object_notify_by_pspec (G_OBJECT (self->dialogs_model), model_props[MODEL_PROP_N_ITEMS]);
+  }
 
   if (self->dialogs) {
     int i;
@@ -393,7 +453,7 @@ adw_dialog_host_class_init (AdwDialogHostClass *klass)
   widget_class->unmap = adw_dialog_host_unmap;
   widget_class->measure = adw_dialog_host_measure;
   widget_class->size_allocate = adw_dialog_host_size_allocate;
-  widget_class->get_request_mode = adw_widget_get_request_mode;
+  widget_class->get_request_mode = adw_dialog_host_get_request_mode;
   widget_class->compute_expand = adw_widget_compute_expand;
 
   props[PROP_CHILD] =
@@ -419,18 +479,12 @@ adw_dialog_host_class_init (AdwDialogHostClass *klass)
 static void
 adw_dialog_host_init (AdwDialogHost *self)
 {
-  GtkEventController *controller;
-
   self->dialogs = g_ptr_array_new ();
 
   self->dialogs_closed_during_unmap = g_ptr_array_new ();
 
   self->bin = adw_bin_new ();
   gtk_widget_set_parent (self->bin, GTK_WIDGET (self));
-
-  controller = gtk_event_controller_key_new ();
-  g_signal_connect_swapped (controller, "key-pressed", G_CALLBACK (key_pressed_cb), self);
-  gtk_widget_add_controller (GTK_WIDGET (self), controller);
 }
 
 static void
@@ -439,10 +493,12 @@ adw_dialog_host_buildable_add_child (GtkBuildable *buildable,
                                      GObject      *child,
                                      const char   *type)
 {
-  if (GTK_IS_WIDGET (child))
+  if (GTK_IS_WIDGET (child)) {
+    gtk_buildable_child_deprecation_warning (buildable, builder, NULL, "child");
     adw_dialog_host_set_child (ADW_DIALOG_HOST (buildable), GTK_WIDGET (child));
-  else
+  } else {
     parent_buildable_iface->add_child (buildable, builder, child, type);
+  }
 }
 
 static void
@@ -474,11 +530,11 @@ adw_dialog_host_set_child (AdwDialogHost *self,
   g_return_if_fail (ADW_IS_DIALOG_HOST (self));
   g_return_if_fail (child == NULL || GTK_IS_WIDGET (child));
 
-  if (child)
-    g_return_if_fail (gtk_widget_get_parent (child) == NULL);
-
   if (adw_dialog_host_get_child (self) == child)
     return;
+
+  if (child)
+    g_return_if_fail (gtk_widget_get_parent (child) == NULL);
 
   adw_bin_set_child (ADW_BIN (self->bin), child);
 
@@ -545,6 +601,9 @@ adw_dialog_host_present_dialog (AdwDialogHost *self,
   if (self->dialogs->len == 0) {
     GtkWidget *focus = gtk_window_get_focus (GTK_WINDOW (root));
 
+    while (focus && !gtk_widget_get_mapped (focus))
+      focus = gtk_widget_get_parent (focus);
+
     if (focus && gtk_widget_is_ancestor (focus, self->bin))
       g_set_weak_pointer (&self->last_focus, focus);
 
@@ -568,8 +627,10 @@ adw_dialog_host_present_dialog (AdwDialogHost *self,
 
   g_ptr_array_add (self->dialogs, dialog);
 
-  if (self->dialogs_model)
+  if (self->dialogs_model) {
     g_list_model_items_changed (self->dialogs_model, self->dialogs->len - 1, 0, 1);
+    g_object_notify_by_pspec (G_OBJECT (self->dialogs_model), model_props[MODEL_PROP_N_ITEMS]);
+  }
 
   if (gtk_window_get_focus_visible (GTK_WINDOW (root)))
     gtk_window_set_focus_visible (GTK_WINDOW (root), TRUE);
@@ -623,3 +684,4 @@ adw_dialog_host_get_from_proxy (GtkWidget *widget)
 
   return NULL;
 }
+

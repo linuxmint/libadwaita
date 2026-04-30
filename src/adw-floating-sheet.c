@@ -11,7 +11,7 @@
 #include "adw-floating-sheet-private.h"
 
 #include "adw-animation-target.h"
-#include "adw-animation-util.h"
+#include "adw-animation-util-private.h"
 #include "adw-gizmo-private.h"
 #include "adw-marshalers.h"
 #include "adw-spring-animation.h"
@@ -27,9 +27,12 @@
 #define HORZ_PADDING_TARGET_VALUE 120
 
 #define VERT_PADDING_MIN_HEIGHT 720
-#define VERT_PADDING_MIN_VALUE 30
+#define VERT_PADDING_MIN_VALUE 20
 #define VERT_PADDING_TARGET_HEIGHT 1440
 #define VERT_PADDING_TARGET_VALUE 120
+
+#define SPRING_DAMPING 0.62
+#define SPRING_STIFFNESS 500
 
 struct _AdwFloatingSheet
 {
@@ -40,9 +43,18 @@ struct _AdwFloatingSheet
   GtkWidget *dimming;
 
   gboolean open;
+  gboolean can_close;
 
   AdwAnimation *open_animation;
   double progress;
+
+  gboolean has_been_open;
+
+  GFunc closing_callback;
+  GFunc closed_callback;
+  gpointer user_data;
+
+  gboolean use_fade;
 };
 
 G_DEFINE_FINAL_TYPE (AdwFloatingSheet, adw_floating_sheet, GTK_TYPE_WIDGET)
@@ -51,18 +63,33 @@ enum {
   PROP_0,
   PROP_CHILD,
   PROP_OPEN,
+  PROP_CAN_CLOSE,
   LAST_PROP
 };
 
 static GParamSpec *props[LAST_PROP];
 
 enum {
-  SIGNAL_CLOSING,
-  SIGNAL_CLOSED,
+  SIGNAL_CLOSE_ATTEMPT,
   SIGNAL_LAST_SIGNAL,
 };
 
 static guint signals[SIGNAL_LAST_SIGNAL];
+
+static void
+update_spring_params (AdwFloatingSheet *self,
+                      AdwAnimation     *animation)
+{
+  AdwSpringParams *params;
+
+  params = adw_spring_params_new (self->use_fade ? 1.0 : SPRING_DAMPING,
+                                  1,
+                                  SPRING_STIFFNESS);
+
+  adw_spring_animation_set_spring_params (ADW_SPRING_ANIMATION (animation), params);
+
+  adw_spring_params_unref (params);
+}
 
 static void
 open_animation_cb (double            value,
@@ -82,8 +109,44 @@ open_animation_done_cb (AdwFloatingSheet *self)
     gtk_widget_set_child_visible (self->dimming, FALSE);
     gtk_widget_set_child_visible (self->sheet_bin, FALSE);
 
-    g_signal_emit (self, signals[SIGNAL_CLOSED], 0);
+    if (self->closed_callback)
+      self->closed_callback (self, self->user_data);
   }
+}
+
+static void
+sheet_close_cb (AdwFloatingSheet *self)
+{
+  GtkWidget *parent;
+
+  if (!self->can_close) {
+    g_signal_emit (self, signals[SIGNAL_CLOSE_ATTEMPT], 0);
+    return;
+  }
+
+  if (self->open) {
+    adw_floating_sheet_set_open (self, FALSE);
+    return;
+  }
+
+  parent = gtk_widget_get_parent (GTK_WIDGET (self));
+
+  if (parent)
+    gtk_widget_activate_action (parent, "sheet.close", NULL);
+}
+
+static gboolean
+maybe_close_cb (GtkWidget        *widget,
+                GVariant         *args,
+                AdwFloatingSheet *self)
+{
+  if (self->can_close && self->open) {
+    adw_floating_sheet_set_open (self, FALSE);
+    return GDK_EVENT_STOP;
+  }
+
+  g_signal_emit (self, signals[SIGNAL_CLOSE_ATTEMPT], 0);
+  return GDK_EVENT_STOP;
 }
 
 static void
@@ -121,10 +184,9 @@ adw_floating_sheet_size_allocate (GtkWidget *widget,
                                   int        baseline)
 {
   AdwFloatingSheet *self = ADW_FLOATING_SHEET (widget);
-  GskTransform *transform;
+  GskTransform *transform = NULL;
   int sheet_x, sheet_y, sheet_min_width, sheet_width, sheet_min_height, sheet_height;
   int horz_padding, vert_padding;
-  float scale;
 
   if (width == 0 && height == 0)
     return;
@@ -155,10 +217,14 @@ adw_floating_sheet_size_allocate (GtkWidget *widget,
   sheet_x = round ((width - sheet_width) * 0.5);
   sheet_y = round ((height - sheet_height) * 0.5);
 
-  scale = MIN_SCALE + (1 - MIN_SCALE) * self->progress;
-  transform = gsk_transform_translate (NULL, &GRAPHENE_POINT_INIT (width / 2.0f, height / 2.0f));
-  transform = gsk_transform_scale (transform, scale, scale);
-  transform = gsk_transform_translate (transform, &GRAPHENE_POINT_INIT (-width / 2.0f, -height / 2.0f));
+  if (!self->use_fade) {
+    float scale = MIN_SCALE + (1 - MIN_SCALE) * self->progress;
+
+    transform = gsk_transform_translate (transform, &GRAPHENE_POINT_INIT (width / 2.0f, height / 2.0f));
+    transform = gsk_transform_scale (transform, scale, scale);
+    transform = gsk_transform_translate (transform, &GRAPHENE_POINT_INIT (-width / 2.0f, -height / 2.0f));
+  }
+
   transform = gsk_transform_translate (transform, &GRAPHENE_POINT_INIT (sheet_x, sheet_y));
   gtk_widget_allocate (self->sheet_bin, sheet_width, sheet_height, baseline, transform);
 }
@@ -170,6 +236,7 @@ adw_floating_sheet_dispose (GObject *object)
 
   g_clear_pointer (&self->dimming, gtk_widget_unparent);
   g_clear_pointer (&self->sheet_bin, gtk_widget_unparent);
+  g_clear_object (&self->open_animation);
   self->child = NULL;
 
   G_OBJECT_CLASS (adw_floating_sheet_parent_class)->dispose (object);
@@ -189,6 +256,9 @@ adw_floating_sheet_get_property (GObject    *object,
     break;
   case PROP_OPEN:
     g_value_set_boolean (value, adw_floating_sheet_get_open (self));
+    break;
+  case PROP_CAN_CLOSE:
+    g_value_set_boolean (value, adw_floating_sheet_get_can_close (self));
     break;
   default:
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -210,6 +280,9 @@ adw_floating_sheet_set_property (GObject      *object,
   case PROP_OPEN:
     adw_floating_sheet_set_open (self, g_value_get_boolean (value));
     break;
+  case PROP_CAN_CLOSE:
+    adw_floating_sheet_set_can_close (self, g_value_get_boolean (value));
+    break;
   default:
     G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
   }
@@ -230,6 +303,8 @@ adw_floating_sheet_class_init (AdwFloatingSheetClass *klass)
   widget_class->size_allocate = adw_floating_sheet_size_allocate;
   widget_class->get_request_mode = adw_widget_get_request_mode;
   widget_class->compute_expand = adw_widget_compute_expand;
+  widget_class->focus = adw_widget_focus_child;
+  widget_class->grab_focus = adw_widget_grab_focus_child;
 
   props[PROP_CHILD] =
     g_param_spec_object ("child", NULL, NULL,
@@ -241,10 +316,15 @@ adw_floating_sheet_class_init (AdwFloatingSheetClass *klass)
                           FALSE,
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
+  props[PROP_CAN_CLOSE] =
+    g_param_spec_boolean ("can-close", NULL, NULL,
+                          TRUE,
+                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
+
   g_object_class_install_properties (object_class, LAST_PROP, props);
 
-  signals[SIGNAL_CLOSING] =
-    g_signal_new ("closing",
+  signals[SIGNAL_CLOSE_ATTEMPT] =
+    g_signal_new ("close-attempt",
                   G_TYPE_FROM_CLASS (klass),
                   G_SIGNAL_RUN_LAST,
                   0,
@@ -252,22 +332,12 @@ adw_floating_sheet_class_init (AdwFloatingSheetClass *klass)
                   adw_marshal_VOID__VOID,
                   G_TYPE_NONE,
                   0);
-  g_signal_set_va_marshaller (signals[SIGNAL_CLOSING],
+  g_signal_set_va_marshaller (signals[SIGNAL_CLOSE_ATTEMPT],
                               G_TYPE_FROM_CLASS (klass),
                               adw_marshal_VOID__VOIDv);
 
-  signals[SIGNAL_CLOSED] =
-    g_signal_new ("closed",
-                  G_TYPE_FROM_CLASS (klass),
-                  G_SIGNAL_RUN_LAST,
-                  0,
-                  NULL, NULL,
-                  adw_marshal_VOID__VOID,
-                  G_TYPE_NONE,
-                  0);
-  g_signal_set_va_marshaller (signals[SIGNAL_CLOSED],
-                              G_TYPE_FROM_CLASS (klass),
-                              adw_marshal_VOID__VOIDv);
+  gtk_widget_class_install_action (widget_class, "sheet.close", NULL,
+                                   (GtkWidgetActionActivateFunc) sheet_close_cb);
 
   gtk_widget_class_set_css_name (widget_class, "floating-sheet");
 }
@@ -276,6 +346,10 @@ static void
 adw_floating_sheet_init (AdwFloatingSheet *self)
 {
   AdwAnimationTarget *target;
+  GtkEventController *shortcut_controller;
+  GtkShortcut *shortcut;
+
+  self->can_close = TRUE;
 
   self->dimming = g_object_new (GTK_TYPE_WINDOW_HANDLE,
                                 "css-name", "dimming",
@@ -285,10 +359,11 @@ adw_floating_sheet_init (AdwFloatingSheet *self)
   gtk_widget_set_can_target (self->dimming, FALSE);
   gtk_widget_set_parent (self->dimming, GTK_WIDGET (self));
 
-  self->sheet_bin = adw_gizmo_new_with_role ("sheet", GTK_ACCESSIBLE_ROLE_DIALOG,
+  self->sheet_bin = adw_gizmo_new_with_role ("sheet", GTK_ACCESSIBLE_ROLE_GENERIC,
                                              NULL, NULL, NULL, NULL,
                                              (AdwGizmoFocusFunc) adw_widget_focus_child,
-                                             (AdwGizmoGrabFocusFunc) adw_widget_grab_focus_child);
+                                             (AdwGizmoGrabFocusFunc) adw_widget_grab_focus_child_or_self);
+  gtk_widget_set_focusable (self->sheet_bin, TRUE);
   gtk_widget_set_opacity (self->sheet_bin, 0);
   gtk_widget_set_layout_manager (self->sheet_bin, gtk_bin_layout_new ());
   gtk_widget_add_css_class (self->sheet_bin, "background");
@@ -303,11 +378,20 @@ adw_floating_sheet_init (AdwFloatingSheet *self)
   self->open_animation = adw_spring_animation_new (GTK_WIDGET (self),
                                                    0,
                                                    1,
-                                                   adw_spring_params_new (0.62, 1, 500),
+                                                   adw_spring_params_new (1, 1, SPRING_STIFFNESS),
                                                    target);
   adw_spring_animation_set_epsilon (ADW_SPRING_ANIMATION (self->open_animation), 0.01);
   g_signal_connect_swapped (self->open_animation, "done",
                             G_CALLBACK (open_animation_done_cb), self);
+
+  /* Esc to close */
+
+  shortcut = gtk_shortcut_new (gtk_keyval_trigger_new (GDK_KEY_Escape, 0),
+                               gtk_callback_action_new ((GtkShortcutFunc) maybe_close_cb, self, NULL));
+
+  shortcut_controller = gtk_shortcut_controller_new ();
+  gtk_shortcut_controller_add_shortcut (GTK_SHORTCUT_CONTROLLER (shortcut_controller), shortcut);
+  gtk_widget_add_controller (self->sheet_bin, shortcut_controller);
 }
 
 GtkWidget *
@@ -331,11 +415,11 @@ adw_floating_sheet_set_child (AdwFloatingSheet *self,
   g_return_if_fail (ADW_IS_FLOATING_SHEET (self));
   g_return_if_fail (child == NULL || GTK_IS_WIDGET (child));
 
-  if (child)
-    g_return_if_fail (gtk_widget_get_parent (child) == NULL);
-
   if (self->child == child)
     return;
+
+  if (child)
+    g_return_if_fail (gtk_widget_get_parent (child) == NULL);
 
   if (self->child)
     gtk_widget_unparent (self->child);
@@ -364,26 +448,40 @@ adw_floating_sheet_set_open (AdwFloatingSheet *self,
 
   open = !!open;
 
-  if (self->open == open)
+  if (self->open == open) {
+    if (!self->has_been_open && !open) {
+      if (self->closing_callback)
+        self->closing_callback (self, self->user_data);
+
+      if (self->closed_callback)
+        self->closed_callback (self, self->user_data);
+    }
+
     return;
+  }
 
   self->open = open;
 
   if (open) {
     gtk_widget_set_child_visible (self->dimming, TRUE);
     gtk_widget_set_child_visible (self->sheet_bin, TRUE);
+    self->has_been_open = true;
   }
 
   gtk_widget_set_can_target (self->dimming, open);
   gtk_widget_set_can_target (self->sheet_bin, open);
 
   if (!open) {
-    g_signal_emit (self, signals[SIGNAL_CLOSING], 0);
+    if (self->closing_callback)
+      self->closing_callback (self, self->user_data);
 
     if (self->open != open)
       return;
   }
 
+  self->use_fade = adw_get_reduce_motion (GTK_WIDGET (self));
+
+  update_spring_params (self, self->open_animation);
   adw_spring_animation_set_value_from (ADW_SPRING_ANIMATION (self->open_animation),
                                        self->progress);
   adw_spring_animation_set_value_to (ADW_SPRING_ANIMATION (self->open_animation),
@@ -393,4 +491,49 @@ adw_floating_sheet_set_open (AdwFloatingSheet *self,
   adw_animation_play (self->open_animation);
 
   g_object_notify_by_pspec (G_OBJECT (self), props[PROP_OPEN]);
+}
+
+gboolean
+adw_floating_sheet_get_can_close (AdwFloatingSheet *self)
+{
+  g_return_val_if_fail (ADW_IS_FLOATING_SHEET (self), FALSE);
+
+  return self->can_close;
+}
+
+void
+adw_floating_sheet_set_can_close (AdwFloatingSheet *self,
+                                  gboolean          can_close)
+{
+  g_return_if_fail (ADW_IS_FLOATING_SHEET (self));
+
+  can_close = !!can_close;
+
+  if (self->can_close == can_close)
+    return;
+
+  self->can_close = can_close;
+
+  g_object_notify_by_pspec (G_OBJECT (self), props[PROP_CAN_CLOSE]);
+}
+
+GtkWidget *
+adw_floating_sheet_get_sheet_bin (AdwFloatingSheet *self)
+{
+  g_return_val_if_fail (ADW_IS_FLOATING_SHEET (self), NULL);
+
+  return self->sheet_bin;
+}
+
+void
+adw_floating_sheet_set_callbacks (AdwFloatingSheet *self,
+                                  GFunc             closing_callback,
+                                  GFunc             closed_callback,
+                                  gpointer          user_data)
+{
+  g_return_if_fail (ADW_IS_FLOATING_SHEET (self));
+
+  self->closing_callback = closing_callback;
+  self->closed_callback = closed_callback;
+  self->user_data = user_data;
 }

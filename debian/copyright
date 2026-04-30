@@ -1,8 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: libadwaita
 Source: https://gitlab.gnome.org/GNOME/libadwaita
-Files-Excluded: doc/libadwaita-1
-Comment: Let's build the docs from source
 
 Files: *
 Copyright: 2019, Alexander Mikhaylenko <exalm7659@gmail.com>

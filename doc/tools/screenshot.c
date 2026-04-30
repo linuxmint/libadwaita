@@ -54,7 +54,6 @@ typedef struct {
   GdkPaintable *paintable;
   char *name;
   GtkCssProvider *provider;
-  GtkCssProvider *provider_dark;
 } ScreenshotData;
 
 static void
@@ -63,7 +62,6 @@ screenshot_data_free (ScreenshotData *data)
   g_object_unref (data->paintable);
   gtk_window_destroy (GTK_WINDOW (gtk_widget_get_root (data->widget)));
   g_object_unref (data->provider);
-  g_clear_object (&data->provider_dark);
   g_free (data->name);
   g_free (data);
 }
@@ -169,9 +167,9 @@ draw_paintable_cb (ScreenshotData *data)
   int x, y, width, height;
   graphene_rect_t bounds;
 
-  g_assert (gtk_widget_compute_bounds (data->widget, data->window, &bounds));
-
   if (GTK_IS_NATIVE (data->widget)) {
+    g_assert (gtk_widget_compute_bounds (data->widget, data->widget, &bounds));
+
     GdkSurface *surface;
     double transform_x, transform_y;
 
@@ -183,6 +181,8 @@ draw_paintable_cb (ScreenshotData *data)
     width = gdk_surface_get_width (surface);
     height = gdk_surface_get_height (surface);
   } else {
+    g_assert (gtk_widget_compute_bounds (data->widget, data->window, &bounds));
+
     x = gtk_widget_get_margin_start (data->widget);
     y = gtk_widget_get_margin_top (data->widget);
     width = bounds.size.width + x + gtk_widget_get_margin_end (data->widget);
@@ -237,7 +237,7 @@ draw_paintable (ScreenshotData *data)
                                         data);
 
   /* Handle the case where something immediately invalidates allocation. */
-  g_timeout_add_once (50, (GSourceOnceFunc) draw_paintable_cb, data);
+  g_timeout_add_once (100, (GSourceOnceFunc) draw_paintable_cb, data);
 }
 
 static GtkCssProvider *
@@ -396,7 +396,7 @@ take_screenshot (const char *name,
   } else {
     window = gtk_window_new ();
     gtk_window_set_decorated (GTK_WINDOW (window), FALSE);
-    gtk_window_set_child (GTK_WINDOW (window), data->widget);
+    gtk_window_set_child (GTK_WINDOW (window), GTK_WIDGET (widget));
   }
 
   data->widget = GTK_WIDGET (widget);
@@ -406,7 +406,11 @@ take_screenshot (const char *name,
   data->provider = load_css ("style");
 
   if (dark)
-    data->provider_dark = load_css ("style-dark");
+    g_object_set (data->provider, "prefers-color-scheme", GTK_INTERFACE_COLOR_SCHEME_DARK, NULL);
+  else
+    g_object_set (data->provider, "prefers-color-scheme", GTK_INTERFACE_COLOR_SCHEME_LIGHT, NULL);
+
+  gtk_widget_set_can_target (data->window, FALSE);
 
   if (hover_widget)
     data->hover_widget = GTK_WIDGET (hover_widget);
@@ -464,10 +468,11 @@ init_libadwaita (void)
 
   g_object_set (gtk_settings_get_default (),
                 "gtk-enable-animations", FALSE,
-                "gtk-font-name", "Cantarell 11",
-                "gtk-icon-theme-name", "Adwaita",
                 "gtk-decoration-layout", ":close",
+                "gtk-font-name", "Adwaita Sans 11",
+                "gtk-font-rendering", GTK_FONT_RENDERING_MANUAL,
                 "gtk-hint-font-metrics", TRUE,
+                "gtk-icon-theme-name", "",
                 NULL);
 }
 
@@ -559,7 +564,7 @@ run_screenshot (GFile *input_dir,
     char *shortname = l->data;
 
     process_image (shortname, input_dir, output_dir);
-	g_free (shortname);
+    g_free (shortname);
   }
 
   g_list_free (children);
@@ -591,6 +596,10 @@ main (int    argc,
   GFile *output_dir = NULL;
   GError *error = NULL;
   gboolean result;
+
+  g_setenv ("ADW_DEBUG_COLOR_SCHEME", "default", TRUE);
+  g_setenv ("ADW_DEBUG_HIGH_CONTRAST", "0", TRUE);
+  g_setenv ("ADW_DEBUG_ACCENT_COLOR", "blue", TRUE);
 
   g_option_context_add_main_entries (context, entries, NULL);
   if (!g_option_context_parse (context, &argc, &argv, NULL)) {

@@ -1,3 +1,7 @@
 stylesheet-common-Use-disabled-opacity-for-disabled-pictu.patch
-stylesheet-common-Use-opacity-for-all-disabled-gtk-images.patch
+#stylesheet-common-Use-opacity-for-all-disabled-gtk-images.patch
+ubuntu/accent-color-Return-return-orange-as-default-color.patch
 ubuntu/style-manager-Support-Yaru-accent-colors.patch
+ubuntu/accent-color-Always-expose-and-use-yaru-accent-colors-val.patch
+ubuntu/style-Add-wartybrown-accent-support.patch
+ubuntu/adw-spinner-paintable-design-and-animation.patch

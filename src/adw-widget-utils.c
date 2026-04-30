@@ -15,10 +15,18 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 #include "adw-widget-utils-private.h"
+
+#include <pango/pango.h>
 
 #include "adw-bottom-sheet-private.h"
 #include "adw-floating-sheet-private.h"
+
+#ifdef GDK_WINDOWING_MACOS
+#include <gdk/macos/gdkmacos.h>
+#endif
 
 typedef struct _CompareInfo CompareInfo;
 
@@ -480,6 +488,15 @@ adw_widget_grab_focus_child (GtkWidget *widget)
   return FALSE;
 }
 
+gboolean
+adw_widget_grab_focus_child_or_self (GtkWidget *widget)
+{
+  if (adw_widget_grab_focus_child (widget))
+    return TRUE;
+
+  return adw_widget_grab_focus_self (widget);
+}
+
 void
 adw_widget_compute_expand (GtkWidget *widget,
                            gboolean  *hexpand_p,
@@ -576,17 +593,51 @@ adw_widget_get_ancestor (GtkWidget *widget,
                          gboolean   same_native,
                          gboolean   same_sheet)
 {
+  GtkWidget *prev_widget = NULL;
+
   while (widget && !g_type_is_a (G_OBJECT_TYPE (widget), widget_type)) {
     if (same_native && GTK_IS_NATIVE (widget))
       return NULL;
 
-    if (same_sheet && (ADW_IS_FLOATING_SHEET (widget) || ADW_IS_BOTTOM_SHEET (widget)))
-      return NULL;
+    if (same_sheet) {
+      if (ADW_IS_FLOATING_SHEET (widget)) {
+        if (prev_widget == adw_floating_sheet_get_sheet_bin (ADW_FLOATING_SHEET (widget)))
+          return NULL;
+      }
 
+      if (ADW_IS_BOTTOM_SHEET (widget)) {
+        if (prev_widget == adw_bottom_sheet_get_sheet_bin (ADW_BOTTOM_SHEET (widget)))
+          return NULL;
+      }
+    }
+
+    prev_widget = widget;
     widget = gtk_widget_get_parent (widget);
   }
 
   return widget;
+}
+
+GtkWidget *
+adw_widget_get_nth_child (GtkWidget *widget,
+                          guint      index)
+{
+  GtkWidget *child;
+  guint i;
+
+  g_return_val_if_fail (GTK_IS_WIDGET (widget), NULL);
+
+  child = gtk_widget_get_first_child (GTK_WIDGET (widget));
+  if (!child)
+    return NULL;
+
+  for (i = 0; i < index; i++) {
+    child = gtk_widget_get_next_sibling (child);
+    if (!child)
+      return NULL;
+  }
+
+  return child;
 }
 
 gboolean
@@ -595,6 +646,14 @@ adw_decoration_layout_prefers_start (const char *layout)
   int counts[2];
   char **sides;
   int i;
+
+#ifdef GDK_WINDOWING_MACOS
+  if (GDK_IS_MACOS_DISPLAY (gdk_display_get_default ()))
+    return TRUE;
+#endif
+
+  if (!layout || !strchr (layout, ':'))
+    return FALSE;
 
   sides = g_strsplit (layout, ":", 2);
 
@@ -620,4 +679,115 @@ adw_decoration_layout_prefers_start (const char *layout)
   g_strfreev (sides);
 
   return counts[0] > counts[1];
+}
+
+char *
+adw_strip_mnemonic (const char *src)
+{
+  char *markup = NULL;
+  char *parsed = NULL;
+  GError *error = NULL;
+
+  markup = g_markup_escape_text (src, -1);
+  if (!pango_parse_markup (markup, -1, '_', NULL, &parsed, NULL, &error)) {
+    g_warning ("Failed to strip mnemonic from '%s' due to error parsing markup: %s",
+               src, error->message);
+    g_free (markup);
+    g_error_free (error);
+    return NULL;
+  }
+
+  g_free (markup);
+
+  return parsed;
+}
+
+/*
+ * Some widgets intentionally request less size than is required to
+ * fully fit their children, and then overallocate the children. This
+ * function increases the proposed allocation to ensure the child gets
+ * at least the size that it requires.
+ */
+void
+adw_ensure_child_allocation_size (GtkWidget     *child,
+                                  GtkAllocation *allocation)
+{
+  int min, width, height;
+
+  if (gtk_widget_get_request_mode (child) == GTK_SIZE_REQUEST_WIDTH_FOR_HEIGHT) {
+    gtk_widget_measure (child, GTK_ORIENTATION_VERTICAL, -1,
+                        &min, NULL, NULL, NULL);
+    height = MAX (allocation->height, min);
+    gtk_widget_measure (child, GTK_ORIENTATION_HORIZONTAL, height,
+                        &min, NULL, NULL, NULL);
+    width = MAX (allocation->width, min);
+  } else {
+    /* GTK_SIZE_REQUEST_HEIGHT_FOR_WIDTH or CONSTANT_SIZE */
+    gtk_widget_measure (child, GTK_ORIENTATION_HORIZONTAL, -1,
+                        &min, NULL, NULL, NULL);
+    width = MAX (allocation->width, min);
+    gtk_widget_measure (child, GTK_ORIENTATION_VERTICAL, width,
+                        &min, NULL, NULL, NULL);
+    height = MAX (allocation->height, min);
+  }
+
+  if (width > allocation->width) {
+    GtkAlign halign = gtk_widget_get_halign (child);
+
+    if (halign == GTK_ALIGN_CENTER || halign == GTK_ALIGN_FILL)
+      allocation->x -= (width - allocation->width) / 2;
+    else if (halign == GTK_ALIGN_END)
+      allocation->x -= (width - allocation->width);
+
+    allocation->width = width;
+  }
+
+  if (height > allocation->height) {
+    GtkAlign valign = gtk_widget_get_valign (child);
+
+    if (valign == GTK_ALIGN_CENTER || valign == GTK_ALIGN_FILL)
+      allocation->y -= (height - allocation->height) / 2;
+    else if (valign == GTK_ALIGN_END)
+      allocation->y -= (height - allocation->height);
+
+    allocation->height = height;
+  }
+}
+
+gboolean
+adw_get_inspector_keybinding_enabled (void)
+{
+  GSettingsSchema *schema;
+  gboolean enabled;
+
+  enabled = TRUE;
+
+  schema = g_settings_schema_source_lookup (g_settings_schema_source_get_default (),
+                                            "org.gtk.gtk4.Settings.Debug",
+                                            TRUE);
+
+  if (schema) {
+    GSettings *settings = g_settings_new_full (schema, NULL, NULL);
+    enabled = g_settings_get_boolean (settings, "enable-inspector-keybinding");
+    g_object_unref (settings);
+    g_settings_schema_unref (schema);
+  }
+
+  return enabled;
+}
+
+gboolean
+adw_widget_on_vertical_keynav_failed (GtkWidget        *widget,
+                                      GtkDirectionType  direction)
+{
+  GtkWidget *toplevel = GTK_WIDGET (gtk_widget_get_root (widget));
+
+  if (!toplevel)
+    return FALSE;
+
+  if (direction != GTK_DIR_UP && direction != GTK_DIR_DOWN)
+    return FALSE;
+
+  return gtk_widget_child_focus (toplevel, direction == GTK_DIR_UP ?
+                                 GTK_DIR_TAB_BACKWARD : GTK_DIR_TAB_FORWARD);
 }

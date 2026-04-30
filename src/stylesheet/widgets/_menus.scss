@@ -4,7 +4,7 @@ popover.menu {
   }
 
   scrollbar.vertical > range > trough > slider {
-    min-height: 30px;
+    min-height: 26px;
   }
 
   box.inline-buttons {
@@ -44,7 +44,7 @@ popover.menu {
       &:selected {
         background-color: $selected_hover_color;
 
-        @if $contrast != 'high' {
+        @media (prefers-contrast: more) {
           box-shadow: none;
         }
 
@@ -74,7 +74,7 @@ popover.menu {
   }
 
   accelerator {
-    color: gtkalpha(currentColor, $dim_label_opacity);
+    color: color-mix(in srgb, currentColor var(--dim-opacity), transparent);
 
     &:dir(ltr) { margin-left: $menu_padding; }
     &:dir(rtl) { margin-right: $menu_padding; }
@@ -110,7 +110,11 @@ popover.menu {
   //only menu radios have a border
   radio {
     padding: 1px;
-    border: 1px solid gtkalpha(currentColor, $dimmer_opacity);
+    border: 1px solid color-mix(in srgb, currentColor $dimmer_opacity, transparent);
+
+    @media (prefers-contrast: more) {
+      border-color: color-mix(in srgb, currentColor $dimmer_opacity_hc, transparent);
+    }
   }
 
   check,
@@ -132,8 +136,7 @@ popover.menu {
     min-width: 40px;
     padding: 0 $menu_padding;
     border-radius: $menu_radius;
-
-    @extend %undecorated_button;
+    background-color: transparent;
 
     &:hover,
     &:selected {
@@ -144,7 +147,7 @@ popover.menu {
       background-color: $selected_active_color; // matching buttons
     }
 
-    @if $contrast == 'high' {
+    @media (prefers-contrast: more) {
       &:hover,
       &:selected,
       &:active {
@@ -158,10 +161,14 @@ popover.menu {
       min-height: 16px;
       opacity: $dimmer_opacity;
 
+      @media (prefers-contrast: more) {
+        opacity: $dimmer_opacity_hc;
+      }
+
       &:hover { background: none; }
 
       &:disabled {
-        filter: opacity($disabled_opacity);
+        filter: Opacity(var(--disabled-opacity));
       }
 
       &.left { -gtk-icon-source: -gtk-icontheme("go-previous-symbolic"); }
@@ -207,7 +214,7 @@ popover.menu {
         }
       }
 
-      @if $contrast == 'high' {
+      @media (prefers-contrast: more) {
         &:hover,
         &:active,
         &.has-open-popup {
@@ -250,7 +257,7 @@ menubar {
     &:selected { //Seems like it :hover even with keyboard focus
       background-color: $selected_color;
 
-      @if $contrast == 'high' {
+      @media (prefers-contrast: more) {
         box-shadow: inset 0 0 0 1px $border_color;
       }
     }

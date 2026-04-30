@@ -8,6 +8,8 @@
 
 #include "adw-status-page.h"
 
+#include "adw-gtkbuilder-utils-private.h"
+#include "adw-spinner-paintable.h"
 #include "adw-widget-utils-private.h"
 
 /**
@@ -27,9 +29,21 @@
  *
  * `AdwStatusPage` has a main CSS node with name `statuspage`.
  *
+ * When setting an [class@SpinnerPaintable] as [property@StatusPage:paintable],
+ * the main nodes gains the `.spinner` style class for a more compact
+ * appearance.
+ *
+ * ## Style classes
+ *
  * `AdwStatusPage` can use the
  * [`.compact`](style-classes.html#compact-status-page) style class for when it
- * needs to fit into a small space such a sidebar or a popover.
+ * needs to fit into a small space such a sidebar or a popover, similar to when
+ * using a spinner as the paintable.
+ *
+ * <picture>
+ *   <source srcset="status-page-compact-dark.png" media="(prefers-color-scheme: dark)">
+ *   <img src="status-page-compact.png" alt="status-page-compact">
+ * </picture>
  */
 
 enum {
@@ -79,6 +93,17 @@ string_is_not_empty (AdwStatusPage *self,
                      const char    *string)
 {
   return string && string[0];
+}
+
+static gboolean
+adw_status_page_grab_focus (GtkWidget *widget)
+{
+  AdwStatusPage *self = ADW_STATUS_PAGE (widget);
+
+  if (self->user_widget)
+    return gtk_widget_grab_focus (self->user_widget);
+
+  return adw_widget_grab_focus_child (self->scrolled_window);
 }
 
 static void
@@ -186,9 +211,11 @@ adw_status_page_class_init (AdwStatusPageClass *klass)
   object_class->finalize = adw_status_page_finalize;
 
   widget_class->compute_expand = adw_widget_compute_expand;
+  widget_class->focus = adw_widget_focus_child;
+  widget_class->grab_focus = adw_status_page_grab_focus;
 
   /**
-   * AdwStatusPage:icon-name: (attributes org.gtk.Property.get=adw_status_page_get_icon_name org.gtk.Property.set=adw_status_page_set_icon_name)
+   * AdwStatusPage:icon-name:
    *
    * The name of the icon to be used.
    *
@@ -200,7 +227,7 @@ adw_status_page_class_init (AdwStatusPageClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwStatusPage:paintable: (attributes org.gtk.Property.get=adw_status_page_get_paintable org.gtk.Property.set=adw_status_page_set_paintable)
+   * AdwStatusPage:paintable:
    *
    * The paintable to be used.
    *
@@ -212,7 +239,7 @@ adw_status_page_class_init (AdwStatusPageClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwStatusPage:title: (attributes org.gtk.Property.get=adw_status_page_get_title org.gtk.Property.set=adw_status_page_set_title)
+   * AdwStatusPage:title:
    *
    * The title to be displayed below the icon.
    * 
@@ -224,7 +251,7 @@ adw_status_page_class_init (AdwStatusPageClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwStatusPage:description: (attributes org.gtk.Property.get=adw_status_page_get_description org.gtk.Property.set=adw_status_page_set_description)
+   * AdwStatusPage:description:
    *
    * The description markup to be displayed below the title.
    */
@@ -234,7 +261,7 @@ adw_status_page_class_init (AdwStatusPageClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwStatusPage:child: (attributes org.gtk.Property.get=adw_status_page_get_child org.gtk.Property.set=adw_status_page_set_child)
+   * AdwStatusPage:child:
    *
    * The child widget.
    */
@@ -274,12 +301,12 @@ adw_status_page_buildable_add_child (GtkBuildable *buildable,
 {
   AdwStatusPage *self = ADW_STATUS_PAGE (buildable);
 
-  if (!self->scrolled_window && GTK_IS_WIDGET (child))
-    gtk_widget_set_parent (GTK_WIDGET (child), GTK_WIDGET (buildable));
-  else if (GTK_IS_WIDGET (child))
+  if (self->scrolled_window && GTK_IS_WIDGET (child)) {
+    gtk_buildable_child_deprecation_warning (buildable, builder, NULL, "child");
     adw_status_page_set_child (self, GTK_WIDGET (child));
-  else
+  } else {
     parent_buildable_iface->add_child (buildable, builder, child, type);
+  }
 }
 
 static void
@@ -305,7 +332,7 @@ adw_status_page_new (void)
 }
 
 /**
- * adw_status_page_get_icon_name: (attributes org.gtk.Method.get_property=icon-name)
+ * adw_status_page_get_icon_name:
  * @self: a status page
  *
  * Gets the icon name for @self.
@@ -321,7 +348,7 @@ adw_status_page_get_icon_name (AdwStatusPage *self)
 }
 
 /**
- * adw_status_page_set_icon_name: (attributes org.gtk.Method.set_property=icon-name)
+ * adw_status_page_set_icon_name:
  * @self: a status page
  * @icon_name: (nullable): the icon name
  *
@@ -353,7 +380,7 @@ adw_status_page_set_icon_name (AdwStatusPage *self,
 }
 
 /**
- * adw_status_page_get_paintable: (attributes org.gtk.Method.get_property=paintable)
+ * adw_status_page_get_paintable:
  * @self: a status page
  *
  * Gets the paintable for @self.
@@ -369,7 +396,7 @@ adw_status_page_get_paintable (AdwStatusPage *self)
 }
 
 /**
- * adw_status_page_set_paintable: (attributes org.gtk.Method.set_property=paintable)
+ * adw_status_page_set_paintable:
  * @self: a status page
  * @paintable: (nullable): the paintable
  *
@@ -396,13 +423,19 @@ adw_status_page_set_paintable (AdwStatusPage *self,
 
   g_set_object (&self->paintable, paintable);
   gtk_image_set_from_paintable (self->image, self->paintable);
+
+  if (ADW_IS_SPINNER_PAINTABLE (paintable))
+    gtk_widget_add_css_class (GTK_WIDGET (self), "spinner");
+  else
+    gtk_widget_remove_css_class (GTK_WIDGET (self), "spinner");
+
   g_object_notify_by_pspec (G_OBJECT (self), props[PROP_PAINTABLE]);
 
   g_object_thaw_notify (G_OBJECT (self));
 }
 
 /**
- * adw_status_page_get_title: (attributes org.gtk.Method.get_property=title)
+ * adw_status_page_get_title:
  * @self: a status page
  *
  * Gets the title for @self.
@@ -418,7 +451,7 @@ adw_status_page_get_title (AdwStatusPage *self)
 }
 
 /**
- * adw_status_page_set_title: (attributes org.gtk.Method.set_property=title)
+ * adw_status_page_set_title:
  * @self: a status page
  * @title: the title
  *
@@ -435,13 +468,13 @@ adw_status_page_set_title (AdwStatusPage *self,
   if (g_strcmp0 (title, adw_status_page_get_title (self)) == 0)
     return;
 
-  gtk_label_set_label (self->title_label, title);
+  gtk_label_set_label (self->title_label, title ? title : "");
 
   g_object_notify_by_pspec (G_OBJECT (self), props[PROP_TITLE]);
 }
 
 /**
- * adw_status_page_get_description: (attributes org.gtk.Method.get_property=description)
+ * adw_status_page_get_description:
  * @self: a status page
  *
  * Gets the description markup for @self.
@@ -457,7 +490,7 @@ adw_status_page_get_description (AdwStatusPage *self)
 }
 
 /**
- * adw_status_page_set_description: (attributes org.gtk.Method.set_property=description)
+ * adw_status_page_set_description:
  * @self: a status page
  * @description: (nullable): the description
  *
@@ -480,7 +513,7 @@ adw_status_page_set_description (AdwStatusPage *self,
 }
 
 /**
- * adw_status_page_get_child: (attributes org.gtk.Method.get_property=child)
+ * adw_status_page_get_child:
  * @self: a status page
  *
  * Gets the child widget of @self.
@@ -496,7 +529,7 @@ adw_status_page_get_child (AdwStatusPage *self)
 }
 
 /**
- * adw_status_page_set_child: (attributes org.gtk.Method.set_property=child)
+ * adw_status_page_set_child:
  * @self: a status page
  * @child: (nullable): the child widget
  *
@@ -509,11 +542,11 @@ adw_status_page_set_child (AdwStatusPage *self,
   g_return_if_fail (ADW_IS_STATUS_PAGE (self));
   g_return_if_fail (child == NULL || GTK_IS_WIDGET (child));
 
-  if (child)
-    g_return_if_fail (gtk_widget_get_parent (child) == NULL);
-
   if (child == self->user_widget)
     return;
+
+  if (child)
+    g_return_if_fail (gtk_widget_get_parent (child) == NULL);
 
   if (self->user_widget)
     gtk_box_remove (self->toplevel_box, self->user_widget);

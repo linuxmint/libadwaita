@@ -23,55 +23,105 @@
  * AdwEasing:
  * @ADW_LINEAR: Linear tweening.
  * @ADW_EASE_IN_QUAD: Quadratic tweening.
- * @ADW_EASE_OUT_QUAD: Quadratic tweening, inverse of `ADW_EASE_IN_QUAD`.
- * @ADW_EASE_IN_OUT_QUAD: Quadratic tweening, combining `ADW_EASE_IN_QUAD` and
- *   `ADW_EASE_OUT_QUAD`.
+ * @ADW_EASE_OUT_QUAD: Quadratic tweening, inverse of
+ *   [enum@Adw.Easing.ease-in-quad].
+ * @ADW_EASE_IN_OUT_QUAD: Quadratic tweening, combining
+ *   [enum@Adw.Easing.ease-in-quad] and [enum@Adw.Easing.ease-out-quad].
  * @ADW_EASE_IN_CUBIC: Cubic tweening.
- * @ADW_EASE_OUT_CUBIC: Cubic tweening, inverse of `ADW_EASE_IN_CUBIC`.
- * @ADW_EASE_IN_OUT_CUBIC: Cubic tweening, combining `ADW_EASE_IN_CUBIC` and
- *   `ADW_EASE_OUT_CUBIC`.
+ * @ADW_EASE_OUT_CUBIC: Cubic tweening, inverse of
+ *   [enum@Adw.Easing.ease-in-cubic].
+ * @ADW_EASE_IN_OUT_CUBIC: Cubic tweening, combining
+ *   [enum@Adw.Easing.ease-in-cubic] and [enum@Adw.Easing.ease-out-cubic].
  * @ADW_EASE_IN_QUART: Quartic tweening.
- * @ADW_EASE_OUT_QUART: Quartic tweening, inverse of `ADW_EASE_IN_QUART`.
- * @ADW_EASE_IN_OUT_QUART: Quartic tweening, combining `ADW_EASE_IN_QUART` and
- *   `ADW_EASE_OUT_QUART`.
+ * @ADW_EASE_OUT_QUART: Quartic tweening, inverse of
+ *   [enum@Adw.Easing.ease-in-quart].
+ * @ADW_EASE_IN_OUT_QUART: Quartic tweening, combining
+ *   [enum@Adw.Easing.ease-in-quart] and [enum@Adw.Easing.ease-out-quart].
  * @ADW_EASE_IN_QUINT: Quintic tweening.
- * @ADW_EASE_OUT_QUINT: Quintic tweening, inverse of `ADW_EASE_IN_QUINT`.
- * @ADW_EASE_IN_OUT_QUINT: Quintic tweening, combining `ADW_EASE_IN_QUINT` and
- *   `ADW_EASE_OUT_QUINT`.
+ * @ADW_EASE_OUT_QUINT: Quintic tweening, inverse of
+ *   [enum@Adw.Easing.ease-in-quint].
+ * @ADW_EASE_IN_OUT_QUINT: Quintic tweening, combining
+ *   [enum@Adw.Easing.ease-in-quint] and [enum@Adw.Easing.ease-out-quint].
  * @ADW_EASE_IN_SINE: Sine wave tweening.
- * @ADW_EASE_OUT_SINE: Sine wave tweening, inverse of `ADW_EASE_IN_SINE`.
- * @ADW_EASE_IN_OUT_SINE: Sine wave tweening, combining `ADW_EASE_IN_SINE` and
- *   `ADW_EASE_OUT_SINE`.
+ * @ADW_EASE_OUT_SINE: Sine wave tweening, inverse of
+ *   [enum@Adw.Easing.ease-in-sine].
+ * @ADW_EASE_IN_OUT_SINE: Sine wave tweening, combining
+ *   [enum@Adw.Easing.ease-in-sine] and [enum@Adw.Easing.ease-out-sine].
  * @ADW_EASE_IN_EXPO: Exponential tweening.
- * @ADW_EASE_OUT_EXPO: Exponential tweening, inverse of `ADW_EASE_IN_EXPO`.
- * @ADW_EASE_IN_OUT_EXPO: Exponential tweening, combining `ADW_EASE_IN_EXPO` and
- *   `ADW_EASE_OUT_EXPO`.
+ * @ADW_EASE_OUT_EXPO: Exponential tweening, inverse of
+ *   [enum@Adw.Easing.ease-in-expo].
+ * @ADW_EASE_IN_OUT_EXPO: Exponential tweening, combining
+ *   [enum@Adw.Easing.ease-in-expo] and [enum@Adw.Easing.ease-out-expo].
  * @ADW_EASE_IN_CIRC: Circular tweening.
- * @ADW_EASE_OUT_CIRC: Circular tweening, inverse of `ADW_EASE_IN_CIRC`.
- * @ADW_EASE_IN_OUT_CIRC: Circular tweening, combining `ADW_EASE_IN_CIRC` and
- *   `ADW_EASE_OUT_CIRC`.
+ * @ADW_EASE_OUT_CIRC: Circular tweening, inverse of
+ *   [enum@Adw.Easing.ease-in-circ].
+ * @ADW_EASE_IN_OUT_CIRC: Circular tweening, combining
+ *   [enum@Adw.Easing.ease-in-circ] and [enum@Adw.Easing.ease-out-circ].
  * @ADW_EASE_IN_ELASTIC: Elastic tweening, with offshoot on start.
  * @ADW_EASE_OUT_ELASTIC: Elastic tweening, with offshoot on end, inverse of
- *   `ADW_EASE_IN_ELASTIC`.
+ *   [enum@Adw.Easing.ease-in-elastic].
  * @ADW_EASE_IN_OUT_ELASTIC: Elastic tweening, with offshoot on both ends,
- *   combining `ADW_EASE_IN_ELASTIC` and `ADW_EASE_OUT_ELASTIC`.
+ *   combining [enum@Adw.Easing.ease-in-elastic] and
+ *   [enum@Adw.Easing.ease-out-elastic].
  * @ADW_EASE_IN_BACK: Overshooting cubic tweening, with backtracking on start.
  * @ADW_EASE_OUT_BACK: Overshooting cubic tweening, with backtracking on end,
- *   inverse of `ADW_EASE_IN_BACK`.
+ *   inverse of [enum@Adw.Easing.ease-in-back].
  * @ADW_EASE_IN_OUT_BACK: Overshooting cubic tweening, with backtracking on both
- *   ends, combining `ADW_EASE_IN_BACK` and `ADW_EASE_OUT_BACK`.
+ *   ends, combining [enum@Adw.Easing.ease-in-back] and
+ *   [enum@Adw.Easing.ease-out-back].
  * @ADW_EASE_IN_BOUNCE: Exponentially decaying parabolic (bounce) tweening,
  *   on start.
  * @ADW_EASE_OUT_BOUNCE: Exponentially decaying parabolic (bounce) tweening,
- *   with bounce on end, inverse of `ADW_EASE_IN_BOUNCE`.
+ *   with bounce on end, inverse of [enum@Adw.Easing.ease-in-bounce].
  * @ADW_EASE_IN_OUT_BOUNCE: Exponentially decaying parabolic (bounce) tweening,
- *   with bounce on both ends, combining `ADW_EASE_IN_BOUNCE` and
- *   `ADW_EASE_OUT_BOUNCE`.
+ *   with bounce on both ends, combining [enum@Adw.Easing.ease-in-bounce] and
+ *   [enum@Adw.Easing.ease-out-bounce].
  *
  * Describes the available easing functions for use with
  * [class@TimedAnimation].
  *
  * New values may be added to this enumeration over time.
+ */
+
+/**
+ * ADW_EASE:
+ *
+ * Cubic bezier tweening, with control points in (0.25, 0.1) and (0.25, 1.0).
+ *
+ * Increases in velocity towards the middle of the animation, slowing back down
+ * at the end.
+ *
+ * Since: 1.7
+ */
+
+/**
+ * ADW_EASE_IN:
+ *
+ * Cubic bezier tweening, with control points in (0.42, 0.0) and (1.0, 1.0).
+ *
+ * Starts off slowly, with the speed of the animation increasing until complete.
+ *
+ * Since: 1.7
+ */
+
+/**
+ * ADW_EASE_OUT:
+ *
+ * Cubic bezier tweening, with control points in (0.0, 0.0) and (0.58, 1.0).
+ *
+ * Starts quickly, slowing down the animation until complete.
+ *
+ * Since: 1.7
+ */
+
+/**
+ * ADW_EASE_IN_OUT:
+ *
+ * Cubic bezier tweening, with control points in (0.42, 0.0) and (0.58, 1.0).
+ *
+ * Starts off slowly, speeds up in the middle, and then slows down again.
+ *
+ * Since: 1.7
  */
 
 static inline double
@@ -425,6 +475,70 @@ ease_in_out_bounce (double t,
     return ease_out_bounce (t * 2 - d, d) * 0.5 + 1.0 * 0.5;
 }
 
+static inline double
+x_for_t (double t,
+         double x_1,
+         double x_2)
+{
+  double omt = 1.0 - t;
+
+  return 3.0 * omt * omt * t * x_1
+       + 3.0 * omt * t * t * x_2
+       + t * t * t;
+}
+
+static inline double
+y_for_t (double t,
+         double y_1,
+         double y_2)
+{
+  double omt = 1.0 - t;
+
+  return 3.0 * omt * omt * t * y_1
+       + 3.0 * omt * t * t * y_2
+       + t * t * t;
+}
+
+static inline double
+t_for_x (double x,
+         double x_1,
+         double x_2)
+{
+  double min_t = 0, max_t = 1;
+  int i;
+
+  for (i = 0; i < 30; ++i) {
+    double guess_t = (min_t + max_t) / 2.0;
+    double guess_x = x_for_t (guess_t, x_1, x_2);
+
+    if (x < guess_x)
+      max_t = guess_t;
+    else
+      min_t = guess_t;
+  }
+
+  return (min_t + max_t) / 2.0;
+}
+
+static double
+ease_cubic_bezier (double t,
+                   double d,
+                   double x_1,
+                   double y_1,
+                   double x_2,
+                   double y_2)
+{
+  double p = t / d;
+
+  if (G_APPROX_VALUE (p, 0.0, DBL_EPSILON))
+    return 0.0;
+
+  if (G_APPROX_VALUE (p, 1.0, DBL_EPSILON))
+    return 1.0;
+
+  return y_for_t (t_for_x (p, x_1, x_2), y_1, y_2);
+}
+
 /**
  * adw_easing_ease:
  * @self: an easing value
@@ -503,6 +617,14 @@ adw_easing_ease (AdwEasing self,
       return ease_out_bounce (value, 1);
     case ADW_EASE_IN_OUT_BOUNCE:
       return ease_in_out_bounce (value, 1);
+    case ADW_EASE:
+      return ease_cubic_bezier (value, 1, 0.25, 0.1, 0.25, 1.0);
+    case ADW_EASE_IN:
+      return ease_cubic_bezier (value, 1, 0.42, 0.0, 1.0, 1.0);
+    case ADW_EASE_OUT:
+      return ease_cubic_bezier (value, 1, 0.0, 0.0, 0.58, 1.0);
+    case ADW_EASE_IN_OUT:
+      return ease_cubic_bezier (value, 1, 0.42, 0.0, 0.58, 1.0);
     default:
       g_assert_not_reached ();
   }

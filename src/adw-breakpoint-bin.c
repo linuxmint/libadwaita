@@ -11,6 +11,7 @@
 #include "adw-breakpoint-bin-private.h"
 
 #include "adw-breakpoint-private.h"
+#include "adw-gtkbuilder-utils-private.h"
 #include "adw-widget-utils-private.h"
 
 /**
@@ -140,7 +141,7 @@ typedef struct
 {
   GtkWidget *child;
 
-  GList *breakpoints;
+  GPtrArray *breakpoints;
   AdwBreakpoint *current_breakpoint;
 
   GskRenderNode *old_node;
@@ -157,6 +158,7 @@ typedef struct
   int natural_width;
   int natural_height;
 
+  GtkWidget *last_focus;
   GArray *delayed_focus;
 } AdwBreakpointBinPrivate;
 
@@ -192,7 +194,7 @@ allocate_child (AdwBreakpointBin *self,
   if (!priv->child)
     return;
 
-  if (!priv->block_warnings && priv->breakpoints && priv->enable_min_size_warnings) {
+  if (!priv->block_warnings && priv->breakpoints->len > 0 && priv->enable_min_size_warnings) {
     int window_width, window_height;
     GtkWidget *warning_widget;
 
@@ -258,6 +260,20 @@ allocate_child (AdwBreakpointBin *self,
 }
 
 static gboolean
+maybe_resize_tick_cb (GtkWidget        *widget,
+                      GdkFrameClock    *frame_clock,
+                      AdwBreakpointBin *self)
+{
+  AdwBreakpointBinPrivate *priv = adw_breakpoint_bin_get_instance_private (self);
+
+  priv->tick_cb_id = 0;
+
+  gtk_widget_queue_resize (GTK_WIDGET (self));
+
+  return G_SOURCE_REMOVE;
+}
+
+static gboolean
 breakpoint_changed_tick_cb (GtkWidget        *widget,
                             GdkFrameClock    *frame_clock,
                             AdwBreakpointBin *self)
@@ -266,9 +282,14 @@ breakpoint_changed_tick_cb (GtkWidget        *widget,
   int i;
 
   priv->tick_cb_id = 0;
-  priv->old_node = NULL;
+  g_clear_pointer (&priv->old_node, gsk_render_node_unref);
   gtk_widget_set_child_visible (priv->child, TRUE);
   gtk_widget_queue_resize (GTK_WIDGET (self));
+
+  if (priv->last_focus) {
+    gtk_widget_grab_focus (priv->last_focus);
+    g_clear_weak_pointer (&priv->last_focus);
+  }
 
   for (i = 0; i < priv->delayed_focus->len; i++) {
     DelayedFocus *focus = &g_array_index (priv->delayed_focus, DelayedFocus, i);
@@ -326,7 +347,7 @@ adw_breakpoint_bin_get_request_mode (GtkWidget *widget)
   AdwBreakpointBin *self = ADW_BREAKPOINT_BIN (widget);
   AdwBreakpointBinPrivate *priv = adw_breakpoint_bin_get_instance_private (self);
 
-  if (priv->breakpoints)
+  if (priv->breakpoints->len > 0)
     return GTK_SIZE_REQUEST_CONSTANT_SIZE;
 
   if (priv->child)
@@ -346,30 +367,26 @@ adw_breakpoint_bin_measure (GtkWidget      *widget,
 {
   AdwBreakpointBin *self = ADW_BREAKPOINT_BIN (widget);
   AdwBreakpointBinPrivate *priv = adw_breakpoint_bin_get_instance_private (self);
-  int min = 0, nat, default_nat_size;
+  int min = 0, nat = 0;
 
-  if (orientation == GTK_ORIENTATION_HORIZONTAL)
-    default_nat_size = priv->natural_width;
-  else
-    default_nat_size = priv->natural_height;
+  if (priv->child) {
+    gtk_widget_measure (priv->child, orientation, for_size,
+                        &min, &nat, NULL, NULL);
 
-  if (default_nat_size < 0) {
-    if (priv->child) {
-      gtk_widget_measure (priv->child, orientation, for_size,
-                          &min, &nat, NULL, NULL);
+    if (priv->breakpoints->len > 0)
+      min = 0;
+  }
 
-      if (priv->breakpoints)
-        min = 0;
-    } else {
-      nat = 0;
-    }
+  if (orientation == GTK_ORIENTATION_HORIZONTAL) {
+    if (priv->natural_width >= 0)
+      nat = MAX (min, priv->natural_width);
+    else
+      nat = MAX (min, nat);
   } else {
-    if (priv->child && !priv->breakpoints) {
-      gtk_widget_measure (priv->child, orientation, for_size,
-                          &min, NULL, NULL, NULL);
-    }
-
-    nat = default_nat_size;
+    if (priv->natural_height >= 0)
+      nat = MAX (min, priv->natural_height);
+    else
+      nat = MAX (min, nat);
   }
 
   if (minimum)
@@ -390,18 +407,19 @@ adw_breakpoint_bin_size_allocate (GtkWidget *widget,
 {
   AdwBreakpointBin *self = ADW_BREAKPOINT_BIN (widget);
   AdwBreakpointBinPrivate *priv = adw_breakpoint_bin_get_instance_private (self);
-  GList *l;
   GtkSnapshot *snapshot;
   AdwBreakpoint *new_breakpoint = NULL;
   GtkSettings *settings;
+  int i;
 
   if (!priv->child)
     return;
 
   settings = gtk_widget_get_settings (widget);
 
-  for (l = priv->breakpoints; l; l = l->next) {
-    AdwBreakpoint *breakpoint = l->data;
+  /* Iterate in reverse order since we prioritize breakpoints added last */
+  for (i = priv->breakpoints->len - 1; i >= 0; i--) {
+    AdwBreakpoint *breakpoint = g_ptr_array_index (priv->breakpoints, i);
 
     if (adw_breakpoint_check_condition (breakpoint, settings, width, height)) {
       new_breakpoint = breakpoint;
@@ -417,6 +435,18 @@ adw_breakpoint_bin_size_allocate (GtkWidget *widget,
   }
 
   if (!priv->first_allocation) {
+    GtkRoot *root = gtk_widget_get_root (widget);
+
+    if (root) {
+      GtkWidget *focus = gtk_root_get_focus (root);
+
+      if (focus && !gtk_widget_is_ancestor (focus, widget))
+        focus = NULL;
+
+      if (focus)
+        g_object_add_weak_pointer (G_OBJECT (focus), (gpointer *) &priv->last_focus);
+    }
+
     priv->block_warnings = TRUE;
     allocate_child (self, width, height, baseline);
     priv->block_warnings = FALSE;
@@ -439,6 +469,10 @@ adw_breakpoint_bin_size_allocate (GtkWidget *widget,
     allocate_child (self, width, height, baseline);
     priv->block_warnings = FALSE;
     priv->first_allocation = FALSE;
+
+    priv->tick_cb_id = gtk_widget_add_tick_callback (widget,
+                                                     (GtkTickCallback) maybe_resize_tick_cb,
+                                                     self, NULL);
   } else {
     priv->tick_cb_id = gtk_widget_add_tick_callback (widget,
                                                      (GtkTickCallback) breakpoint_changed_tick_cb,
@@ -472,6 +506,9 @@ adw_breakpoint_bin_focus (GtkWidget        *widget,
 
     g_array_append_val (priv->delayed_focus, focus);
 
+    if (priv->last_focus)
+      g_clear_weak_pointer (&priv->last_focus);
+
     return FALSE;
   }
 
@@ -492,6 +529,9 @@ adw_breakpoint_bin_grab_focus (GtkWidget *widget)
 
     g_array_append_val (priv->delayed_focus, focus);
 
+    if (priv->last_focus)
+      g_clear_weak_pointer (&priv->last_focus);
+
     return FALSE;
   }
 
@@ -511,11 +551,7 @@ adw_breakpoint_bin_dispose (GObject *object)
     priv->tick_cb_id = 0;
   }
 
-  if (priv->breakpoints) {
-    g_list_free_full (priv->breakpoints, g_object_unref);
-    priv->breakpoints = NULL;
-  }
-
+  g_clear_pointer (&priv->breakpoints, g_ptr_array_unref);
   g_clear_pointer (&priv->delayed_focus, g_array_unref);
 
   G_OBJECT_CLASS (adw_breakpoint_bin_parent_class)->dispose (object);
@@ -579,7 +615,7 @@ adw_breakpoint_bin_class_init (AdwBreakpointBinClass *klass)
   widget_class->grab_focus = adw_breakpoint_bin_grab_focus;
 
   /**
-   * AdwBreakpointBin:child: (attributes org.gtk.Property.get=adw_breakpoint_bin_get_child org.gtk.Property.set=adw_breakpoint_bin_set_child)
+   * AdwBreakpointBin:child:
    *
    * The child widget.
    *
@@ -591,7 +627,7 @@ adw_breakpoint_bin_class_init (AdwBreakpointBinClass *klass)
                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY);
 
   /**
-   * AdwBreakpointBin:current-breakpoint: (attributes org.gtk.Property.get=adw_breakpoint_bin_get_current_breakpoint)
+   * AdwBreakpointBin:current-breakpoint:
    *
    * The current breakpoint.
    *
@@ -610,6 +646,7 @@ adw_breakpoint_bin_init (AdwBreakpointBin *self)
 {
   AdwBreakpointBinPrivate *priv = adw_breakpoint_bin_get_instance_private (self);
 
+  priv->breakpoints = g_ptr_array_new ();
   priv->natural_width = -1;
   priv->natural_height = -1;
   priv->enable_min_size_warnings = TRUE;
@@ -626,13 +663,15 @@ adw_breakpoint_bin_buildable_add_child (GtkBuildable *buildable,
                                         GObject      *child,
                                         const char   *type)
 {
-  if (GTK_IS_WIDGET (child))
+  if (GTK_IS_WIDGET (child)) {
+    gtk_buildable_child_deprecation_warning (buildable, builder, NULL, "child");
     adw_breakpoint_bin_set_child (ADW_BREAKPOINT_BIN (buildable), GTK_WIDGET (child));
-  else if (ADW_IS_BREAKPOINT (child))
+  } else if (ADW_IS_BREAKPOINT (child)) {
     adw_breakpoint_bin_add_breakpoint (ADW_BREAKPOINT_BIN (buildable),
                                        g_object_ref (ADW_BREAKPOINT (child)));
-  else
+  } else {
     parent_buildable_iface->add_child (buildable, builder, child, type);
+  }
 }
 
 static void
@@ -659,7 +698,7 @@ adw_breakpoint_bin_new (void)
 }
 
 /**
- * adw_breakpoint_bin_get_child: (attributes org.gtk.Method.get_property=child)
+ * adw_breakpoint_bin_get_child:
  * @self: a breakpoint bin
  *
  * Gets the child widget of @self.
@@ -681,7 +720,7 @@ adw_breakpoint_bin_get_child (AdwBreakpointBin *self)
 }
 
 /**
- * adw_breakpoint_bin_set_child: (attributes org.gtk.Method.set_property=child)
+ * adw_breakpoint_bin_set_child:
  * @self: a breakpoint bin
  * @child: (nullable): the child widget
  *
@@ -698,13 +737,13 @@ adw_breakpoint_bin_set_child (AdwBreakpointBin *self,
   g_return_if_fail (ADW_IS_BREAKPOINT_BIN (self));
   g_return_if_fail (child == NULL || GTK_IS_WIDGET (child));
 
-  if (child)
-    g_return_if_fail (gtk_widget_get_parent (child) == NULL);
-
   priv = adw_breakpoint_bin_get_instance_private (self);
 
   if (priv->child == child)
     return;
+
+  if (child)
+    g_return_if_fail (gtk_widget_get_parent (child) == NULL);
 
   if (priv->child)
     gtk_widget_unparent (priv->child);
@@ -741,7 +780,7 @@ adw_breakpoint_bin_add_breakpoint (AdwBreakpointBin *self,
 
   priv = adw_breakpoint_bin_get_instance_private (self);
 
-  priv->breakpoints = g_list_prepend (priv->breakpoints, breakpoint);
+  g_ptr_array_add (priv->breakpoints, breakpoint);
 
   breakpoint_notify_condition_cb (self);
 
@@ -769,7 +808,7 @@ adw_breakpoint_bin_remove_breakpoint (AdwBreakpointBin *self,
 
   priv = adw_breakpoint_bin_get_instance_private (self);
 
-  priv->breakpoints = g_list_remove (priv->breakpoints, breakpoint);
+  g_ptr_array_remove (priv->breakpoints, breakpoint);
 
   breakpoint_notify_condition_cb (self);
 
@@ -777,7 +816,7 @@ adw_breakpoint_bin_remove_breakpoint (AdwBreakpointBin *self,
 }
 
 /**
- * adw_breakpoint_bin_get_current_breakpoint: (attributes org.gtk.Method.get_property=current-breakpoint)
+ * adw_breakpoint_bin_get_current_breakpoint:
  * @self: a breakpoint bin
  *
  * Gets the current breakpoint.
@@ -835,7 +874,7 @@ adw_breakpoint_bin_has_breakpoints (AdwBreakpointBin *self)
 
   priv = adw_breakpoint_bin_get_instance_private (self);
 
-  return !!priv->breakpoints;
+  return priv->breakpoints->len > 0;
 }
 
 void

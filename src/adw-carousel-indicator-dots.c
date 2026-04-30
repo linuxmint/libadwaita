@@ -332,7 +332,7 @@ adw_carousel_indicator_dots_class_init (AdwCarouselIndicatorDotsClass *klass)
   widget_class->snapshot = adw_carousel_indicator_dots_snapshot;
 
   /**
-   * AdwCarouselIndicatorDots:carousel: (attributes org.gtk.Property.get=adw_carousel_indicator_dots_get_carousel org.gtk.Property.set=adw_carousel_indicator_dots_set_carousel)
+   * AdwCarouselIndicatorDots:carousel:
    *
    * The displayed carousel.
    */
@@ -359,6 +359,8 @@ adw_carousel_indicator_dots_init (AdwCarouselIndicatorDots *self)
 
   self->animation =
     adw_timed_animation_new (GTK_WIDGET (self), 0, 1, 0, target);
+
+  adw_timed_animation_set_easing (ADW_TIMED_ANIMATION (self->animation), ADW_LINEAR);
 }
 
 /**
@@ -375,7 +377,7 @@ adw_carousel_indicator_dots_new (void)
 }
 
 /**
- * adw_carousel_indicator_dots_get_carousel: (attributes org.gtk.Method.get_property=carousel)
+ * adw_carousel_indicator_dots_get_carousel:
  * @self: an indicator
  *
  * Gets the displayed carousel.
@@ -391,7 +393,7 @@ adw_carousel_indicator_dots_get_carousel (AdwCarouselIndicatorDots *self)
 }
 
 /**
- * adw_carousel_indicator_dots_set_carousel: (attributes org.gtk.Method.set_property=carousel)
+ * adw_carousel_indicator_dots_set_carousel:
  * @self: an indicator
  * @carousel: (nullable): a carousel
  *

@@ -10,7 +10,6 @@
         <property name="can-focus">False</property>
         <property name="can-target">False</property>
         <style>
-          <class name="background"/>
           <class name="overview"/>
         </style>
         <child type="top">
@@ -51,6 +50,7 @@
                     <property name="placeholder-text" translatable="yes">Search tabs</property>
                     <signal name="search-changed" handler="search_changed_cb" swapped="yes"/>
                     <signal name="stop-search" handler="stop_search_cb" swapped="yes"/>
+                    <signal name="activate" handler="search_activated_cb" swapped="yes"/>
                   </object>
                 </property>
               </object>
@@ -108,7 +108,7 @@
                 <property name="can-focus">False</property>
                 <property name="icon-name">edit-find-symbolic</property>
                 <property name="title" translatable="yes">No Tabs Found</property>
-                <property name="description" translatable="yes">Try a different search.</property>
+                <property name="description" translatable="yes">Try a different search</property>
                 <layout>
                   <property name="measure">True</property>
                   <property name="clip-overlay">True</property>
@@ -127,7 +127,7 @@
                 </layout>
                 <property name="child">
                   <object class="AdwButtonContent">
-                    <property name="icon-name">tab-new-symbolic</property>
+                    <property name="icon-name">adw-tab-new-symbolic</property>
                     <property name="label" translatable="yes">New _Tab</property>
                     <property name="use-underline">True</property>
                     <property name="can-shrink">True</property>
