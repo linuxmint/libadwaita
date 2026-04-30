@@ -65,7 +65,8 @@ adw_settings_impl_legacy_new (gboolean enable_color_scheme,
                               gboolean enable_high_contrast,
                               gboolean enable_accent_colors,
                               gboolean enable_document_font_name,
-                              gboolean enable_monospace_font_name)
+                              gboolean enable_monospace_font_name,
+                              gboolean enable_theme_name)
 {
   AdwSettingsImplLegacy *self = g_object_new (ADW_TYPE_SETTINGS_IMPL_LEGACY, NULL);
 
@@ -86,7 +87,8 @@ adw_settings_impl_legacy_new (gboolean enable_color_scheme,
                                   enable_high_contrast,
                                   /* has_accent_colors */ FALSE,
                                   /* has_document_font_name */ FALSE,
-                                  /* has_monospace_font_name */ FALSE);
+                                  /* has_monospace_font_name */ FALSE,
+                                  /* has_theme_name */ FALSE);
 
   return ADW_SETTINGS_IMPL (self);
 }

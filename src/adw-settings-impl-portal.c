@@ -37,6 +37,8 @@ struct _AdwSettingsImplPortal
 
   gboolean found_document_font_name;
   gboolean found_monospace_font_name;
+
+  gboolean found_theme_name;
 };
 
 G_DEFINE_FINAL_TYPE (AdwSettingsImplPortal, adw_settings_impl_portal, ADW_TYPE_SETTINGS_IMPL)
@@ -121,7 +123,7 @@ get_fdo_color_scheme (GVariant *variant)
   return color_scheme;
 }
 
-static AdwAccentColor
+static GdkRGBA
 get_fdo_accent_color (GVariant *variant)
 {
   double r = -1, g = -1, b = -1;
@@ -129,15 +131,17 @@ get_fdo_accent_color (GVariant *variant)
 
   g_variant_get (variant, "(ddd)", &r, &g, &b);
 
-  if (r < 0 || g < 0 || b < 0 || r > 1 || g > 1 || b > 1)
-    return ADW_ACCENT_COLOR_BLUE;
+  if (r < 0 || g < 0 || b < 0 || r > 1 || g > 1 || b > 1) {
+    adw_accent_color_to_rgba (ADW_ACCENT_COLOR_BLUE, &rgba);
+    return rgba;
+  }
 
   rgba.red = r;
   rgba.green = g;
   rgba.blue = b;
   rgba.alpha = 1.0;
 
-  return adw_accent_color_nearest_from_rgba (&rgba);
+  return rgba;
 }
 
 static void
@@ -210,6 +214,13 @@ changed_cb (GDBusProxy            *proxy,
       g_variant_unref (value);
       return;
     }
+
+    if (!g_strcmp0 (name, "gtk-theme") && self->found_theme_name) {
+      adw_settings_impl_set_theme_name (ADW_SETTINGS_IMPL (self),
+                                        g_variant_get_string (value, NULL));
+      g_variant_unref (value);
+      return;
+    }
   }
 
   g_variant_unref (value);
@@ -253,7 +264,8 @@ adw_settings_impl_portal_new (gboolean enable_color_scheme,
                               gboolean enable_high_contrast,
                               gboolean enable_accent_colors,
                               gboolean enable_document_font_name,
-                              gboolean enable_monospace_font_name)
+                              gboolean enable_monospace_font_name,
+                              gboolean enable_theme_name)
 {
   AdwSettingsImplPortal *self = g_object_new (ADW_TYPE_SETTINGS_IMPL_PORTAL, NULL);
   GError *error = NULL;
@@ -341,6 +353,17 @@ adw_settings_impl_portal_new (gboolean enable_color_scheme,
 
       g_variant_unref (variant);
     }
+
+    if (enable_theme_name &&
+        read_setting (self, "org.gnome.desktop.interface",
+                      "gtk-theme", "s", &variant)) {
+      self->found_theme_name = TRUE;
+
+      adw_settings_impl_set_theme_name (ADW_SETTINGS_IMPL (self),
+                                        g_variant_get_string (variant, NULL));
+
+      g_variant_unref (variant);
+    }
   }
 
   adw_settings_impl_set_features (ADW_SETTINGS_IMPL (self),
@@ -348,13 +371,15 @@ adw_settings_impl_portal_new (gboolean enable_color_scheme,
                                   self->high_contrast_portal_state != HIGH_CONTRAST_STATE_NONE,
                                   self->found_accent_colors,
                                   self->found_document_font_name,
-                                  self->found_monospace_font_name);
+                                  self->found_monospace_font_name,
+                                  self->found_theme_name);
 
   if (self->found_color_scheme ||
       self->high_contrast_portal_state != HIGH_CONTRAST_STATE_NONE ||
       self->found_accent_colors ||
       self->found_document_font_name ||
-      self->found_monospace_font_name) {
+      self->found_monospace_font_name ||
+      self->found_theme_name) {
     g_signal_connect (self->settings_portal, "g-signal",
                       G_CALLBACK (changed_cb), self);
   }

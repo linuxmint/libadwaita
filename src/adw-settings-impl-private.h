@@ -31,12 +31,14 @@ gboolean adw_settings_impl_get_has_high_contrast       (AdwSettingsImpl *self);
 gboolean adw_settings_impl_get_has_accent_colors       (AdwSettingsImpl *self);
 gboolean adw_settings_impl_get_has_document_font_name  (AdwSettingsImpl *self);
 gboolean adw_settings_impl_get_has_monospace_font_name (AdwSettingsImpl *self);
+gboolean adw_settings_impl_get_has_theme_name          (AdwSettingsImpl *self);
 void     adw_settings_impl_set_features                (AdwSettingsImpl *self,
                                                         gboolean         has_color_scheme,
                                                         gboolean         has_high_contrast,
                                                         gboolean         has_accent_colors,
                                                         gboolean         has_document_font_name,
-                                                        gboolean         has_monospace_font_name);
+                                                        gboolean         has_monospace_font_name,
+                                                        gboolean         has_theme_name);
 
 AdwSystemColorScheme adw_settings_impl_get_color_scheme (AdwSettingsImpl      *self);
 void                 adw_settings_impl_set_color_scheme (AdwSettingsImpl      *self,
@@ -46,9 +48,9 @@ gboolean adw_settings_impl_get_high_contrast (AdwSettingsImpl *self);
 void     adw_settings_impl_set_high_contrast (AdwSettingsImpl *self,
                                               gboolean         high_contrast);
 
-AdwAccentColor adw_settings_impl_get_accent_color (AdwSettingsImpl *self);
+GdkRGBA        adw_settings_impl_get_accent_color (AdwSettingsImpl *self);
 void           adw_settings_impl_set_accent_color (AdwSettingsImpl *self,
-                                                   AdwAccentColor   accent_color);
+                                                   GdkRGBA          accent_color);
 
 const char *adw_settings_impl_get_document_font_name (AdwSettingsImpl *self);
 void        adw_settings_impl_set_document_font_name (AdwSettingsImpl *self,
@@ -57,6 +59,10 @@ void        adw_settings_impl_set_document_font_name (AdwSettingsImpl *self,
 const char *adw_settings_impl_get_monospace_font_name (AdwSettingsImpl *self);
 void        adw_settings_impl_set_monospace_font_name (AdwSettingsImpl *self,
                                                        const char      *font_name);
+
+const gchar *adw_settings_impl_get_theme_name (AdwSettingsImpl *self);
+void         adw_settings_impl_set_theme_name (AdwSettingsImpl *self,
+                                               const gchar     *theme_name);
 
 gboolean adw_get_disable_portal (void);
 
@@ -69,7 +75,8 @@ AdwSettingsImpl *adw_settings_impl_macos_new (gboolean enable_color_scheme,
                                               gboolean enable_high_contrast,
                                               gboolean enable_accent_colors,
                                               gboolean enable_document_font_name,
-                                              gboolean enable_monospace_font_name) G_GNUC_WARN_UNUSED_RESULT;
+                                              gboolean enable_monospace_font_name,
+                                              gboolean enable_theme_name) G_GNUC_WARN_UNUSED_RESULT;
 #elif defined(G_OS_WIN32)
 #define ADW_TYPE_SETTINGS_IMPL_WIN32 (adw_settings_impl_win32_get_type())
 
@@ -79,7 +86,8 @@ AdwSettingsImpl *adw_settings_impl_win32_new (gboolean enable_color_scheme,
                                               gboolean enable_high_contrast,
                                               gboolean enable_accent_colors,
                                               gboolean enable_document_font_name,
-                                              gboolean enable_monospace_font_name) G_GNUC_WARN_UNUSED_RESULT;
+                                              gboolean enable_monospace_font_name,
+                                              gboolean enable_theme_name) G_GNUC_WARN_UNUSED_RESULT;
 #else
 #define ADW_TYPE_SETTINGS_IMPL_PORTAL (adw_settings_impl_portal_get_type())
 
@@ -89,7 +97,8 @@ AdwSettingsImpl *adw_settings_impl_portal_new (gboolean enable_color_scheme,
                                                gboolean enable_high_contrast,
                                                gboolean enable_accent_colors,
                                                gboolean enable_document_font_name,
-                                               gboolean enable_monospace_font_name) G_GNUC_WARN_UNUSED_RESULT;
+                                               gboolean enable_monospace_font_name,
+                                               gboolean enable_theme_name) G_GNUC_WARN_UNUSED_RESULT;
 #endif
 
 #define ADW_TYPE_SETTINGS_IMPL_GSETTINGS (adw_settings_impl_gsettings_get_type())
@@ -100,7 +109,8 @@ AdwSettingsImpl *adw_settings_impl_gsettings_new (gboolean enable_color_scheme,
                                                   gboolean enable_high_contrast,
                                                   gboolean enable_accent_colors,
                                                   gboolean enable_document_font_name,
-                                                  gboolean enable_monospace_font_name) G_GNUC_WARN_UNUSED_RESULT;
+                                                  gboolean enable_monospace_font_name,
+                                                  gboolean enable_theme_name) G_GNUC_WARN_UNUSED_RESULT;
 
 #define ADW_TYPE_SETTINGS_IMPL_LEGACY (adw_settings_impl_legacy_get_type())
 
@@ -110,6 +120,7 @@ AdwSettingsImpl *adw_settings_impl_legacy_new (gboolean enable_color_scheme,
                                                gboolean enable_high_contrast,
                                                gboolean enable_accent_colors,
                                                gboolean enable_document_font_name,
-                                               gboolean enable_monospace_font_name) G_GNUC_WARN_UNUSED_RESULT;
+                                               gboolean enable_monospace_font_name,
+                                               gboolean enable_theme_name) G_GNUC_WARN_UNUSED_RESULT;
 
 G_END_DECLS
