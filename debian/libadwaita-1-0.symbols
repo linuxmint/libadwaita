@@ -789,6 +789,8 @@ libadwaita-1.so.0 libadwaita-1-0 #MINVER#
  adw_settings_get_monospace_font_name@LIBADWAITA_1_0 1.7~beta
  adw_settings_get_system_supports_accent_colors@LIBADWAITA_1_0 1.6~beta
  adw_settings_get_system_supports_color_schemes@LIBADWAITA_1_0 1.0.1
+ adw_settings_get_theme_is_dark@LIBADWAITA_1_0 1.9.0
+ adw_settings_get_theme_name@LIBADWAITA_1_0 1.9.0
  adw_settings_override_color_scheme@LIBADWAITA_1_0 1.0.1
  adw_settings_override_high_contrast@LIBADWAITA_1_0 1.0.1
  adw_settings_override_system_supports_color_schemes@LIBADWAITA_1_0 1.0.1

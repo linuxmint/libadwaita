@@ -387,7 +387,8 @@ adw_settings_impl_win32_new (gboolean enable_color_scheme,
                              gboolean enable_high_contrast,
                              gboolean enable_accent_colors,
                              gboolean enable_document_font_name,
-                             gboolean enable_monospace_font_name)
+                             gboolean enable_monospace_font_name,
+                             gboolean enable_theme_name)
 {
   AdwSettingsImplWin32 *self = g_object_new (ADW_TYPE_SETTINGS_IMPL_WIN32, NULL);
   GdkDisplay *display = gdk_display_get_default ();
@@ -411,6 +412,7 @@ adw_settings_impl_win32_new (gboolean enable_color_scheme,
                                   enable_color_scheme,
                                   enable_high_contrast,
                                   enable_accent_colors,
+                                  FALSE,
                                   FALSE,
                                   FALSE);
 

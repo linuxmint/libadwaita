@@ -14,6 +14,7 @@
 #include "adw-main-private.h"
 #include "adw-settings-private.h"
 #include <gtk/gtk.h>
+#include <glib/gstdio.h>
 
 #define SWITCH_DURATION 250
 
@@ -107,8 +108,98 @@ typedef enum {
   UPDATE_ACCENT_COLOR   = 1 << 2,
   UPDATE_FONTS          = 1 << 3,
   UPDATE_REDUCED_MOTION = 1 << 4,
+  UPDATE_BASE           = 1 << 5,
   UPDATE_ALL            = 0xFF
 } StylesheetUpdateFlags;
+
+static void
+debug_theme_valist (const gchar *format,
+                    va_list      args)
+{
+  static gsize init = 0;
+  static gboolean debug = FALSE;
+
+  if (g_once_init_enter (&init))
+    {
+      debug = !!g_getenv ("ADW_DEBUG_THEMES");
+      g_once_init_leave (&init, 1);
+    }
+
+  if (debug)
+    g_logv (G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE, format, args);
+}
+
+static void
+debug_theme (const gchar *format,
+             ...) G_GNUC_PRINTF (1, 2);
+
+static void
+debug_theme (const gchar *format,
+             ...)
+{
+  va_list args;
+  va_start (args, format);
+  debug_theme_valist (format, args);
+  va_end (args);
+}
+
+static gboolean
+find_theme_css_each (const gchar  *dir,
+                     const gchar  *subdir,
+                     const gchar  *name,
+                     gchar       **found_css_path)
+{
+  g_autofree gchar *top_theme_dir = NULL;
+  g_autofree gchar *parent_dir = NULL;
+  g_autofree gchar *version_dir = NULL;
+  g_autofree gchar *css_path = NULL;
+
+  g_clear_pointer (found_css_path, g_free);
+
+  if (!name || !*name)
+    return FALSE;
+
+  top_theme_dir = g_build_filename (dir, subdir, NULL);
+  parent_dir = g_build_filename (top_theme_dir, name, NULL);
+
+  debug_theme ("Looking for theme '%s' in '%s'", name, top_theme_dir);
+
+  if (!g_file_test (parent_dir, G_FILE_TEST_EXISTS))
+    return FALSE;
+
+  version_dir = g_strdup_printf ("libadwaita-%d.%d", ADW_MAJOR_VERSION, ADW_MINOR_VERSION);
+  css_path = g_build_filename (parent_dir, version_dir, "gtk.css", NULL);
+
+  if (g_file_test (css_path, G_FILE_TEST_EXISTS)) {
+    debug_theme ("Found theme directory '%s' in '%s'.", version_dir, parent_dir);
+    *found_css_path = g_steal_pointer (&css_path);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+static gboolean
+find_theme_css (const gchar  *name,
+                gchar       **found_css_path)
+{
+  const char *const *dirs;
+  int i;
+
+  if (find_theme_css_each (g_get_user_data_dir (), "themes", name, found_css_path))
+    return TRUE;
+
+  if (find_theme_css_each (g_get_home_dir (), ".themes", name, found_css_path))
+    return TRUE;
+
+  dirs = g_get_system_data_dirs ();
+  for (i = 0; dirs[i]; i++) {
+    if (find_theme_css_each (dirs[i], "themes", name, found_css_path))
+      return TRUE;
+  }
+
+  return FALSE;
+}
 
 static void
 warn_prefer_dark_theme (AdwStyleManager *self)
@@ -161,13 +252,12 @@ enable_animations_cb (AdwStyleManager *self)
 static char*
 generate_accent_css (AdwStyleManager *self)
 {
-  AdwAccentColor accent = adw_style_manager_get_accent_color (self);
+  GdkRGBA accent_color = adw_settings_get_accent_color (self->settings);
+
   GString *str = g_string_new ("");
-  GdkRGBA rgba;
   char *rgba_str;
 
-  adw_accent_color_to_rgba (accent, &rgba);
-  rgba_str = gdk_rgba_to_string (&rgba);
+  rgba_str = gdk_rgba_to_string (&accent_color);
 
   g_string_append_printf (str, "@define-color accent_bg_color %s;\n", rgba_str);
   g_string_append (str, "@define-color accent_fg_color white;\n");
@@ -249,6 +339,20 @@ update_stylesheet (AdwStyleManager       *self,
   gtk_style_context_add_provider_for_display (self->display,
                                               GTK_STYLE_PROVIDER (self->animations_provider),
                                               10000);
+
+  if (flags & UPDATE_BASE && self->provider) {
+    g_autofree gchar *found_css_path = NULL;
+    const gchar *theme_name = adw_settings_get_theme_name (self->settings);
+
+    if (find_theme_css (theme_name, &found_css_path)) {
+      debug_theme ("Using theme '%s' gtk.css from %s.", theme_name, found_css_path);
+      gtk_css_provider_load_from_path (self->provider, found_css_path);
+    } else {
+      debug_theme ("No libadwaita support in system theme, using default style.");
+      gtk_css_provider_load_from_resource (self->provider,
+                                           "/org/gnome/Adwaita/styles/gtk.css");
+    }
+  }
 
   if (flags & UPDATE_ACCENT_COLOR && self->accent_provider) {
     char *accent_css = generate_accent_css (self);
@@ -332,6 +436,11 @@ get_is_dark (AdwStyleManager *self)
   case ADW_COLOR_SCHEME_DEFAULT:
     if (self->display)
       return get_is_dark (default_instance);
+    if (adw_settings_get_theme_is_dark (self->settings)) {
+      debug_theme ("Theme '%s' is dark, so preferring dark color scheme.",
+                   adw_settings_get_theme_name (self->settings));
+      return TRUE;
+    }
     return (system_scheme == ADW_SYSTEM_COLOR_SCHEME_PREFER_DARK);
   case ADW_COLOR_SCHEME_FORCE_LIGHT:
     return FALSE;
@@ -465,6 +574,13 @@ notify_high_contrast_cb (AdwStyleManager *self)
 }
 
 static void
+notify_theme_name_cb (AdwStyleManager *self)
+{
+  self->dark = get_is_dark (self);
+  update_stylesheet (self, UPDATE_BASE | UPDATE_COLOR_SCHEME | UPDATE_ACCENT_COLOR);
+}
+
+static void
 adw_style_manager_constructed (GObject *object)
 {
   AdwStyleManager *self = ADW_STYLE_MANAGER (object);
@@ -495,8 +611,6 @@ adw_style_manager_constructed (GObject *object)
                     NULL);
 
       self->provider = gtk_css_provider_new ();
-      gtk_css_provider_load_from_resource (self->provider,
-                                           "/org/gnome/Adwaita/styles/gtk.css");
       gtk_style_context_add_provider_for_display (self->display,
                                                   GTK_STYLE_PROVIDER (self->provider),
                                                   GTK_STYLE_PROVIDER_PRIORITY_THEME);
@@ -563,6 +677,11 @@ adw_style_manager_constructed (GObject *object)
   g_signal_connect_object (self->settings,
                            "notify::monospace-font-name",
                            G_CALLBACK (update_fonts),
+                           self,
+                           G_CONNECT_SWAPPED);
+  g_signal_connect_object (self->settings,
+                           "notify::theme-name",
+                           G_CALLBACK (notify_theme_name_cb),
                            self,
                            G_CONNECT_SWAPPED);
 
@@ -1139,7 +1258,9 @@ adw_style_manager_get_accent_color (AdwStyleManager *self)
 {
   g_return_val_if_fail (ADW_IS_STYLE_MANAGER (self), ADW_ACCENT_COLOR_BLUE);
 
-  return adw_settings_get_accent_color (self->settings);
+  GdkRGBA rgba;
+  rgba = adw_settings_get_accent_color (self->settings);
+  return adw_accent_color_nearest_from_rgba (&rgba);
 }
 
 /**
@@ -1160,16 +1281,10 @@ adw_style_manager_get_accent_color (AdwStyleManager *self)
 GdkRGBA *
 adw_style_manager_get_accent_color_rgba (AdwStyleManager *self)
 {
-  AdwAccentColor color;
-  GdkRGBA rgba;
-
   g_return_val_if_fail (ADW_IS_STYLE_MANAGER (self), NULL);
 
-  color = adw_style_manager_get_accent_color (self);
-
-  adw_accent_color_to_rgba (color, &rgba);
-
-  return gdk_rgba_copy (&rgba);
+  GdkRGBA accent_color = adw_settings_get_accent_color (self->settings);
+  return gdk_rgba_copy (&accent_color);
 }
 
 /**

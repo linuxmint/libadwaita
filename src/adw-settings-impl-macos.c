@@ -104,7 +104,8 @@ adw_settings_impl_macos_new (gboolean enable_color_scheme,
                              gboolean enable_high_contrast,
                              gboolean enable_accent_colors,
                              gboolean enable_document_font_name,
-                             gboolean enable_monospace_font_name)
+                             gboolean enable_monospace_font_name,
+                             gboolean enable_theme_name)
 {
   static SettingsChangedObserver *observer;
 
@@ -146,6 +147,7 @@ adw_settings_impl_macos_new (gboolean enable_color_scheme,
                                   enable_color_scheme,
                                   enable_high_contrast,
                                   enable_accent_colors,
+                                  FALSE,
                                   FALSE,
                                   FALSE);
 
