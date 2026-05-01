@@ -1,3 +1,10 @@
+libadwaita-1 (1.9.0-1mint1) alfa; urgency=medium
+
+  [ Michael Webster ]
+  * adw-style-manager.c: Use the current system theme for style info when support exists.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Fri, 01 May 2026 10:52:13 +0100
+
 libadwaita-1 (1.9.0-0ubuntu1) resolute; urgency=medium
 
   * New upstream release 1.9.0 (LP: #2144437)
