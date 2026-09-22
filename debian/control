@@ -1,0 +1,100 @@
+Source: libadwaita-1
+Section: libs
+Standards-Version: 4.7.3
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+XSBC-Original-Maintainer: Debian GNOME Maintainers <pkg-gnome-maintainers@lists.alioth.debian.org>
+Uploaders: Guido Günther <agx@sigxcpu.org>,
+           Jeremy Bícha <jbicha@ubuntu.com>,
+           Marco Trevisan (Treviño) <marco@ubuntu.com>
+Build-Depends: debhelper-compat (= 13),
+               dh-sequence-gir,
+               dh-sequence-gnome,
+               appstream <!nocheck>,
+               gir1.2-gio-2.0-dev,
+               gir1.2-gtk-4.0-dev,
+               gobject-introspection (>= 1.80),
+               libappstream-dev,
+               libfribidi-dev,
+               libglib2.0-dev (>= 2.80.0),
+               libgnome-desktop-3-dev,
+               libgtk-4-dev (>= 4.21.1),
+               libxml2-utils,
+               mesa-vulkan-drivers <!nocheck>,
+               meson,
+               pkgconf,
+               python3-gi <!nocheck>,
+               sassc,
+               valac,
+               xauth <!nocheck>,
+               xvfb <!nocheck>
+Build-Depends-Indep: gi-docgen <!nodoc>
+Vcs-Browser: https://salsa.debian.org/gnome-team/libadwaita
+Vcs-Git: https://salsa.debian.org/gnome-team/libadwaita.git
+Homepage: https://gnome.pages.gitlab.gnome.org/libadwaita/
+
+Package: libadwaita-1-0
+Architecture: any
+Multi-Arch: same
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
+Description: Library with GTK widgets for mobile phones
+ libadwaita provides GTK widgets and GObjects to ease developing
+ applications for mobile phones.
+ .
+ This package contains the shared library.
+
+Package: libadwaita-1-dev
+Architecture: any
+Multi-Arch: same
+Section: libdevel
+Depends: gir1.2-adw-1 (= ${binary:Version}),
+         libadwaita-1-0 (= ${binary:Version}),
+         libappstream-dev,
+         libgtk-4-dev (>= 4.21.1),
+         ${gir:Depends},
+         ${misc:Depends},
+         ${shlibs:Depends}
+Recommends: pkgconf
+Suggests: libadwaita-1-doc
+Provides: ${gir:Provides}
+Description: Development files for libadwaita
+ libadwaita provides GTK widgets and GObjects to ease developing
+ applications for mobile phones.
+ .
+ This package contains the development files.
+
+Package: gir1.2-adw-1
+Architecture: any
+Multi-Arch: same
+Section: introspection
+Depends: ${gir:Depends},
+         ${misc:Depends}
+Description: GObject introspection files for libadwaita
+ libadwaita provides GTK widgets and GObjects to ease developing
+ applications for mobile phones.
+ .
+ This package contains the GObject-introspection data in binary typelib format.
+
+Package: libadwaita-1-doc
+Architecture: all
+Build-Profiles: <!nodoc>
+Multi-Arch: foreign
+Section: doc
+Depends: ${misc:Depends}
+Description: Documentation for libadwaita
+ libadwaita provides GTK widgets and GObjects to ease developing
+ applications for mobile phones.
+ .
+ This package contains the API reference.
+
+Package: libadwaita-1-examples
+Architecture: any
+Section: x11
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
+Description: Example programs for libadwaita
+ libadwaita provides GTK widgets and GObjects to ease developing
+ applications for mobile phones.
+ .
+ This package contains example files and the demonstration program for
+ libadwaita.

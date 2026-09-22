@@ -1,0 +1,9 @@
+Document: libadwaita-1
+Title: Adw-1 Reference Manual
+Author: Libadwaita contributors
+Abstract: Building blocks for modern GNOME applications
+Section: Programming/C
+
+Format: HTML
+Index: /usr/share/doc/libadwaita-1/index.html
+Files: /usr/share/doc/libadwaita-1/*.html
